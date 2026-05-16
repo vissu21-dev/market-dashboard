@@ -1282,6 +1282,15 @@ with tab2:
     sel_index = st.radio("Select Index for Signals", ["Nifty 50", "Bank Nifty", "Both"],
                           horizontal=True)
 
+    # Budget input — used inside show_intraday_signals below
+    bgt_col, _ = st.columns([1, 3])
+    with bgt_col:
+        user_budget = st.number_input(
+            "💰 My budget per lot (₹)", min_value=500, max_value=500000,
+            value=10000, step=500, key="intra_budget",
+            help="Dashboard will highlight strikes you can afford with this budget",
+        )
+
     def show_intraday_signals(df, ltp, vix, name, step):
         setup = intraday_option_setup(df, ltp, vix, name, step)
         st.markdown(f"### {name} — Intraday Signals")
@@ -1329,6 +1338,102 @@ with tab2:
                           put_t["conf"],  put_t["status"]],
         })
         st.dataframe(ref_df.set_index(""), use_container_width=True)
+
+        # ── Strike Ladder ─────────────────────────────────────────────────────
+        st.markdown("#### 🎯 Strike Selection — Choose by Budget")
+        st.caption("Estimated premiums based on VIX and days to expiry. Actual premiums may differ — verify on your broker.")
+
+        atm     = setup["atm"]
+        vix_val = max(float(vix) if vix else 15, 8)
+        exp_info   = next_expiry_info()
+        days_left  = exp_info["nifty"]["days"] if "Bank" not in name else exp_info["banknifty"]["days"]
+        days_safe  = max(float(days_left), 0.5)
+        lot_sz     = 75 if "Bank" not in name else 30
+
+        # VIX + time-adjusted base premium (rough Black-Scholes approximation)
+        base_prem = ltp * (vix_val / 100) * np.sqrt(days_safe / 252) * 0.45
+
+        OTM_LEVELS = [
+            ("ATM",       0,  1.00, "Highest delta — moves most with index. Best for strong trending days."),
+            ("OTM 1",     1,  0.58, "Popular choice — good balance of cost vs. movement potential."),
+            ("OTM 2",     2,  0.33, "Lower cost — needs ~0.5% index move to start profiting."),
+            ("Deep OTM",  3,  0.18, "Cheapest — needs strong trending day (0.8%+ move). High risk."),
+        ]
+
+        for direction, sign, emoji in [("CE", +1, "📈"), ("PE", -1, "📉")]:
+            is_preferred = (sign > 0 and setup["net_score"] > 0) or (sign < 0 and setup["net_score"] < 0)
+            dir_color    = "#26a69a" if direction == "CE" else "#ef5350"
+            badge        = ' <span style="background:#f59e0b;color:#000;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:700">★ PREFERRED</span>' if is_preferred else ""
+            st.markdown(
+                f'<div style="color:{dir_color};font-weight:700;font-size:15px;margin:14px 0 6px">'
+                f'{emoji} {direction} Options{badge}</div>',
+                unsafe_allow_html=True,
+            )
+
+            rows = []
+            for label, offset, mult, note in OTM_LEVELS:
+                strike       = atm + sign * offset * step
+                prem         = max(round(base_prem * mult, 1), 5.0)
+                sl           = round(prem * 0.65, 1)
+                t1           = round(prem * 1.60, 1)
+                t2           = round(prem * 2.50, 1)
+                rr           = round((t1 - prem) / max(prem - sl, 1), 1)
+                budget_1lot  = int(prem * lot_sz)
+                affordable   = budget_1lot <= user_budget
+                max_lots     = int(user_budget // budget_1lot) if budget_1lot > 0 else 0
+                rows.append({
+                    "Strike":         f"{strike} {direction}",
+                    "Type":           label,
+                    "Est. Premium ₹": prem,
+                    "Stop-Loss ₹":    sl,
+                    "Target 1 ₹":     t1,
+                    "Target 2 ₹":     t2,
+                    "R:R":            f"1:{rr}",
+                    f"Budget (1 lot)": f"₹{budget_1lot:,}",
+                    f"Max lots @ ₹{user_budget:,}": max_lots if affordable else "—",
+                    "Status":         "✅ Affordable" if affordable else "❌ Over budget",
+                    "_note":          note,
+                    "_affordable":    affordable,
+                })
+
+            for row in rows:
+                aff     = row["_affordable"]
+                bg      = "rgba(38,166,154,0.07)" if aff and direction == "CE" else \
+                          ("rgba(239,83,80,0.07)"  if aff and direction == "PE" else "rgba(255,255,255,0.02)")
+                border  = dir_color if aff else "#374151"
+                opacity = "1" if aff else "0.45"
+                lots_disp = row[f"Max lots @ ₹{user_budget:,}"]
+                st.markdown(f"""
+                <div style="background:{bg};border:1px solid {border};border-radius:8px;
+                            padding:10px 14px;margin:5px 0;opacity:{opacity}">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                    <div>
+                      <span style="color:{dir_color};font-weight:800;font-size:15px">{row['Strike']}</span>
+                      <span style="background:#1a1d2e;color:#9ca3af;padding:2px 8px;border-radius:8px;
+                                   font-size:11px;margin-left:8px">{row['Type']}</span>
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">
+                      <div><span style="color:#6b7280">Premium</span>
+                           <div style="font-weight:700;color:{dir_color}">₹{row['Est. Premium ₹']}</div></div>
+                      <div><span style="color:#6b7280">SL</span>
+                           <div style="font-weight:700;color:#ef5350">₹{row['Stop-Loss ₹']}</div></div>
+                      <div><span style="color:#6b7280">Target 1</span>
+                           <div style="font-weight:700;color:#26a69a">₹{row['Target 1 ₹']}</div></div>
+                      <div><span style="color:#6b7280">Target 2</span>
+                           <div style="font-weight:700;color:#26a69a">₹{row['Target 2 ₹']}</div></div>
+                      <div><span style="color:#6b7280">R:R</span>
+                           <div style="font-weight:700">{row['R:R']}</div></div>
+                      <div><span style="color:#6b7280">1 lot costs</span>
+                           <div style="font-weight:700">{row['Budget (1 lot)']}</div></div>
+                      <div><span style="color:#6b7280">Max lots</span>
+                           <div style="font-weight:800;color:{'#26a69a' if aff else '#6b7280'};font-size:15px">{lots_disp}</div></div>
+                    </div>
+                    <div style="font-size:12px;font-weight:700">{'✅' if aff else '❌'}</div>
+                  </div>
+                  <div style="font-size:11px;color:#6b7280;margin-top:5px">💡 {row['_note']}</div>
+                </div>""", unsafe_allow_html=True)
+
+        st.caption(f"Lot sizes — Nifty: 75 | Bank Nifty: 30 | Fin Nifty: 40 | Expiry in {days_left} day(s)")
 
         # Risk rules reminder
         st.markdown("""
