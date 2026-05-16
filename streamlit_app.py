@@ -1934,7 +1934,7 @@ with tab8:
             available = [c for c in display_cols if c in filtered.columns]
             st.dataframe(
                 filtered[available].sort_values("date", ascending=False)
-                    .style.applymap(color_pnl, subset=["pnl"]),
+                    .style.map(color_pnl, subset=["pnl"]),
                 use_container_width=True, height=400,
             )
 
@@ -2074,8 +2074,8 @@ with tab9:
 
         st.dataframe(
             disp.style
-                .applymap(color_signal, subset=["Signal"])
-                .applymap(color_score, subset=["Score"]),
+                .map(color_signal, subset=["Signal"])
+                .map(color_score, subset=["Score"]),
             use_container_width=True, height=420, hide_index=True,
         )
 
