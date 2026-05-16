@@ -7,4 +7,3 @@ primaryColor = "#3b82f6"
 
 [server]
 headless = true
-port = 8502
