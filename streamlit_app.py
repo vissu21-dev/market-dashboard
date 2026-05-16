@@ -106,6 +106,173 @@ GLOBAL = {
     "US 10Y Yield": "^TNX",
 }
 
+NIFTY50_STOCKS = {
+    "Reliance":         "RELIANCE.NS",
+    "TCS":              "TCS.NS",
+    "HDFC Bank":        "HDFCBANK.NS",
+    "Infosys":          "INFY.NS",
+    "ICICI Bank":       "ICICIBANK.NS",
+    "HUL":              "HINDUNILVR.NS",
+    "ITC":              "ITC.NS",
+    "SBI":              "SBIN.NS",
+    "Bajaj Finance":    "BAJFINANCE.NS",
+    "Bharti Airtel":    "BHARTIARTL.NS",
+    "Kotak Bank":       "KOTAKBANK.NS",
+    "L&T":              "LT.NS",
+    "Axis Bank":        "AXISBANK.NS",
+    "Asian Paints":     "ASIANPAINT.NS",
+    "Maruti":           "MARUTI.NS",
+    "Titan":            "TITAN.NS",
+    "Sun Pharma":       "SUNPHARMA.NS",
+    "UltraTech Cement": "ULTRACEMCO.NS",
+    "Wipro":            "WIPRO.NS",
+    "ONGC":             "ONGC.NS",
+    "Power Grid":       "POWERGRID.NS",
+    "NTPC":             "NTPC.NS",
+    "Tech Mahindra":    "TECHM.NS",
+    "Nestle":           "NESTLEIND.NS",
+    "HCL Tech":         "HCLTECH.NS",
+    "Tata Motors":      "TATAMOTORS.NS",
+    "Tata Steel":       "TATASTEEL.NS",
+    "JSW Steel":        "JSWSTEEL.NS",
+    "Hindalco":         "HINDALCO.NS",
+    "M&M":              "M&M.NS",
+    "Dr Reddy's":       "DRREDDY.NS",
+    "Cipla":            "CIPLA.NS",
+    "Bajaj Auto":       "BAJAJ-AUTO.NS",
+    "Eicher Motors":    "EICHERMOT.NS",
+    "Coal India":       "COALINDIA.NS",
+    "Hero MotoCorp":    "HEROMOTOCO.NS",
+    "Apollo Hospitals": "APOLLOHOSP.NS",
+    "Tata Consumer":    "TATACONSUM.NS",
+    "Britannia":        "BRITANNIA.NS",
+    "IndusInd Bank":    "INDUSINDBK.NS",
+    "SBI Life":         "SBILIFE.NS",
+    "HDFC Life":        "HDFCLIFE.NS",
+    "Adani Ports":      "ADANIPORTS.NS",
+    "Adani Ent.":       "ADANIENT.NS",
+    "Grasim":           "GRASIM.NS",
+    "Divi's Labs":      "DIVISLAB.NS",
+    "Bajaj Finserv":    "BAJAJFINSV.NS",
+    "UPL":              "UPL.NS",
+    "Shree Cement":     "SHREECEM.NS",
+}
+
+STOCK_SECTORS = {
+    "RELIANCE.NS": "Energy",    "ONGC.NS": "Energy",
+    "HDFCBANK.NS": "Banking",   "ICICIBANK.NS": "Banking",  "SBIN.NS": "Banking",
+    "AXISBANK.NS": "Banking",   "KOTAKBANK.NS": "Banking",  "INDUSINDBK.NS": "Banking",
+    "TCS.NS": "IT",             "INFY.NS": "IT",            "WIPRO.NS": "IT",
+    "HCLTECH.NS": "IT",         "TECHM.NS": "IT",
+    "HINDUNILVR.NS": "FMCG",   "ITC.NS": "FMCG",          "NESTLEIND.NS": "FMCG",
+    "BRITANNIA.NS": "FMCG",    "TATACONSUM.NS": "FMCG",
+    "MARUTI.NS": "Auto",        "TATAMOTORS.NS": "Auto",    "M&M.NS": "Auto",
+    "BAJAJ-AUTO.NS": "Auto",    "HEROMOTOCO.NS": "Auto",    "EICHERMOT.NS": "Auto",
+    "SUNPHARMA.NS": "Pharma",   "DRREDDY.NS": "Pharma",    "CIPLA.NS": "Pharma",
+    "DIVISLAB.NS": "Pharma",
+    "BAJFINANCE.NS": "Finance", "BAJAJFINSV.NS": "Finance", "SBILIFE.NS": "Finance",
+    "HDFCLIFE.NS": "Finance",
+    "LT.NS": "Infra",           "POWERGRID.NS": "Infra",   "NTPC.NS": "Infra",
+    "COALINDIA.NS": "Infra",    "ADANIPORTS.NS": "Infra",
+    "TATASTEEL.NS": "Metals",   "JSWSTEEL.NS": "Metals",   "HINDALCO.NS": "Metals",
+    "ASIANPAINT.NS": "Consumer","TITAN.NS": "Consumer",
+    "ULTRACEMCO.NS": "Cement",  "GRASIM.NS": "Cement",     "SHREECEM.NS": "Cement",
+    "BHARTIARTL.NS": "Telecom", "APOLLOHOSP.NS": "Healthcare",
+    "UPL.NS": "Chemicals",      "ADANIENT.NS": "Conglomerate",
+}
+
+MUTUAL_FUNDS = [
+    # Large Cap
+    {"name": "Mirae Asset Large Cap Fund", "category": "Large Cap", "risk": "Moderate",
+     "ret_1y": 18.5, "ret_3y": 16.2, "ret_5y": 17.8, "aum": "₹36,000 Cr",
+     "min_sip": 1000, "stars": 5, "profiles": ["Moderate", "Aggressive"],
+     "horizon": "3y+", "goal": ["Wealth Creation", "Retirement"],
+     "why": "Consistent Nifty-beating returns, large AUM gives stability"},
+    {"name": "Axis Bluechip Fund", "category": "Large Cap", "risk": "Moderate",
+     "ret_1y": 16.2, "ret_3y": 14.8, "ret_5y": 16.5, "aum": "₹28,000 Cr",
+     "min_sip": 500, "stars": 4, "profiles": ["Conservative", "Moderate"],
+     "horizon": "3y+", "goal": ["Wealth Creation", "Retirement"],
+     "why": "Quality-focused portfolio, lower drawdown in bear markets"},
+    # Flexi Cap
+    {"name": "Parag Parikh Flexi Cap Fund", "category": "Flexi Cap", "risk": "Moderate",
+     "ret_1y": 22.1, "ret_3y": 19.4, "ret_5y": 21.2, "aum": "₹65,000 Cr",
+     "min_sip": 1000, "stars": 5, "profiles": ["Moderate", "Aggressive"],
+     "horizon": "5y+", "goal": ["Wealth Creation", "Retirement"],
+     "why": "Globally diversified (US stocks included), Warren Buffett philosophy"},
+    {"name": "HDFC Flexi Cap Fund", "category": "Flexi Cap", "risk": "Moderate-High",
+     "ret_1y": 24.8, "ret_3y": 21.6, "ret_5y": 20.4, "aum": "₹52,000 Cr",
+     "min_sip": 100, "stars": 5, "profiles": ["Moderate", "Aggressive"],
+     "horizon": "5y+", "goal": ["Wealth Creation"],
+     "why": "Strong all-weather fund, moves between large/mid/small dynamically"},
+    # Mid Cap
+    {"name": "Nippon India Mid Cap Fund", "category": "Mid Cap", "risk": "High",
+     "ret_1y": 35.2, "ret_3y": 27.8, "ret_5y": 28.4, "aum": "₹29,000 Cr",
+     "min_sip": 100, "stars": 5, "profiles": ["Aggressive"],
+     "horizon": "7y+", "goal": ["Wealth Creation"],
+     "why": "Consistently top-performing mid-cap, ideal for long-term wealth"},
+    {"name": "HDFC Mid Cap Opportunities", "category": "Mid Cap", "risk": "High",
+     "ret_1y": 32.8, "ret_3y": 25.6, "ret_5y": 26.9, "aum": "₹62,000 Cr",
+     "min_sip": 100, "stars": 5, "profiles": ["Aggressive"],
+     "horizon": "7y+", "goal": ["Wealth Creation"],
+     "why": "India's largest mid-cap fund, proven 15-year track record"},
+    # Small Cap
+    {"name": "SBI Small Cap Fund", "category": "Small Cap", "risk": "Very High",
+     "ret_1y": 28.4, "ret_3y": 22.1, "ret_5y": 29.6, "aum": "₹24,000 Cr",
+     "min_sip": 500, "stars": 5, "profiles": ["Aggressive"],
+     "horizon": "10y+", "goal": ["Wealth Creation"],
+     "why": "Best small-cap fund for consistent long-term wealth creation"},
+    # Index Funds
+    {"name": "UTI Nifty 50 Index Fund", "category": "Index Fund", "risk": "Moderate",
+     "ret_1y": 16.8, "ret_3y": 14.2, "ret_5y": 15.6, "aum": "₹17,000 Cr",
+     "min_sip": 500, "stars": 4, "profiles": ["Conservative", "Moderate"],
+     "horizon": "3y+", "goal": ["Wealth Creation", "Retirement"],
+     "why": "Lowest cost (0.1% expense ratio), tracks Nifty 50, no fund manager risk"},
+    {"name": "Motilal Oswal Nifty Next 50 Index", "category": "Index Fund", "risk": "Moderate-High",
+     "ret_1y": 19.2, "ret_3y": 16.8, "ret_5y": 17.4, "aum": "₹5,000 Cr",
+     "min_sip": 500, "stars": 4, "profiles": ["Moderate", "Aggressive"],
+     "horizon": "5y+", "goal": ["Wealth Creation"],
+     "why": "Next 50 Nifty companies — future blue chips at lower price"},
+    # ELSS Tax Saving
+    {"name": "Mirae Asset Tax Saver Fund", "category": "ELSS (Tax Saving)", "risk": "Moderate-High",
+     "ret_1y": 20.4, "ret_3y": 17.6, "ret_5y": 19.8, "aum": "₹23,000 Cr",
+     "min_sip": 500, "stars": 5, "profiles": ["Moderate", "Aggressive"],
+     "horizon": "3y+ lock-in", "goal": ["Tax Saving", "Wealth Creation"],
+     "why": "Best ELSS fund. Saves up to ₹46,800 tax under Section 80C"},
+    {"name": "Quant ELSS Tax Saver Fund", "category": "ELSS (Tax Saving)", "risk": "High",
+     "ret_1y": 28.6, "ret_3y": 24.2, "ret_5y": 28.1, "aum": "₹9,000 Cr",
+     "min_sip": 500, "stars": 5, "profiles": ["Aggressive"],
+     "horizon": "3y+ lock-in", "goal": ["Tax Saving", "Wealth Creation"],
+     "why": "Highest-return ELSS in last 5 years, quantitative investing approach"},
+    # Hybrid
+    {"name": "HDFC Balanced Advantage Fund", "category": "Hybrid / BAF", "risk": "Moderate",
+     "ret_1y": 18.2, "ret_3y": 15.8, "ret_5y": 16.4, "aum": "₹86,000 Cr",
+     "min_sip": 100, "stars": 4, "profiles": ["Conservative", "Moderate"],
+     "horizon": "3y+", "goal": ["Wealth Creation", "Retirement", "Monthly Income"],
+     "why": "Auto-balances equity/debt ratio based on market valuation"},
+    {"name": "SBI Equity Hybrid Fund", "category": "Hybrid / BAF", "risk": "Moderate",
+     "ret_1y": 17.6, "ret_3y": 14.9, "ret_5y": 15.8, "aum": "₹62,000 Cr",
+     "min_sip": 1000, "stars": 4, "profiles": ["Conservative", "Moderate"],
+     "horizon": "3y+", "goal": ["Retirement", "Monthly Income"],
+     "why": "Stable 75:25 equity-debt mix, good for first-time investors"},
+    # Debt
+    {"name": "HDFC Short Term Debt Fund", "category": "Short Duration Debt", "risk": "Low",
+     "ret_1y": 7.8, "ret_3y": 6.9, "ret_5y": 7.2, "aum": "₹12,000 Cr",
+     "min_sip": 100, "stars": 4, "profiles": ["Conservative"],
+     "horizon": "1-3y", "goal": ["Emergency Fund", "Short-term Savings"],
+     "why": "More tax-efficient than FD for 3+ year holding, stable returns"},
+    {"name": "Nippon India Liquid Fund", "category": "Liquid Fund", "risk": "Very Low",
+     "ret_1y": 7.2, "ret_3y": 6.4, "ret_5y": 6.1, "aum": "₹28,000 Cr",
+     "min_sip": 100, "stars": 4, "profiles": ["Conservative"],
+     "horizon": "< 1y", "goal": ["Emergency Fund", "Parking Money"],
+     "why": "Better than savings account, instant redemption, very safe"},
+    # International
+    {"name": "Motilal Oswal Nasdaq 100 FOF", "category": "International", "risk": "High",
+     "ret_1y": 24.6, "ret_3y": 12.4, "ret_5y": 22.8, "aum": "₹4,000 Cr",
+     "min_sip": 500, "stars": 4, "profiles": ["Aggressive"],
+     "horizon": "5y+", "goal": ["Wealth Creation"],
+     "why": "Invest in Apple, Microsoft, Google via Indian rupees. USD hedge benefit"},
+]
+
 # ── Data helpers ──────────────────────────────────────────────────────────────
 @st.cache_data(ttl=30)
 def get_quote(ticker: str) -> dict:
@@ -143,6 +310,105 @@ def get_candles(ticker: str, period: str = "5d", interval: str = "15m") -> pd.Da
         return df
     except Exception:
         return pd.DataFrame()
+
+
+@st.cache_data(ttl=300)
+def screen_nifty50() -> pd.DataFrame:
+    """Score all Nifty 50 stocks using RSI, EMA trend, MACD, volume, 52W position."""
+    tickers = list(NIFTY50_STOCKS.values())
+    try:
+        raw = yf.download(
+            " ".join(tickers), period="6mo", interval="1d",
+            progress=False, auto_adjust=True, group_by="ticker",
+        )
+    except Exception:
+        return pd.DataFrame()
+
+    results = []
+    for name, ticker in NIFTY50_STOCKS.items():
+        try:
+            df = raw[ticker].dropna() if ticker in raw.columns.get_level_values(0) else pd.DataFrame()
+            if df.empty or len(df) < 30:
+                continue
+            close  = df["Close"]
+            ltp    = float(close.iloc[-1])
+            prev   = float(close.iloc[-2])
+            pct    = (ltp - prev) / prev * 100
+            high52 = float(close.rolling(252, min_periods=30).max().iloc[-1])
+            low52  = float(close.rolling(252, min_periods=30).min().iloc[-1])
+            ema20  = float(close.ewm(span=20, adjust=False).mean().iloc[-1])
+            ema50  = float(close.ewm(span=50, adjust=False).mean().iloc[-1])
+            ema200 = float(close.ewm(span=200, adjust=False).mean().iloc[-1])
+            # RSI
+            delta = close.diff()
+            gain  = delta.clip(lower=0).ewm(com=13, min_periods=14).mean()
+            loss  = (-delta.clip(upper=0)).ewm(com=13, min_periods=14).mean()
+            rsi   = float(100 - 100 / (1 + gain / loss.replace(0, np.nan)).iloc[-1])
+            # MACD
+            macd_line = close.ewm(span=12).mean() - close.ewm(span=26).mean()
+            macd_sig  = macd_line.ewm(span=9).mean()
+            macd_bull = float(macd_line.iloc[-1]) > float(macd_sig.iloc[-1])
+            # Volume
+            vol_ratio = 1.0
+            if "Volume" in df.columns:
+                vol = float(df["Volume"].iloc[-1])
+                avg = float(df["Volume"].tail(20).mean())
+                vol_ratio = vol / avg if avg > 0 else 1.0
+            # Score (-10 to +10)
+            score = 0
+            reasons = []
+            if ltp > ema20 > ema50 > ema200:
+                score += 4; reasons.append("Strong uptrend (EMA 20>50>200)")
+            elif ltp > ema20 > ema50:
+                score += 2; reasons.append("Uptrend (EMA 20>50)")
+            elif ltp > ema20:
+                score += 1; reasons.append("Above EMA20")
+            elif ltp < ema20 < ema50 < ema200:
+                score -= 4; reasons.append("Strong downtrend")
+            elif ltp < ema20 < ema50:
+                score -= 2; reasons.append("Downtrend (EMA 20<50)")
+            else:
+                score -= 1; reasons.append("Below EMA20")
+            if 50 < rsi < 65:
+                score += 2; reasons.append(f"RSI bullish zone ({rsi:.0f})")
+            elif rsi >= 65:
+                score += 1; reasons.append(f"RSI strong ({rsi:.0f})")
+            elif 35 < rsi <= 50:
+                score -= 1; reasons.append(f"RSI weak ({rsi:.0f})")
+            elif rsi <= 35:
+                score += 1; reasons.append(f"RSI oversold — reversal watch ({rsi:.0f})")
+            if macd_bull:
+                score += 2; reasons.append("MACD bullish")
+            else:
+                score -= 2; reasons.append("MACD bearish")
+            if vol_ratio > 1.5 and pct > 0:
+                score += 1; reasons.append(f"Volume surge ({vol_ratio:.1f}x)")
+            elif vol_ratio > 1.5 and pct < 0:
+                score -= 1; reasons.append(f"Volume on down move ({vol_ratio:.1f}x)")
+            from52h = (ltp - high52) / high52 * 100
+            from52l = (ltp - low52)  / low52  * 100
+            if from52h > -5:
+                score += 1; reasons.append("Near 52-week high — momentum")
+            elif from52l < 15:
+                score -= 1; reasons.append("Near 52-week low — weak")
+            results.append({
+                "Stock":      name,
+                "Sector":     STOCK_SECTORS.get(ticker, "Other"),
+                "LTP":        round(ltp, 2),
+                "Chg%":       round(pct, 2),
+                "RSI":        round(rsi, 1),
+                "Vol Ratio":  round(vol_ratio, 1),
+                "52W High":   round(high52, 2),
+                "52W Low":    round(low52, 2),
+                "From 52H%":  round(from52h, 1),
+                "Score":      score,
+                "Reasons":    " | ".join(reasons),
+                "Signal":     "BUY" if score >= 4 else ("WATCH" if score >= 2 else ("AVOID" if score <= -2 else "NEUTRAL")),
+                "_ticker":    ticker,
+            })
+        except Exception:
+            continue
+    return pd.DataFrame(results).sort_values("Score", ascending=False).reset_index(drop=True)
 
 
 def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
@@ -705,7 +971,7 @@ for col, (name, q) in zip(idx_cols, quotes.items()):
 st.divider()
 
 # ── Charts + Signals ──────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
     "🌅 Morning Checklist",
     "⚡ Intraday Signals",
     "🕯️ Nifty 50",
@@ -714,6 +980,8 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "📋 Trade Plan",
     "🔔 Price Alerts",
     "📓 Trade Journal",
+    "📊 Stock Picks",
+    "💰 Mutual Funds",
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1683,6 +1951,286 @@ with tab8:
                     jdf_del.to_csv(JOURNAL_FILE, index=False)
                     st.success("Last trade deleted.")
                     st.rerun()
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 9 — Stock Picks
+# ══════════════════════════════════════════════════════════════════════════════
+with tab9:
+    st.markdown("## 📊 Nifty 50 Stock Screener")
+    st.caption("Scores all 50 Nifty stocks using EMA trend, RSI, MACD, and volume. Updates every 5 minutes. Use for swing/positional ideas — not intraday.")
+
+    sp_col1, sp_col2 = st.columns([1, 3])
+    with sp_col1:
+        sector_filter = st.selectbox("Filter by Sector", [
+            "All", "Banking", "IT", "FMCG", "Auto", "Pharma",
+            "Finance", "Energy", "Infra", "Metals", "Cement", "Consumer",
+            "Telecom", "Healthcare", "Chemicals", "Conglomerate",
+        ])
+        signal_filter = st.selectbox("Filter by Signal", ["All", "BUY", "WATCH", "NEUTRAL", "AVOID"])
+        top_n = st.slider("Show top N stocks", 5, 50, 15)
+
+    with sp_col2:
+        with st.spinner("Scanning Nifty 50 stocks..."):
+            screen_df = screen_nifty50()
+
+        if screen_df.empty:
+            st.error("Stock data unavailable. Check internet connection.")
+        else:
+            filtered_df = screen_df.copy()
+            if sector_filter != "All":
+                filtered_df = filtered_df[filtered_df["Sector"] == sector_filter]
+            if signal_filter != "All":
+                filtered_df = filtered_df[filtered_df["Signal"] == signal_filter]
+            filtered_df = filtered_df.head(top_n)
+
+            # Top picks summary
+            buys    = screen_df[screen_df["Signal"] == "BUY"]
+            watches = screen_df[screen_df["Signal"] == "WATCH"]
+            avoids  = screen_df[screen_df["Signal"] == "AVOID"]
+
+            sc1, sc2, sc3 = st.columns(3)
+            sc1.metric("Strong Buys", len(buys),   delta=f"Score ≥ 4")
+            sc2.metric("Watch List",  len(watches), delta=f"Score 2-3")
+            sc3.metric("Avoid",       len(avoids),  delta=f"Score ≤ -2")
+
+    st.divider()
+
+    if not screen_df.empty:
+        # Top 5 BUY picks — detailed cards
+        st.markdown("### 🟢 Top Buy Candidates")
+        top_buys = screen_df[screen_df["Signal"].isin(["BUY", "WATCH"])].head(5)
+        if top_buys.empty:
+            st.info("No strong buy signals right now — market may be consolidating.")
+        else:
+            for _, row in top_buys.iterrows():
+                score_pct = min(int((row["Score"] / 10) * 100), 100)
+                sig_color = "#26a69a" if row["Signal"] == "BUY" else "#f59e0b"
+                chg_color = "#26a69a" if row["Chg%"] >= 0 else "#ef5350"
+                rsi_color = "#26a69a" if 50 < row["RSI"] < 70 else ("#f59e0b" if row["RSI"] <= 35 else "#e0e0e0")
+                st.markdown(f"""
+                <div class="metric-card" style="border-left-color:{sig_color}">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                    <div>
+                      <div style="font-size:18px;font-weight:800;color:{sig_color}">{row['Stock']}</div>
+                      <div style="font-size:11px;color:#6b7280">{row['Sector']} &nbsp;|&nbsp;
+                        <span style="background:{sig_color};color:#000;padding:1px 8px;border-radius:10px;font-weight:700;font-size:11px">{row['Signal']}</span>
+                      </div>
+                    </div>
+                    <div style="text-align:center">
+                      <div class="trade-label">LTP</div>
+                      <div style="font-size:18px;font-weight:700">₹{row['LTP']:,}</div>
+                    </div>
+                    <div style="text-align:center">
+                      <div class="trade-label">Today</div>
+                      <div style="font-size:16px;font-weight:700;color:{chg_color}">{row['Chg%']:+.2f}%</div>
+                    </div>
+                    <div style="text-align:center">
+                      <div class="trade-label">RSI</div>
+                      <div style="font-size:16px;font-weight:700;color:{rsi_color}">{row['RSI']}</div>
+                    </div>
+                    <div style="text-align:center">
+                      <div class="trade-label">Volume</div>
+                      <div style="font-size:16px;font-weight:700">{row['Vol Ratio']}x</div>
+                    </div>
+                    <div style="text-align:center">
+                      <div class="trade-label">Score</div>
+                      <div style="font-size:20px;font-weight:800;color:{sig_color}">{row['Score']}/10</div>
+                    </div>
+                    <div style="text-align:center">
+                      <div class="trade-label">From 52W High</div>
+                      <div style="font-size:14px;font-weight:700">{row['From 52H%']}%</div>
+                    </div>
+                  </div>
+                  <div style="margin-top:8px;font-size:11px;color:#9ca3af">📋 {row['Reasons']}</div>
+                </div>""", unsafe_allow_html=True)
+
+        st.markdown("### 🔴 Top Stocks to Avoid / Short Watch")
+        top_avoids = screen_df[screen_df["Signal"] == "AVOID"].tail(5)
+        if not top_avoids.empty:
+            avoid_data = top_avoids[["Stock", "Sector", "LTP", "Chg%", "RSI", "Score", "Reasons"]].copy()
+            avoid_data = avoid_data.sort_values("Score")
+            st.dataframe(avoid_data.set_index("Stock"), use_container_width=True)
+
+        st.divider()
+        st.markdown("### 📋 Full Screener Table")
+        display_cols = ["Stock", "Sector", "LTP", "Chg%", "RSI", "Vol Ratio", "From 52H%", "Score", "Signal"]
+        disp = filtered_df[display_cols].copy()
+
+        def color_signal(val):
+            if val == "BUY":    return "background-color:#0d2618;color:#26a69a;font-weight:700"
+            if val == "WATCH":  return "background-color:#2a1f0d;color:#f59e0b;font-weight:700"
+            if val == "AVOID":  return "background-color:#2a0d0d;color:#ef5350;font-weight:700"
+            return ""
+
+        def color_score(val):
+            try:
+                v = float(val)
+                if v >= 4:  return "color:#26a69a;font-weight:700"
+                if v >= 2:  return "color:#f59e0b;font-weight:700"
+                if v <= -2: return "color:#ef5350;font-weight:700"
+            except Exception:
+                pass
+            return ""
+
+        st.dataframe(
+            disp.style
+                .applymap(color_signal, subset=["Signal"])
+                .applymap(color_score, subset=["Score"]),
+            use_container_width=True, height=420, hide_index=True,
+        )
+
+        st.markdown("""
+        <div style="background:#1a1d2e;border-radius:8px;padding:12px 16px;margin-top:8px;
+                    border-left:4px solid #f59e0b;font-size:12px;color:#9ca3af">
+        ⚠️ <b style="color:#f59e0b">Disclaimer:</b>
+        These scores use technical indicators on daily data. They are for research and swing trade ideas only —
+        not financial advice. Always do your own analysis before investing. Past performance does not guarantee future returns.
+        </div>""", unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 10 — Mutual Funds
+# ══════════════════════════════════════════════════════════════════════════════
+with tab10:
+    st.markdown("## 💰 Mutual Fund Recommender")
+    st.caption("Answer 3 questions — the dashboard will suggest the best mutual funds for your profile.")
+
+    st.markdown("### Tell me about yourself")
+    mf_c1, mf_c2, mf_c3 = st.columns(3)
+    with mf_c1:
+        mf_risk = st.selectbox("Risk Profile", [
+            "Conservative — I don't like losing money",
+            "Moderate — I can handle some ups and downs",
+            "Aggressive — I want maximum growth",
+        ])
+    with mf_c2:
+        mf_goal = st.selectbox("Investment Goal", [
+            "Wealth Creation",
+            "Retirement",
+            "Tax Saving (80C)",
+            "Monthly Income",
+            "Emergency Fund",
+            "Short-term Savings",
+            "Parking Money",
+        ])
+    with mf_c3:
+        mf_horizon = st.selectbox("Investment Horizon", [
+            "< 1 year",
+            "1 – 3 years",
+            "3 – 5 years",
+            "5 – 7 years",
+            "7+ years",
+        ])
+
+    mf_sip = st.number_input("Monthly SIP Amount (₹)", min_value=100, value=5000, step=500)
+
+    # Map selections to filter keys
+    risk_map = {
+        "Conservative — I don't like losing money": "Conservative",
+        "Moderate — I can handle some ups and downs": "Moderate",
+        "Aggressive — I want maximum growth": "Aggressive",
+    }
+    user_risk    = risk_map[mf_risk]
+    user_goal    = mf_goal
+    user_horizon = mf_horizon
+
+    # Filter and score funds
+    def mf_score(fund: dict) -> int:
+        s = 0
+        if user_risk in fund["profiles"]:                     s += 3
+        elif user_risk == "Moderate" and "Moderate-High" in fund["risk"]: s += 2
+        elif user_risk == "Aggressive" and fund["risk"] in ("High", "Very High"): s += 2
+        elif user_risk == "Conservative" and fund["risk"] == "Low":       s += 3
+        if user_goal in fund["goal"]:                         s += 3
+        h_map = {
+            "< 1 year":   ["< 1y", "1-3y"],
+            "1 – 3 years":["1-3y", "3y+"],
+            "3 – 5 years":["3y+", "5y+"],
+            "5 – 7 years":["5y+", "7y+", "10y+"],
+            "7+ years":   ["7y+", "10y+", "5y+"],
+        }
+        for h in h_map.get(user_horizon, []):
+            if h in fund["horizon"]: s += 2; break
+        if mf_sip >= fund["min_sip"]: s += 1
+        return s
+
+    scored_funds = sorted(MUTUAL_FUNDS, key=mf_score, reverse=True)
+    top_funds    = [f for f in scored_funds if mf_score(f) >= 4][:6]
+    if not top_funds:
+        top_funds = scored_funds[:4]
+
+    st.divider()
+    st.markdown(f"### 🎯 Recommended Funds for You")
+    st.caption(f"Profile: **{user_risk}** | Goal: **{user_goal}** | Horizon: **{user_horizon}** | SIP: ₹{mf_sip:,}/month")
+
+    risk_colors = {
+        "Very Low": "#3b82f6", "Low": "#26a69a", "Moderate": "#f59e0b",
+        "Moderate-High": "#f97316", "High": "#ef5350", "Very High": "#dc2626",
+    }
+    star_map = {5: "⭐⭐⭐⭐⭐", 4: "⭐⭐⭐⭐", 3: "⭐⭐⭐"}
+
+    for i, fund in enumerate(top_funds):
+        rc = risk_colors.get(fund["risk"], "#9ca3af")
+        ret_color_1y = "#26a69a" if fund["ret_1y"] > 15 else ("#f59e0b" if fund["ret_1y"] > 10 else "#ef5350")
+        corpus_10y = round(mf_sip * (((1 + fund["ret_5y"]/100/12) ** 120 - 1) / (fund["ret_5y"]/100/12)), 0)
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color:{rc};margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+            <div style="flex:1;min-width:200px">
+              <div style="font-size:16px;font-weight:800;color:#e0e0e0">#{i+1} {fund['name']}</div>
+              <div style="font-size:12px;color:#9ca3af;margin-top:2px">
+                {fund['category']} &nbsp;|&nbsp;
+                <span style="color:{rc};font-weight:700">{fund['risk']} Risk</span> &nbsp;|&nbsp;
+                {star_map.get(fund['stars'], '⭐⭐⭐')} &nbsp;|&nbsp;
+                Min SIP: ₹{fund['min_sip']:,} &nbsp;|&nbsp; AUM: {fund['aum']}
+              </div>
+              <div style="font-size:12px;color:#6b7280;margin-top:4px">🕐 Horizon: {fund['horizon']}</div>
+            </div>
+            <div style="display:flex;gap:24px;flex-wrap:wrap">
+              <div style="text-align:center">
+                <div class="trade-label">1Y Return</div>
+                <div style="font-size:18px;font-weight:800;color:{ret_color_1y}">{fund['ret_1y']}%</div>
+              </div>
+              <div style="text-align:center">
+                <div class="trade-label">3Y Return</div>
+                <div style="font-size:16px;font-weight:700;color:#26a69a">{fund['ret_3y']}%</div>
+              </div>
+              <div style="text-align:center">
+                <div class="trade-label">5Y Return</div>
+                <div style="font-size:16px;font-weight:700;color:#26a69a">{fund['ret_5y']}%</div>
+              </div>
+              <div style="text-align:center">
+                <div class="trade-label">₹{mf_sip:,} SIP → 10Y</div>
+                <div style="font-size:16px;font-weight:700;color:#a855f7">₹{corpus_10y/100000:.1f}L</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;font-size:13px;color:#d1d5db">
+            💡 <b>Why this fund:</b> {fund['why']}
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+    st.divider()
+    st.markdown("### 📚 Fund Categories — Quick Guide")
+    guide_data = {
+        "Category":     ["Liquid Fund", "Short Duration Debt", "Index Fund (Nifty 50)", "Large Cap", "Flexi Cap", "Mid Cap", "Small Cap", "ELSS", "Hybrid/BAF"],
+        "Best For":     ["Emergency Fund / Parking", "1-3 Year Goals", "Safe Long-term Wealth", "Stable Growth", "All-weather Portfolio", "High Growth", "Maximum Growth", "Tax Saving + Growth", "First-time Investors"],
+        "Risk":         ["Very Low", "Low", "Moderate", "Moderate", "Moderate", "High", "Very High", "Moderate-High", "Moderate"],
+        "Min Horizon":  ["Any", "1 Year", "3 Years", "3 Years", "5 Years", "7 Years", "10 Years", "3 Years (Lock-in)", "3 Years"],
+        "Expected Return": ["6-7%", "7-8%", "12-15%", "12-16%", "14-18%", "18-25%", "20-30%", "16-24%", "14-18%"],
+    }
+    st.dataframe(pd.DataFrame(guide_data).set_index("Category"), use_container_width=True)
+
+    st.markdown("""
+    <div style="background:#1a1d2e;border-radius:8px;padding:14px 18px;margin-top:12px;
+                border-left:4px solid #3b82f6;font-size:13px;color:#9ca3af">
+    ⚠️ <b style="color:#3b82f6">Disclaimer:</b>
+    Returns shown are approximate historical figures for reference only.
+    Mutual fund investments are subject to market risks. Past returns do not guarantee future performance.
+    Please read the Scheme Information Document (SID) carefully before investing.
+    Consider consulting a SEBI-registered financial advisor for personalised advice.
+    </div>""", unsafe_allow_html=True)
+
 
 st.divider()
 st.caption("📡 Dashboard auto-refreshes every 30 seconds during market hours (9:15 AM – 3:30 PM IST) via browser meta-refresh.")
