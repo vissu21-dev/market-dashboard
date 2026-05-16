@@ -370,6 +370,103 @@ def lookup_nav(nav_dict: dict, search_terms: list) -> dict:
 
 
 @st.cache_data(ttl=300)
+def fetch_news_headlines() -> list:
+    """Fetch latest market headlines from free RSS feeds."""
+    import xml.etree.ElementTree as ET
+    feeds = [
+        ("Economic Times", "https://economictimes.indiatimes.com/markets/rss.cms"),
+        ("Mint",           "https://www.livemint.com/rss/markets"),
+        ("Reuters",        "https://feeds.reuters.com/reuters/businessNews"),
+    ]
+    BULL_WORDS = {"rally","surge","gain","rise","rises","rose","positive","growth",
+                  "strong","up","bull","buying","recovery","boost","record","high"}
+    BEAR_WORDS = {"fall","drop","decline","negative","recession","weak","down","bear",
+                  "sell","crash","crisis","war","sanction","cut","fear","risk","loss"}
+    headlines = []
+    for source, url in feeds:
+        try:
+            r = requests.get(url, timeout=6,
+                             headers={"User-Agent": "Mozilla/5.0", "Accept": "application/rss+xml"})
+            root = ET.fromstring(r.content)
+            for item in root.findall(".//item")[:6]:
+                title = (item.findtext("title") or "").strip()
+                date  = (item.findtext("pubDate") or "")[:22]
+                if not title:
+                    continue
+                words = set(title.lower().split())
+                bull  = len(words & BULL_WORDS)
+                bear  = len(words & BEAR_WORDS)
+                sentiment = "bullish" if bull > bear else ("bearish" if bear > bull else "neutral")
+                headlines.append({"source": source, "title": title,
+                                   "date": date, "sentiment": sentiment})
+        except Exception:
+            continue
+    return headlines[:18]
+
+
+def compute_global_sentiment(global_quotes: dict) -> dict:
+    """
+    Composite global sentiment score (-10 to +10) for India markets.
+    Uses already-fetched global index and macro quotes.
+    """
+    score = 0
+    factors = []
+
+    def chk(name, pct, bull_thr=0.3, bear_thr=-0.3, weight=1, invert=False):
+        nonlocal score
+        if pct is None:
+            return
+        effective = -pct if invert else pct
+        if effective > bull_thr:
+            score += weight
+            factors.append((name, f"+{pct:+.2f}%", "bull"))
+        elif effective < bear_thr:
+            score -= weight
+            factors.append((name, f"{pct:+.2f}%", "bear"))
+        else:
+            factors.append((name, f"{pct:+.2f}%", "neutral"))
+
+    sp_pct    = global_quotes.get("S&P 500",      {}).get("pct")
+    nas_pct   = global_quotes.get("Nasdaq",        {}).get("pct")
+    nik_pct   = global_quotes.get("Nikkei 225",    {}).get("pct")
+    crude_pct = global_quotes.get("Crude Oil",     {}).get("pct")
+    gold_pct  = global_quotes.get("Gold",          {}).get("pct")
+    dxy_pct   = global_quotes.get("Dollar Index",  {}).get("pct")
+    usdinr_pct= global_quotes.get("USD/INR",       {}).get("pct")
+    tnx_ltp   = global_quotes.get("US 10Y Yield",  {}).get("ltp")
+
+    chk("S&P 500",       sp_pct,    weight=2)
+    chk("Nasdaq",        nas_pct,   weight=1)
+    chk("Nikkei 225",    nik_pct,   weight=1)
+    chk("Crude Oil",     crude_pct, bull_thr=1.5, bear_thr=-1.0, weight=1, invert=True)
+    chk("Dollar Index",  dxy_pct,   weight=1, invert=True)
+    chk("USD/INR",       usdinr_pct,weight=1, invert=True)
+
+    if gold_pct is not None:
+        if gold_pct > 0.8:
+            score -= 1; factors.append(("Gold", f"+{gold_pct:.2f}% (risk-off)", "bear"))
+        else:
+            factors.append(("Gold", f"{gold_pct:+.2f}%", "neutral"))
+
+    if tnx_ltp is not None:
+        if tnx_ltp > 4.5:
+            score -= 1; factors.append(("US 10Y Yield", f"{tnx_ltp:.2f}% (too high)", "bear"))
+        elif tnx_ltp < 4.0:
+            score += 1; factors.append(("US 10Y Yield", f"{tnx_ltp:.2f}% (benign)", "bull"))
+        else:
+            factors.append(("US 10Y Yield", f"{tnx_ltp:.2f}%", "neutral"))
+
+    score = max(-10, min(10, score))
+    if score >= 4:     label, color = "Strong Global Tailwind 🌬️", "#26a69a"
+    elif score >= 2:   label, color = "Mild Positive Cues 🟢",      "#26a69a"
+    elif score >= -1:  label, color = "Mixed / Neutral 🟡",          "#f59e0b"
+    elif score >= -3:  label, color = "Mild Headwinds 🟠",           "#f97316"
+    else:              label, color = "Strong Headwinds ⛔",          "#ef5350"
+
+    return {"score": score, "label": label, "color": color, "factors": factors}
+
+
+@st.cache_data(ttl=300)
 def screen_nifty50() -> pd.DataFrame:
     """Score all Nifty 50 stocks using RSI, EMA trend, MACD, volume, 52W position."""
     tickers = list(NIFTY50_STOCKS.values())
@@ -492,6 +589,24 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df["bb_mid"]   = c.rolling(20).mean()
     df["bb_upper"] = df["bb_mid"] + 2 * c.rolling(20).std()
     df["bb_lower"] = df["bb_mid"] - 2 * c.rolling(20).std()
+    # ATR (14-period) for volatility regime
+    tr = pd.concat([
+        df["high"] - df["low"],
+        (df["high"] - c.shift()).abs(),
+        (df["low"]  - c.shift()).abs(),
+    ], axis=1).max(axis=1)
+    df["atr"] = tr.ewm(com=13, min_periods=14).mean()
+    df["atr_pct"] = df["atr"] / c * 100   # ATR as % of price
+    # Stochastic RSI
+    if "rsi" in df.columns:
+        rsi_min = df["rsi"].rolling(14).min()
+        rsi_max = df["rsi"].rolling(14).max()
+        df["stoch_rsi"] = (df["rsi"] - rsi_min) / (rsi_max - rsi_min + 1e-9)
+    # OBV (On Balance Volume)
+    if "volume" in df.columns:
+        obv = (np.sign(c.diff()) * df["volume"]).fillna(0).cumsum()
+        df["obv"] = obv
+        df["obv_ema"] = obv.ewm(span=21, adjust=False).mean()
     # Supertrend (period=10, multiplier=3)
     df = add_supertrend(df, period=10, multiplier=3.0)
     return df
@@ -742,6 +857,33 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
         bull_score += 1; confirmations.append("Price at BB upper — strong breakout")
     elif ltp < bb_lo * 1.001:
         bear_score += 1; confirmations.append("Price at BB lower — strong breakdown")
+
+    # Stochastic RSI
+    stoch_rsi = float(last.get("stoch_rsi", 0.5) or 0.5)
+    if stoch_rsi > 0.8:
+        bull_score += 1; confirmations.append(f"Stoch RSI overbought ({stoch_rsi:.2f}) — momentum strong")
+    elif stoch_rsi < 0.2:
+        bear_score += 1; confirmations.append(f"Stoch RSI oversold ({stoch_rsi:.2f}) — bearish momentum")
+
+    # OBV trend (smart money flow)
+    obv     = float(last.get("obv",     0) or 0)
+    obv_ema = float(last.get("obv_ema", 0) or 0)
+    if obv > obv_ema:
+        bull_score += 1; confirmations.append("OBV above EMA — smart money accumulating")
+    elif obv < obv_ema:
+        bear_score += 1; confirmations.append("OBV below EMA — smart money distributing")
+
+    # Supertrend
+    st_dir = int(last.get("supertrend_dir", 0) or 0)
+    if st_dir == 1:
+        bull_score += 1; confirmations.append("Supertrend bullish")
+    elif st_dir == -1:
+        bear_score += 1; confirmations.append("Supertrend bearish")
+
+    # ATR volatility regime
+    atr_pct = float(last.get("atr_pct", 0) or 0)
+    if atr_pct > 0.8:
+        confirmations.append(f"High volatility (ATR {atr_pct:.2f}%) — widen SL, reduce size")
 
     total   = bull_score + bear_score
     net     = bull_score - bear_score
@@ -1136,37 +1278,54 @@ with tab1:
         elif st_dir_m == -1:
             check_item("Supertrend", "bad", "Bearish", "", "", "ST red — downtrend confirmed")
 
-    st.markdown("### 5. Trading Decision")
+    st.markdown("### 5. Global Intelligence Score")
+    g_quotes_m = {name: get_quote(ticker) for name, ticker in GLOBAL.items()}
+    gs_m = compute_global_sentiment(g_quotes_m)
+    st.markdown(f"""
+    <div class="metric-card" style="border-left-color:{gs_m['color']}">
+      <div style="font-size:13px;color:#9ca3af">Global Sentiment for India Today</div>
+      <div style="font-size:20px;font-weight:800;color:{gs_m['color']}">{gs_m['label']}</div>
+      <div style="font-size:12px;color:#9ca3af;margin-top:4px">Score: {gs_m['score']:+d}/10 &nbsp;|&nbsp;
+        {'  ·  '.join([f"{f[0]}: {f[1]}" for f in gs_m['factors'][:4]])}
+      </div>
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("### 6. Trading Decision")
     bull_checks = 0
     bear_checks = 0
     if vix_m and vix_m < 18: bull_checks += 1
     if nifty_pct > 0: bull_checks += 1
     if sp_pct > 0: bull_checks += 1
+    if gs_m["score"] >= 2: bull_checks += 1
+    elif gs_m["score"] <= -2: bear_checks += 1
     if not nifty_df_m.empty:
         last_m = nifty_df_m.iloc[-1]
         if last_m.get("ema9", 0) > last_m.get("ema21", 0): bull_checks += 1
         if last_m.get("supertrend_dir", 0) == 1: bull_checks += 1
         if nq_m.get("ltp", 0) > last_m.get("vwap", 0): bull_checks += 1
 
-    bear_checks = 6 - bull_checks
+    bear_checks = max(7 - bull_checks, bear_checks)
     if vix_m and vix_m > 20:
         st.markdown('<div class="no-trade-banner">⛔ NO TRADE DAY — VIX above 20. Sit on hands today.</div>',
                     unsafe_allow_html=True)
+    elif gs_m["score"] <= -4:
+        st.markdown('<div class="no-trade-banner">⛔ STRONG GLOBAL HEADWINDS — Avoid aggressive longs. Very defensive day.</div>',
+                    unsafe_allow_html=True)
     elif bull_checks >= 4:
         st.markdown(f"""<div class="checklist-item-ok" style="font-size:16px;padding:16px">
-        🟢 <b>BULLISH DAY</b> — {bull_checks}/6 factors bullish<br>
+        🟢 <b>BULLISH DAY</b> — {bull_checks}/7 factors bullish<br>
         <span style="font-size:13px;color:#9ca3af">
         Preferred: CE (Call) options | Wait for 9:30 AM | Buy dips near VWAP | Trail SL above supertrend
         </span></div>""", unsafe_allow_html=True)
     elif bear_checks >= 4:
         st.markdown(f"""<div class="checklist-item-bad" style="font-size:16px;padding:16px">
-        🔴 <b>BEARISH DAY</b> — {bear_checks}/6 factors bearish<br>
+        🔴 <b>BEARISH DAY</b> — {bear_checks}/7 factors bearish<br>
         <span style="font-size:13px;color:#9ca3af">
         Preferred: PE (Put) options | Sell rallies near VWAP | Trail SL below supertrend
         </span></div>""", unsafe_allow_html=True)
     else:
         st.markdown(f"""<div class="checklist-item-warn" style="font-size:16px;padding:16px">
-        🟡 <b>NEUTRAL/SIDEWAYS DAY</b> — Mixed signals ({bull_checks} bull / {bear_checks} bear)<br>
+        🟡 <b>NEUTRAL/SIDEWAYS DAY</b> — Mixed signals ({bull_checks} bull / {bear_checks} bear out of 7)<br>
         <span style="font-size:13px;color:#9ca3af">
         Avoid directional trades | Consider Iron Condor or wait for breakout after 10 AM
         </span></div>""", unsafe_allow_html=True)
@@ -1574,40 +1733,111 @@ with tab4:
 
 # ── TAB 4: Global Cues ───────────────────────────────────────────────────────
 with tab5:
-    st.markdown('<div class="section-title">Global Markets</div>', unsafe_allow_html=True)
     global_quotes = {name: get_quote(ticker) for name, ticker in GLOBAL.items()}
+    gs = compute_global_sentiment(global_quotes)
+
+    # ── Composite Sentiment Banner ────────────────────────────────────────────
+    st.markdown(f"""
+    <div style="background:rgba(0,0,0,0.3);border:2px solid {gs['color']};border-radius:14px;
+                padding:16px 24px;margin-bottom:16px;display:flex;align-items:center;gap:24px">
+      <div>
+        <div style="font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">
+          Global Sentiment for India</div>
+        <div style="font-size:22px;font-weight:800;color:{gs['color']}">{gs['label']}</div>
+      </div>
+      <div style="text-align:center;border-left:1px solid #374151;padding-left:24px">
+        <div style="font-size:11px;color:#9ca3af">Score</div>
+        <div style="font-size:36px;font-weight:900;color:{gs['color']}">{gs['score']:+d}</div>
+        <div style="font-size:10px;color:#6b7280">out of ±10</div>
+      </div>
+      <div style="font-size:12px;color:#9ca3af;flex:1">
+        {'  ·  '.join([f"<span style='color:{'#26a69a' if f[2]=='bull' else ('#ef5350' if f[2]=='bear' else '#9ca3af')}'>{f[0]}: {f[1]}</span>" for f in gs['factors']])}
+      </div>
+    </div>""", unsafe_allow_html=True)
+
+    # ── Global index grid ─────────────────────────────────────────────────────
+    st.markdown('<div class="section-title">Global Markets</div>', unsafe_allow_html=True)
     g1, g2 = st.columns(2)
-    items = list(global_quotes.items())
-    for i, (name, q) in enumerate(items):
+    for i, (name, q) in enumerate(global_quotes.items()):
         col = g1 if i % 2 == 0 else g2
         with col:
             if q:
                 arrow = "▲" if q["chg"] >= 0 else "▼"
                 cls   = "bull" if q["chg"] >= 0 else "bear"
                 st.markdown(f"""
-                <div class="metric-card" style="border-left-color: {'#26a69a' if q['chg']>=0 else '#ef5350'}">
+                <div class="metric-card" style="border-left-color:{'#26a69a' if q['chg']>=0 else '#ef5350'}">
                   <div style="font-size:11px;color:#9ca3af">{name}</div>
                   <div style="font-size:18px;font-weight:700" class="{cls}">{q['ltp']:,.2f}</div>
                   <div style="font-size:12px" class="{cls}">{arrow} {abs(q['chg']):,.2f} ({q['pct']:+.2f}%)</div>
                 </div>""", unsafe_allow_html=True)
 
-    st.markdown('<div class="section-title" style="margin-top:20px">Global Sentiment</div>', unsafe_allow_html=True)
-    sp_q  = global_quotes.get("S&P 500", {})
-    crude = global_quotes.get("Crude Oil", {})
-    usdinr= global_quotes.get("USD/INR", {})
-    sentiments = []
-    if sp_q:
-        sentiments.append(("S&P 500", "Risk-ON" if sp_q.get("pct",0) > 0 else "Risk-OFF",
-                           "green" if sp_q.get("pct",0) > 0 else "red"))
-    if crude:
-        sentiments.append(("Crude Oil", "Bearish for India" if crude.get("pct",0) > 1 else "Neutral/Positive",
-                           "red" if crude.get("pct",0) > 1 else "green"))
-    if usdinr:
-        sentiments.append(("USD/INR", "Rupee weak" if usdinr.get("pct",0) > 0 else "Rupee strong",
-                           "red" if usdinr.get("pct",0) > 0 else "green"))
-    for name, label, color in sentiments:
-        pc = "pill-green" if color == "green" else "pill-red"
-        st.markdown(f'<span class="pill {pc}">{name}: {label}</span>', unsafe_allow_html=True)
+    # ── Macro Impact Matrix ───────────────────────────────────────────────────
+    st.markdown('<div class="section-title" style="margin-top:16px">Macro Impact on India</div>',
+                unsafe_allow_html=True)
+    crude_pct  = global_quotes.get("Crude Oil",    {}).get("pct", 0) or 0
+    gold_pct   = global_quotes.get("Gold",         {}).get("pct", 0) or 0
+    dxy_pct    = global_quotes.get("Dollar Index", {}).get("pct", 0) or 0
+    usdinr_pct = global_quotes.get("USD/INR",      {}).get("pct", 0) or 0
+    tnx_ltp    = global_quotes.get("US 10Y Yield", {}).get("ltp", 4.2) or 4.2
+
+    macro_rows = [
+        ("Crude Oil", f"{crude_pct:+.2f}%",
+         "🔴 Negative — raises import costs, inflation" if crude_pct > 1.5
+         else "🟢 Positive — lower costs, rupee support" if crude_pct < -1.0
+         else "🟡 Neutral"),
+        ("Gold", f"{gold_pct:+.2f}%",
+         "🔴 Risk-off signal — FII may sell equities" if gold_pct > 0.8
+         else "🟢 Risk-on — equity positive" if gold_pct < -0.3
+         else "🟡 Neutral"),
+        ("Dollar Index", f"{dxy_pct:+.2f}%",
+         "🔴 Strong dollar → FII outflows from India" if dxy_pct > 0.3
+         else "🟢 Weak dollar → FII inflows into EM" if dxy_pct < -0.3
+         else "🟡 Neutral"),
+        ("USD/INR", f"{usdinr_pct:+.2f}%",
+         "🔴 Rupee weakening → FII selling pressure" if usdinr_pct > 0.2
+         else "🟢 Rupee strengthening → positive" if usdinr_pct < -0.2
+         else "🟡 Stable"),
+        ("US 10Y Yield", f"{tnx_ltp:.2f}%",
+         "🔴 High yield → FII prefers US bonds over India" if tnx_ltp > 4.5
+         else "🟢 Low yield → EM equities attractive" if tnx_ltp < 3.8
+         else "🟡 Moderate"),
+    ]
+    macro_df = pd.DataFrame(macro_rows, columns=["Factor", "Change", "India Impact"])
+    st.dataframe(macro_df.set_index("Factor"), use_container_width=True)
+
+    # ── Live News Feed ────────────────────────────────────────────────────────
+    st.markdown('<div class="section-title" style="margin-top:16px">📰 Latest Market News</div>',
+                unsafe_allow_html=True)
+    st.caption("Headlines from Economic Times, Mint & Reuters — updates every 5 minutes")
+    with st.spinner("Fetching news..."):
+        headlines = fetch_news_headlines()
+
+    if headlines:
+        bull_count = sum(1 for h in headlines if h["sentiment"] == "bullish")
+        bear_count = sum(1 for h in headlines if h["sentiment"] == "bearish")
+        news_sentiment = "🟢 Mostly Positive" if bull_count > bear_count + 1 \
+                    else ("🔴 Mostly Negative" if bear_count > bull_count + 1 else "🟡 Mixed")
+        st.markdown(f"**News Sentiment:** {news_sentiment} &nbsp;|&nbsp; "
+                    f"🟢 {bull_count} positive &nbsp;|&nbsp; 🔴 {bear_count} negative &nbsp;|&nbsp; "
+                    f"{len(headlines)} headlines scanned")
+        st.divider()
+        for h in headlines:
+            s_color = "#26a69a" if h["sentiment"] == "bullish" else \
+                      ("#ef5350" if h["sentiment"] == "bearish" else "#9ca3af")
+            s_icon  = "▲" if h["sentiment"] == "bullish" else \
+                      ("▼" if h["sentiment"] == "bearish" else "—")
+            st.markdown(
+                f'<div style="padding:7px 0;border-bottom:1px solid #1e2130;font-size:13px">'
+                f'<span style="color:{s_color};font-weight:700;margin-right:6px">{s_icon}</span>'
+                f'<span style="color:#e0e0e0">{h["title"]}</span>'
+                f'<span style="color:#6b7280;font-size:11px;margin-left:8px">[{h["source"]}]</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info("News feed temporarily unavailable. Check internet connection.")
+
+    st.caption("⚠️ News sentiment uses keyword analysis — not financial advice. Verify before acting.")
 
 # ── TAB 5: Trade Plan ────────────────────────────────────────────────────────
 with tab6:
