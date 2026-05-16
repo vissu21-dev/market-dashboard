@@ -214,6 +214,64 @@ def is_market_open() -> bool:
     return o <= now <= c
 
 
+def next_expiry_info() -> dict:
+    today = datetime.now(IST).date()
+    n_days = (3 - today.weekday()) % 7 or 7   # Thursday = Nifty
+    b_days = (2 - today.weekday()) % 7 or 7   # Wednesday = BankNifty
+    n_date = today + timedelta(days=n_days)
+    b_date = today + timedelta(days=b_days)
+    return {
+        "nifty":     {"date": n_date.strftime("%d %b"), "days": n_days},
+        "banknifty": {"date": b_date.strftime("%d %b"), "days": b_days},
+    }
+
+
+@st.cache_data(ttl=60)
+def get_orb(ticker: str) -> dict:
+    """Opening Range = first 15 minutes (9:15–9:30) high and low."""
+    try:
+        df = yf.download(ticker, period="1d", interval="1m", progress=False, auto_adjust=True)
+        if df.empty:
+            return {}
+        df = df.reset_index()
+        df.columns = [c.lower() if isinstance(c, str) else c[0].lower() for c in df.columns]
+        orb = df.head(15)
+        if orb.empty:
+            return {}
+        return {
+            "high":  float(orb["high"].max()),
+            "low":   float(orb["low"].min()),
+            "range": float(orb["high"].max() - orb["low"].min()),
+        }
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=3600)
+def get_pivots(ticker: str) -> dict:
+    """Classic pivot points from previous trading day's OHLC."""
+    try:
+        df = yf.download(ticker, period="5d", interval="1d", progress=False, auto_adjust=True)
+        if len(df) < 2:
+            return {}
+        prev = df.iloc[-2]
+        h = float(prev["High"])
+        l = float(prev["Low"])
+        c = float(prev["Close"])
+        p = (h + l + c) / 3
+        return {
+            "P":  round(p),
+            "R1": round(2 * p - l),
+            "R2": round(p + h - l),
+            "R3": round(h + 2 * (p - l)),
+            "S1": round(2 * p - h),
+            "S2": round(p - (h - l)),
+            "S3": round(l - 2 * (h - p)),
+        }
+    except Exception:
+        return {}
+
+
 def trend_label(pct: float) -> tuple:
     if pct > 0.3:   return "Bullish ▲", "bull"
     if pct < -0.3:  return "Bearish ▼", "bear"
@@ -507,7 +565,8 @@ def render_trade_card(setup: dict, side: str):
     """, unsafe_allow_html=True)
 
 
-def candlestick_fig(df: pd.DataFrame, title: str) -> go.Figure:
+def candlestick_fig(df: pd.DataFrame, title: str,
+                    pivots: dict = None, orb: dict = None) -> go.Figure:
     BG = "#0e1117"; GRID = "#1e2130"
     fig = make_subplots(rows=3, cols=1, shared_xaxes=True,
                         row_heights=[0.6, 0.2, 0.2], vertical_spacing=0.03,
@@ -542,6 +601,28 @@ def candlestick_fig(df: pd.DataFrame, title: str) -> go.Figure:
             line=dict(color="rgba(99,102,241,0.4)", width=1, dash="dot"),
             fill="tonexty", fillcolor="rgba(99,102,241,0.05)",
             name="BB Lower", showlegend=False), row=1, col=1)
+    # Pivot points
+    if pivots:
+        pivot_colors = {"P": "#f59e0b", "R1": "#ef5350", "R2": "#ef5350", "R3": "#ef5350",
+                        "S1": "#26a69a", "S2": "#26a69a", "S3": "#26a69a"}
+        for level, val in pivots.items():
+            fig.add_hline(y=val,
+                line=dict(color=pivot_colors.get(level, "#9ca3af"), width=1, dash="dot"),
+                annotation_text=f" {level}:{val:,.0f}",
+                annotation_font=dict(size=9, color=pivot_colors.get(level, "#9ca3af")),
+                annotation_position="right", row=1, col=1)
+    # Opening Range lines
+    if orb and orb.get("high") and orb.get("low"):
+        fig.add_hline(y=orb["high"],
+            line=dict(color="#fbbf24", width=1.5, dash="dash"),
+            annotation_text=f" ORB H:{orb['high']:,.0f}",
+            annotation_font=dict(size=9, color="#fbbf24"),
+            annotation_position="right", row=1, col=1)
+        fig.add_hline(y=orb["low"],
+            line=dict(color="#fbbf24", width=1.5, dash="dash"),
+            annotation_text=f" ORB L:{orb['low']:,.0f}",
+            annotation_font=dict(size=9, color="#fbbf24"),
+            annotation_position="right", row=1, col=1)
     if "volume" in df.columns:
         colors = ["#26a69a" if c >= o else "#ef5350"
                   for c, o in zip(df["close"], df["open"])]
@@ -572,7 +653,7 @@ now_ist = datetime.now(IST)
 market_open = is_market_open()
 
 # Header
-col_h1, col_h2, col_h3 = st.columns([3, 1, 1])
+col_h1, col_h2, col_h3, col_h4 = st.columns([3, 1, 1, 1])
 with col_h1:
     st.markdown("## 📈 India Market Dashboard")
     st.caption(f"Last updated: {now_ist.strftime('%d %b %Y  %H:%M:%S IST')}  |  Data: Yahoo Finance (15-min delay)")
@@ -580,9 +661,23 @@ with col_h2:
     status_color = "#26a69a" if market_open else "#ef5350"
     st.markdown(f'<div style="margin-top:20px"><span style="color:{status_color}; font-size:16px; font-weight:700;">● Market {"OPEN" if market_open else "CLOSED"}</span></div>', unsafe_allow_html=True)
 with col_h3:
+    exp = next_expiry_info()
+    n_exp = exp["nifty"]
+    b_exp = exp["banknifty"]
+    n_warn = "🔴" if n_exp["days"] <= 1 else ("🟡" if n_exp["days"] <= 2 else "🟢")
+    b_warn = "🔴" if b_exp["days"] <= 1 else ("🟡" if b_exp["days"] <= 2 else "🟢")
+    st.markdown(f"""
+    <div style="margin-top:14px;font-size:11px;color:#9ca3af;line-height:1.8">
+    {n_warn} <b>Nifty expiry:</b> {n_exp['date']} ({n_exp['days']}d)<br>
+    {b_warn} <b>BNF expiry:</b> {b_exp['date']} ({b_exp['days']}d)
+    </div>""", unsafe_allow_html=True)
+with col_h4:
     if st.button("🔄 Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
+# Auto-refresh meta tag during market hours (browser-level, non-blocking)
+if market_open:
+    st.markdown('<meta http-equiv="refresh" content="30">', unsafe_allow_html=True)
 
 st.divider()
 
@@ -809,6 +904,55 @@ with tab2:
 
     st.divider()
 
+    # ── Opening Range Breakout ────────────────────────────────────────────────
+    st.markdown("### 📐 Opening Range Breakout (ORB)")
+    st.caption("First 15-min High & Low (9:15–9:30 AM) — the most watched intraday levels")
+    orb_n  = get_orb("^NSEI")
+    orb_bn = get_orb("^NSEBANK")
+
+    orb_c1, orb_c2 = st.columns(2)
+    for orb_col, orb_data, name_orb, ltp_orb in [
+        (orb_c1, orb_n,  "Nifty 50",   n_ltp),
+        (orb_c2, orb_bn, "Bank Nifty", bn_ltp),
+    ]:
+        with orb_col:
+            if orb_data and ltp_orb:
+                orb_h = orb_data["high"]
+                orb_l = orb_data["low"]
+                orb_r = orb_data["range"]
+                if ltp_orb > orb_h:
+                    orb_signal = "🟢 BREAKOUT — CE bias"
+                    orb_cls    = "#26a69a"
+                elif ltp_orb < orb_l:
+                    orb_signal = "🔴 BREAKDOWN — PE bias"
+                    orb_cls    = "#ef5350"
+                else:
+                    orb_signal = "🟡 Inside range — wait"
+                    orb_cls    = "#f59e0b"
+                st.markdown(f"""
+                <div class="metric-card" style="border-left-color:{orb_cls}">
+                  <div style="font-size:12px;color:#9ca3af;margin-bottom:6px"><b>{name_orb} ORB</b></div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <div><div class="trade-label">ORB High</div>
+                         <div style="color:#ef5350;font-weight:700;font-size:15px">{orb_h:,.2f}</div></div>
+                    <div><div class="trade-label">ORB Low</div>
+                         <div style="color:#26a69a;font-weight:700;font-size:15px">{orb_l:,.2f}</div></div>
+                    <div><div class="trade-label">Range</div>
+                         <div style="font-weight:700;font-size:15px">{orb_r:,.0f} pts</div></div>
+                    <div><div class="trade-label">LTP</div>
+                         <div style="font-weight:700;font-size:15px">{ltp_orb:,.2f}</div></div>
+                  </div>
+                  <div style="color:{orb_cls};font-weight:700;font-size:14px">{orb_signal}</div>
+                  <div style="color:#9ca3af;font-size:11px;margin-top:4px">
+                    Strategy: Buy breakout above ORB High → CE | Breakdown below ORB Low → PE<br>
+                    SL: Re-entry inside the range | Target: 1.5× – 2× the range size
+                  </div>
+                </div>""", unsafe_allow_html=True)
+            else:
+                st.info(f"{name_orb} ORB data unavailable (market may not have opened yet)")
+
+    st.divider()
+
     # ── Index selector ────────────────────────────────────────────────────────
     sel_index = st.radio("Select Index for Signals", ["Nifty 50", "Bank Nifty", "Both"],
                           horizontal=True)
@@ -885,12 +1029,21 @@ with tab2:
 
 # ── TAB 2: Nifty ─────────────────────────────────────────────────────────────
 with tab3:
+    tf_row1, tf_row2 = st.columns([1, 5])
+    with tf_row1:
+        nifty_tf = st.selectbox("Timeframe", ["5m", "15m", "1h"], index=1, key="tf_nifty")
+    nifty_tf_period = {"5m": "2d", "15m": "5d", "1h": "30d"}[nifty_tf]
     c1, c2 = st.columns([3, 1])
     with c1:
-        nifty_df = get_candles("^NSEI", period="5d", interval="15m")
-        nifty_df = add_indicators(nifty_df)
+        nifty_df   = get_candles("^NSEI", period=nifty_tf_period, interval=nifty_tf)
+        nifty_df   = add_indicators(nifty_df)
+        nifty_pivs = get_pivots("^NSEI")
+        nifty_orb  = get_orb("^NSEI") if nifty_tf in ("1m", "5m", "15m") else None
         if not nifty_df.empty:
-            st.plotly_chart(candlestick_fig(nifty_df, "Nifty 50 — 15 Min"), use_container_width=True)
+            st.plotly_chart(
+                candlestick_fig(nifty_df, f"Nifty 50 — {nifty_tf}",
+                                pivots=nifty_pivs, orb=nifty_orb),
+                use_container_width=True)
         else:
             st.info("Chart data unavailable. Market may be closed.")
 
@@ -926,14 +1079,31 @@ with tab3:
             st.markdown(f"🟢 **Support:** {support:,.0f}")
             if vwap_val: st.markdown(f"🟣 **VWAP:** {vwap_val:,.0f}")
 
+        if nifty_pivs:
+            st.markdown('<div class="section-title" style="margin-top:16px">Pivot Points</div>', unsafe_allow_html=True)
+            for level, val in nifty_pivs.items():
+                color = "#ef5350" if level.startswith("R") else ("#26a69a" if level.startswith("S") else "#f59e0b")
+                st.markdown(f'<div style="display:flex;justify-content:space-between;padding:2px 0">'
+                            f'<span style="color:{color};font-weight:700;font-size:13px">{level}</span>'
+                            f'<span style="font-size:13px">{val:,}</span></div>', unsafe_allow_html=True)
+
 # ── TAB 3: Bank Nifty ────────────────────────────────────────────────────────
 with tab4:
+    tf_row_b1, tf_row_b2 = st.columns([1, 5])
+    with tf_row_b1:
+        bnf_tf = st.selectbox("Timeframe", ["5m", "15m", "1h"], index=1, key="tf_banknifty")
+    bnf_tf_period = {"5m": "2d", "15m": "5d", "1h": "30d"}[bnf_tf]
     bc1, bc2 = st.columns([3, 1])
     with bc1:
-        bnf_df = get_candles("^NSEBANK", period="5d", interval="15m")
-        bnf_df = add_indicators(bnf_df)
+        bnf_df   = get_candles("^NSEBANK", period=bnf_tf_period, interval=bnf_tf)
+        bnf_df   = add_indicators(bnf_df)
+        bnf_pivs = get_pivots("^NSEBANK")
+        bnf_orb  = get_orb("^NSEBANK") if bnf_tf in ("1m", "5m", "15m") else None
         if not bnf_df.empty:
-            st.plotly_chart(candlestick_fig(bnf_df, "Bank Nifty — 15 Min"), use_container_width=True)
+            st.plotly_chart(
+                candlestick_fig(bnf_df, f"Bank Nifty — {bnf_tf}",
+                                pivots=bnf_pivs, orb=bnf_orb),
+                use_container_width=True)
         else:
             st.info("Chart data unavailable. Market may be closed.")
 
@@ -963,6 +1133,14 @@ with tab4:
             st.markdown(f"🟢 **Support:** {float(recent_bn['low'].min()):,.0f}")
             if "vwap" in bnf_df.columns:
                 st.markdown(f"🟣 **VWAP:** {float(bnf_df['vwap'].iloc[-1]):,.0f}")
+
+        if bnf_pivs:
+            st.markdown('<div class="section-title" style="margin-top:16px">Pivot Points</div>', unsafe_allow_html=True)
+            for level, val in bnf_pivs.items():
+                color = "#ef5350" if level.startswith("R") else ("#26a69a" if level.startswith("S") else "#f59e0b")
+                st.markdown(f'<div style="display:flex;justify-content:space-between;padding:2px 0">'
+                            f'<span style="color:{color};font-weight:700;font-size:13px">{level}</span>'
+                            f'<span style="font-size:13px">{val:,}</span></div>', unsafe_allow_html=True)
 
 # ── TAB 4: Global Cues ───────────────────────────────────────────────────────
 with tab5:
@@ -1046,6 +1224,45 @@ with tab6:
                 st.markdown(f"**Stop-loss:** {sl_b:,.0f}")
                 st.markdown(f"**Target 1:** {tgt1_b:,.0f}  |  **Target 2:** {tgt2_b:,.0f}")
                 st.markdown(f"**VWAP:** {vwap_bank:,.0f}")
+
+        st.divider()
+        st.markdown("### 🧮 Position Size Calculator")
+        ps1, ps2, ps3 = st.columns(3)
+        with ps1:
+            ps_capital = st.number_input("Capital (₹)", value=100000, step=10000, key="ps_cap")
+            ps_risk_pct = st.number_input("Risk per trade (%)", value=1.0, min_value=0.1, max_value=5.0, step=0.1, key="ps_rp")
+        with ps2:
+            ps_entry = st.number_input("Option Entry Price (₹)", value=100.0, step=1.0, key="ps_entry")
+            ps_sl    = st.number_input("Stop-Loss Price (₹)", value=70.0, step=1.0, key="ps_sl")
+        with ps3:
+            ps_index   = st.selectbox("Index", ["Nifty 50 (75)", "Bank Nifty (30)", "Fin Nifty (40)"], key="ps_idx")
+            lot_sizes  = {"Nifty 50 (75)": 75, "Bank Nifty (30)": 30, "Fin Nifty (40)": 40}
+            ps_lotsize = lot_sizes[ps_index]
+            st.caption(f"Lot size: {ps_lotsize}")
+
+        if ps_entry > ps_sl > 0:
+            max_loss_per_lot = (ps_entry - ps_sl) * ps_lotsize
+            max_risk_amt     = ps_capital * (ps_risk_pct / 100)
+            max_lots         = int(max_risk_amt / max_loss_per_lot) if max_loss_per_lot > 0 else 0
+            premium_needed   = ps_entry * ps_lotsize * max(max_lots, 1)
+            st.markdown(f"""
+            <div class="metric-card" style="border-left-color:#3b82f6;margin-top:8px">
+              <div style="display:flex;gap:40px;flex-wrap:wrap">
+                <div><div class="trade-label">Max Risk Amount</div>
+                     <div style="color:#f59e0b;font-weight:800;font-size:18px">₹{max_risk_amt:,.0f}</div></div>
+                <div><div class="trade-label">Loss per Lot</div>
+                     <div style="color:#ef5350;font-weight:800;font-size:18px">₹{max_loss_per_lot:,.0f}</div></div>
+                <div><div class="trade-label">Max Lots to Trade</div>
+                     <div style="color:#26a69a;font-weight:800;font-size:28px">{max_lots}</div></div>
+                <div><div class="trade-label">Premium Required</div>
+                     <div style="font-weight:700;font-size:18px">₹{premium_needed:,.0f}</div></div>
+              </div>
+              <div style="font-size:11px;color:#6b7280;margin-top:8px">
+                Formula: Risk = (Entry − SL) × Lot size × Lots | Max Lots = Max Risk ÷ Loss per Lot
+              </div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            st.caption("Enter valid Entry and Stop-Loss prices to calculate position size.")
 
         st.divider()
         st.markdown("### ⚠️ Risk Management Rules")
@@ -1221,7 +1438,7 @@ def journal_stats(df: pd.DataFrame) -> dict:
             "avg_win": avg_win, "avg_loss": avg_loss,
             "best": best, "worst": worst, "expectancy": expectancy}
 
-with tab6:
+with tab8:
     st.markdown("## 📓 Trade Journal")
     st.caption("Log every trade — paper or real. Track your performance and improve over time.")
 
@@ -1467,11 +1684,5 @@ with tab6:
                     st.success("Last trade deleted.")
                     st.rerun()
 
-# ── Auto-refresh ──────────────────────────────────────────────────────────────
 st.divider()
-auto = st.toggle("Auto-refresh every 30 seconds", value=False)
-if auto:
-    import time
-    time.sleep(30)
-    st.cache_data.clear()
-    st.rerun()
+st.caption("📡 Dashboard auto-refreshes every 30 seconds during market hours (9:15 AM – 3:30 PM IST) via browser meta-refresh.")
