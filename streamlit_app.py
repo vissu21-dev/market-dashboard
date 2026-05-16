@@ -73,6 +73,15 @@ div[data-testid="stMetricValue"] { font-size: 1.5rem !important; font-weight: 70
     border-radius: 12px; padding: 20px; text-align: center;
     font-size: 18px; font-weight: 700; color: #f59e0b; margin: 20px 0;
 }
+.checklist-item-ok   { background:#0d2618; border-left:4px solid #26a69a;
+    border-radius:8px; padding:10px 16px; margin:5px 0; font-size:14px; }
+.checklist-item-warn { background:#2a1f0d; border-left:4px solid #f59e0b;
+    border-radius:8px; padding:10px 16px; margin:5px 0; font-size:14px; }
+.checklist-item-bad  { background:#2a0d0d; border-left:4px solid #ef5350;
+    border-radius:8px; padding:10px 16px; margin:5px 0; font-size:14px; }
+.alert-box { background:#1a1d2e; border:2px solid #3b82f6; border-radius:10px;
+    padding:14px 18px; margin:8px 0; }
+.alert-triggered { border-color:#ef5350 !important; background:#2a0d0d !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -160,6 +169,39 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df["bb_mid"]   = c.rolling(20).mean()
     df["bb_upper"] = df["bb_mid"] + 2 * c.rolling(20).std()
     df["bb_lower"] = df["bb_mid"] - 2 * c.rolling(20).std()
+    # Supertrend (period=10, multiplier=3)
+    df = add_supertrend(df, period=10, multiplier=3.0)
+    return df
+
+
+def add_supertrend(df: pd.DataFrame, period: int = 10, multiplier: float = 3.0) -> pd.DataFrame:
+    try:
+        hl2 = (df["high"] + df["low"]) / 2
+        tr  = pd.concat([
+            df["high"] - df["low"],
+            (df["high"] - df["close"].shift()).abs(),
+            (df["low"]  - df["close"].shift()).abs(),
+        ], axis=1).max(axis=1)
+        atr = tr.ewm(com=period - 1, min_periods=period).mean()
+        upper = hl2 + multiplier * atr
+        lower = hl2 - multiplier * atr
+        st    = pd.Series(np.nan, index=df.index)
+        st_dir= pd.Series(1,     index=df.index)
+        for i in range(1, len(df)):
+            prev_st  = st.iloc[i-1]  if not np.isnan(st.iloc[i-1])  else lower.iloc[i]
+            prev_dir = st_dir.iloc[i-1]
+            prev_cls = df["close"].iloc[i-1]
+            upper.iloc[i] = min(upper.iloc[i], upper.iloc[i-1]) if prev_cls > upper.iloc[i-1] else upper.iloc[i]
+            lower.iloc[i] = max(lower.iloc[i], lower.iloc[i-1]) if prev_cls < lower.iloc[i-1] else lower.iloc[i]
+            if prev_dir == -1:
+                st_dir.iloc[i] = 1  if df["close"].iloc[i] > upper.iloc[i] else -1
+            else:
+                st_dir.iloc[i] = -1 if df["close"].iloc[i] < lower.iloc[i] else  1
+            st.iloc[i] = lower.iloc[i] if st_dir.iloc[i] == 1 else upper.iloc[i]
+        df["supertrend"]     = st
+        df["supertrend_dir"] = st_dir
+    except Exception:
+        pass
     return df
 
 
@@ -480,6 +522,18 @@ def candlestick_fig(df: pd.DataFrame, title: str) -> go.Figure:
         if col in df.columns:
             fig.add_trace(go.Scatter(x=df["timestamp"], y=df[col],
                 line=dict(color=color, width=1.2), name=name), row=1, col=1)
+    # Supertrend
+    if "supertrend" in df.columns and "supertrend_dir" in df.columns:
+        bull_st = df[df["supertrend_dir"] == 1]
+        bear_st = df[df["supertrend_dir"] == -1]
+        if not bull_st.empty:
+            fig.add_trace(go.Scatter(x=bull_st["timestamp"], y=bull_st["supertrend"],
+                mode="markers", marker=dict(color="#26a69a", size=4, symbol="circle"),
+                name="ST Bull"), row=1, col=1)
+        if not bear_st.empty:
+            fig.add_trace(go.Scatter(x=bear_st["timestamp"], y=bear_st["supertrend"],
+                mode="markers", marker=dict(color="#ef5350", size=4, symbol="circle"),
+                name="ST Bear"), row=1, col=1)
     if "bb_upper" in df.columns:
         fig.add_trace(go.Scatter(x=df["timestamp"], y=df["bb_upper"],
             line=dict(color="rgba(99,102,241,0.4)", width=1, dash="dot"),
@@ -556,12 +610,166 @@ for col, (name, q) in zip(idx_cols, quotes.items()):
 st.divider()
 
 # ── Charts + Signals ──────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["⚡ Intraday Signals", "🕯️ Nifty 50", "🏦 Bank Nifty", "🌍 Global Cues", "📋 Trade Plan", "📓 Trade Journal"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    "🌅 Morning Checklist",
+    "⚡ Intraday Signals",
+    "🕯️ Nifty 50",
+    "🏦 Bank Nifty",
+    "🌍 Global Cues",
+    "📋 Trade Plan",
+    "🔔 Price Alerts",
+    "📓 Trade Journal",
+])
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  TAB 0 — Intraday Signals
+#  TAB 0 — Morning Checklist
 # ══════════════════════════════════════════════════════════════════════════════
 with tab1:
+    st.markdown("## 🌅 Morning Market Checklist")
+    st.caption("Run this every morning before 9:15 AM to prepare your trading plan for the day.")
+
+    nq_m   = quotes.get("Nifty 50",   {})
+    bnq_m  = quotes.get("Bank Nifty", {})
+    vix_m  = quotes.get("India VIX",  {}).get("ltp", 0)
+    sp_m   = {name: get_quote(ticker) for name, ticker in {"S&P 500":"^GSPC","Crude Oil":"CL=F","USD/INR":"USDINR=X"}.items()}
+
+    def check_item(label, status, value, ok_msg, warn_msg, bad_msg):
+        if status == "ok":
+            cls, icon = "checklist-item-ok",   "✅"
+            msg = ok_msg
+        elif status == "warn":
+            cls, icon = "checklist-item-warn",  "⚠️"
+            msg = warn_msg
+        else:
+            cls, icon = "checklist-item-bad",   "❌"
+            msg = bad_msg
+        st.markdown(f'<div class="{cls}">{icon} <b>{label}:</b> {value} — {msg}</div>',
+                    unsafe_allow_html=True)
+
+    st.markdown("### 1. Volatility Check")
+    if vix_m:
+        if vix_m < 14:
+            check_item("India VIX", "ok",   f"{vix_m:.2f}", "Low volatility — good for range trades", "", "")
+        elif vix_m < 18:
+            check_item("India VIX", "warn", f"{vix_m:.2f}", "", "Moderate — use normal position size", "")
+        else:
+            check_item("India VIX", "bad",  f"{vix_m:.2f}", "", "", "High VIX — reduce size by 50%, avoid naked options")
+
+    st.markdown("### 2. Gap Analysis")
+    nifty_pct = nq_m.get("pct", 0)
+    if abs(nifty_pct) < 0.3:
+        check_item("Nifty Gap", "ok",   f"{nifty_pct:+.2f}%", "Flat open — wait for direction after 9:30 AM", "", "")
+    elif nifty_pct > 0.3:
+        check_item("Nifty Gap", "warn", f"{nifty_pct:+.2f}%", "", "Gap up — watch for gap fill or continuation", "")
+    else:
+        check_item("Nifty Gap", "warn", f"{nifty_pct:+.2f}%", "", "Gap down — watch for bounce or further selling", "")
+
+    st.markdown("### 3. Global Cues")
+    sp_pct = sp_m.get("S&P 500", {}).get("pct", 0)
+    if sp_pct > 0.3:
+        check_item("S&P 500", "ok",   f"{sp_pct:+.2f}%", "US positive — supports bullish bias", "", "")
+    elif sp_pct < -0.3:
+        check_item("S&P 500", "bad",  f"{sp_pct:+.2f}%", "", "", "US negative — caution on longs")
+    else:
+        check_item("S&P 500", "warn", f"{sp_pct:+.2f}%", "", "Flat US markets — neutral global cue", "")
+
+    crude_pct = sp_m.get("Crude Oil", {}).get("pct", 0)
+    if crude_pct > 1.5:
+        check_item("Crude Oil", "bad",  f"{crude_pct:+.2f}%", "", "", "Crude spike — negative for India, watch auto/paint stocks")
+    elif crude_pct < -1.0:
+        check_item("Crude Oil", "ok",   f"{crude_pct:+.2f}%", "Crude down — positive for India economy", "", "")
+    else:
+        check_item("Crude Oil", "warn", f"{crude_pct:+.2f}%", "", "Crude stable — neutral", "")
+
+    usdinr_ltp = sp_m.get("USD/INR", {}).get("ltp", 84)
+    if usdinr_ltp > 85:
+        check_item("USD/INR", "bad",  f"₹{usdinr_ltp:.2f}", "", "", "Rupee weak — FII selling pressure likely")
+    elif usdinr_ltp < 83.5:
+        check_item("USD/INR", "ok",   f"₹{usdinr_ltp:.2f}", "Rupee strong — FII positive", "", "")
+    else:
+        check_item("USD/INR", "warn", f"₹{usdinr_ltp:.2f}", "", "Rupee stable — neutral", "")
+
+    st.markdown("### 4. Trend Direction")
+    nifty_df_m = get_candles("^NSEI", period="5d", interval="15m")
+    nifty_df_m = add_indicators(nifty_df_m)
+    if not nifty_df_m.empty:
+        last_m = nifty_df_m.iloc[-1]
+        ema9_m  = last_m.get("ema9",  0)
+        ema21_m = last_m.get("ema21", 0)
+        vwap_m  = last_m.get("vwap",  0)
+        ltp_m   = nq_m.get("ltp", 0)
+        st_dir_m = last_m.get("supertrend_dir", 0)
+
+        if ema9_m > ema21_m:
+            check_item("EMA Trend", "ok",   "EMA9 > EMA21", "Bullish trend — prefer CE", "", "")
+        else:
+            check_item("EMA Trend", "bad",  "EMA9 < EMA21", "", "", "Bearish trend — prefer PE")
+
+        if ltp_m and vwap_m:
+            if ltp_m > vwap_m:
+                check_item("VWAP", "ok",  f"Price {ltp_m:,.0f} > VWAP {vwap_m:,.0f}", "Above VWAP — bullish", "", "")
+            else:
+                check_item("VWAP", "bad", f"Price {ltp_m:,.0f} < VWAP {vwap_m:,.0f}", "", "", "Below VWAP — bearish")
+
+        if st_dir_m == 1:
+            check_item("Supertrend", "ok",  "Bullish",  "ST green — uptrend confirmed", "", "")
+        elif st_dir_m == -1:
+            check_item("Supertrend", "bad", "Bearish", "", "", "ST red — downtrend confirmed")
+
+    st.markdown("### 5. Trading Decision")
+    bull_checks = 0
+    bear_checks = 0
+    if vix_m and vix_m < 18: bull_checks += 1
+    if nifty_pct > 0: bull_checks += 1
+    if sp_pct > 0: bull_checks += 1
+    if not nifty_df_m.empty:
+        last_m = nifty_df_m.iloc[-1]
+        if last_m.get("ema9", 0) > last_m.get("ema21", 0): bull_checks += 1
+        if last_m.get("supertrend_dir", 0) == 1: bull_checks += 1
+        if nq_m.get("ltp", 0) > last_m.get("vwap", 0): bull_checks += 1
+
+    bear_checks = 6 - bull_checks
+    if vix_m and vix_m > 20:
+        st.markdown('<div class="no-trade-banner">⛔ NO TRADE DAY — VIX above 20. Sit on hands today.</div>',
+                    unsafe_allow_html=True)
+    elif bull_checks >= 4:
+        st.markdown(f"""<div class="checklist-item-ok" style="font-size:16px;padding:16px">
+        🟢 <b>BULLISH DAY</b> — {bull_checks}/6 factors bullish<br>
+        <span style="font-size:13px;color:#9ca3af">
+        Preferred: CE (Call) options | Wait for 9:30 AM | Buy dips near VWAP | Trail SL above supertrend
+        </span></div>""", unsafe_allow_html=True)
+    elif bear_checks >= 4:
+        st.markdown(f"""<div class="checklist-item-bad" style="font-size:16px;padding:16px">
+        🔴 <b>BEARISH DAY</b> — {bear_checks}/6 factors bearish<br>
+        <span style="font-size:13px;color:#9ca3af">
+        Preferred: PE (Put) options | Sell rallies near VWAP | Trail SL below supertrend
+        </span></div>""", unsafe_allow_html=True)
+    else:
+        st.markdown(f"""<div class="checklist-item-warn" style="font-size:16px;padding:16px">
+        🟡 <b>NEUTRAL/SIDEWAYS DAY</b> — Mixed signals ({bull_checks} bull / {bear_checks} bear)<br>
+        <span style="font-size:13px;color:#9ca3af">
+        Avoid directional trades | Consider Iron Condor or wait for breakout after 10 AM
+        </span></div>""", unsafe_allow_html=True)
+
+    st.markdown("### ⏰ Intraday Time Guide")
+    time_data = {
+        "Time": ["9:15–9:30 AM", "9:30–10:00 AM", "10:00 AM–1:00 PM", "1:00–2:00 PM", "2:00–3:00 PM", "3:00–3:15 PM"],
+        "Action": [
+            "🚫 Do NOT trade — opening volatility",
+            "👀 Observe — let range form, check VWAP side",
+            "✅ Best time — high probability setups, trend confirmed",
+            "⚠️ Lunch hours — low volume, avoid new entries",
+            "✅ Good time — institutional activity picks up",
+            "🚫 Exit all positions — do NOT hold into close",
+        ]
+    }
+    st.dataframe(pd.DataFrame(time_data), use_container_width=True, hide_index=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 1 — Intraday Signals
+# ══════════════════════════════════════════════════════════════════════════════
+with tab2:
     st.markdown("## ⚡ Intraday Option Trade Signals")
     st.caption("Signals update on every Refresh. Data: Yahoo Finance (15-min delay). For live signals use Upstox/Angel API.")
 
@@ -675,8 +883,8 @@ with tab1:
         show_intraday_signals(intra_bank_df, bn_ltp, vix_i, "Bank Nifty", 100)
 
 
-# ── TAB 1: Nifty ─────────────────────────────────────────────────────────────
-with tab2:
+# ── TAB 2: Nifty ─────────────────────────────────────────────────────────────
+with tab3:
     c1, c2 = st.columns([3, 1])
     with c1:
         nifty_df = get_candles("^NSEI", period="5d", interval="15m")
@@ -718,8 +926,8 @@ with tab2:
             st.markdown(f"🟢 **Support:** {support:,.0f}")
             if vwap_val: st.markdown(f"🟣 **VWAP:** {vwap_val:,.0f}")
 
-# ── TAB 2: Bank Nifty ────────────────────────────────────────────────────────
-with tab3:
+# ── TAB 3: Bank Nifty ────────────────────────────────────────────────────────
+with tab4:
     bc1, bc2 = st.columns([3, 1])
     with bc1:
         bnf_df = get_candles("^NSEBANK", period="5d", interval="15m")
@@ -756,8 +964,8 @@ with tab3:
             if "vwap" in bnf_df.columns:
                 st.markdown(f"🟣 **VWAP:** {float(bnf_df['vwap'].iloc[-1]):,.0f}")
 
-# ── TAB 3: Global Cues ───────────────────────────────────────────────────────
-with tab4:
+# ── TAB 4: Global Cues ───────────────────────────────────────────────────────
+with tab5:
     st.markdown('<div class="section-title">Global Markets</div>', unsafe_allow_html=True)
     global_quotes = {name: get_quote(ticker) for name, ticker in GLOBAL.items()}
     g1, g2 = st.columns(2)
@@ -793,8 +1001,8 @@ with tab4:
         pc = "pill-green" if color == "green" else "pill-red"
         st.markdown(f'<span class="pill {pc}">{name}: {label}</span>', unsafe_allow_html=True)
 
-# ── TAB 4: Trade Plan ────────────────────────────────────────────────────────
-with tab5:
+# ── TAB 5: Trade Plan ────────────────────────────────────────────────────────
+with tab6:
     st.markdown('<div class="section-title">Today\'s Trade Plan</div>', unsafe_allow_html=True)
     nq  = quotes.get("Nifty 50", {})
     bnq = quotes.get("Bank Nifty", {})
@@ -852,7 +1060,120 @@ with tab5:
         st.info("Market data loading. Click Refresh if it takes too long.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  TAB 6 — Trade Journal
+#  TAB 7 — Price Alerts
+# ══════════════════════════════════════════════════════════════════════════════
+ALERTS_FILE = os.path.join(os.path.dirname(__file__), "price_alerts.csv")
+
+def load_alerts() -> pd.DataFrame:
+    if os.path.exists(ALERTS_FILE):
+        try:
+            return pd.read_csv(ALERTS_FILE)
+        except Exception:
+            pass
+    return pd.DataFrame(columns=["index","condition","price","note","active"])
+
+def save_alerts(df: pd.DataFrame):
+    df.to_csv(ALERTS_FILE, index=False)
+
+with tab7:
+    st.markdown("## 🔔 Price Alerts")
+    st.caption("Set price levels — dashboard highlights when they are triggered on Refresh.")
+
+    alerts_df = load_alerts()
+    current_prices = {
+        "Nifty 50":   quotes.get("Nifty 50",   {}).get("ltp", 0),
+        "Bank Nifty": quotes.get("Bank Nifty",  {}).get("ltp", 0),
+        "India VIX":  quotes.get("India VIX",   {}).get("ltp", 0),
+        "Sensex":     quotes.get("Sensex",       {}).get("ltp", 0),
+    }
+
+    # Current prices reference
+    st.markdown("**Current Prices**")
+    pc1, pc2, pc3, pc4 = st.columns(4)
+    for col, (name, price) in zip([pc1,pc2,pc3,pc4], current_prices.items()):
+        col.metric(name, f"{price:,.2f}" if price else "N/A")
+
+    st.divider()
+
+    # Add new alert
+    st.markdown("### ➕ Add New Alert")
+    with st.form("alert_form", clear_on_submit=True):
+        ac1, ac2, ac3 = st.columns(3)
+        with ac1:
+            a_index = st.selectbox("Index", ["Nifty 50", "Bank Nifty", "India VIX", "Sensex"])
+        with ac2:
+            a_cond  = st.selectbox("Condition", ["Crosses Above", "Crosses Below"])
+        with ac3:
+            cur = current_prices.get(a_index, 0)
+            a_price = st.number_input("Alert Price", value=float(cur) if cur else 0.0, step=10.0)
+        a_note = st.text_input("Note (optional)", placeholder="e.g. Key resistance level, breakout watch")
+        if st.form_submit_button("🔔 Set Alert", use_container_width=True):
+            new_row = pd.DataFrame([{
+                "index":     a_index,
+                "condition": a_cond,
+                "price":     a_price,
+                "note":      a_note,
+                "active":    True,
+            }])
+            alerts_df = pd.concat([alerts_df, new_row], ignore_index=True)
+            save_alerts(alerts_df)
+            st.success(f"Alert set: {a_index} {a_cond} {a_price:,.2f}")
+            st.rerun()
+
+    # Check and display alerts
+    st.markdown("### 📋 Active Alerts")
+    if alerts_df.empty:
+        st.info("No alerts set yet. Add one above.")
+    else:
+        triggered_any = False
+        for idx, row in alerts_df.iterrows():
+            cur_price = current_prices.get(row["index"], 0)
+            triggered = False
+            if cur_price:
+                if row["condition"] == "Crosses Above" and cur_price >= row["price"]:
+                    triggered = True
+                elif row["condition"] == "Crosses Below" and cur_price <= row["price"]:
+                    triggered = True
+
+            if triggered:
+                triggered_any = True
+                st.markdown(f"""
+                <div class="alert-box alert-triggered">
+                🚨 <b>TRIGGERED!</b> &nbsp;
+                <b>{row['index']}</b> {row['condition']} <b>{row['price']:,.2f}</b><br>
+                Current: <b style="color:#ef5350">{cur_price:,.2f}</b> &nbsp;|&nbsp;
+                <span style="color:#9ca3af">{row.get('note','')}</span>
+                </div>""", unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="alert-box">
+                🔔 <b>{row['index']}</b> {row['condition']} <b>{row['price']:,.2f}</b> &nbsp;|&nbsp;
+                Current: {cur_price:,.2f} &nbsp;|&nbsp;
+                Gap: {abs(cur_price - row['price']):,.2f} pts &nbsp;|&nbsp;
+                <span style="color:#9ca3af">{row.get('note','')}</span>
+                </div>""", unsafe_allow_html=True)
+
+        if triggered_any:
+            st.balloons()
+
+        st.divider()
+        # Delete alerts
+        if st.button("🗑️ Clear All Alerts"):
+            save_alerts(pd.DataFrame(columns=["index","condition","price","note","active"]))
+            st.success("All alerts cleared.")
+            st.rerun()
+
+        del_idx = st.number_input("Delete alert number (row)", min_value=0,
+                                   max_value=max(len(alerts_df)-1, 0), value=0, step=1)
+        if st.button("Delete Selected Alert"):
+            alerts_df = alerts_df.drop(index=del_idx).reset_index(drop=True)
+            save_alerts(alerts_df)
+            st.success("Alert deleted.")
+            st.rerun()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 8 — Trade Journal
 # ══════════════════════════════════════════════════════════════════════════════
 JOURNAL_FILE = os.path.join(os.path.dirname(__file__), "trade_journal.csv")
 JOURNAL_COLS = ["date", "time", "index", "strategy", "direction", "strike",
