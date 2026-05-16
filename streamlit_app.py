@@ -1158,11 +1158,12 @@ for col, (name, q) in zip(idx_cols, quotes.items()):
             arrow = "▲" if q["chg"] >= 0 else "▼"
             cls   = "bull" if q["chg"] >= 0 else "bear"
             st.markdown(f"""
-            <div class="metric-card">
-              <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">{name}</div>
-              <div style="font-size:22px;font-weight:700" class="{cls}">{q['ltp']:,.2f}</div>
-              <div style="font-size:13px" class="{cls}">{arrow} {abs(q['chg']):,.2f} ({q['pct']:+.2f}%)</div>
-              <div style="font-size:11px;color:#6b7280;margin-top:4px">H:{q['high']:,.0f} L:{q['low']:,.0f}</div>
+            <div style="background:#1a1d2e;border-radius:8px;padding:8px 12px;
+                        border-left:3px solid {'#26a69a' if q['chg']>=0 else '#ef5350'};margin-bottom:6px">
+              <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">{name}</div>
+              <div style="font-size:17px;font-weight:700" class="{cls}">{q['ltp']:,.2f}</div>
+              <div style="font-size:11px" class="{cls}">{arrow} {abs(q['chg']):,.2f} ({q['pct']:+.2f}%)</div>
+              <div style="font-size:10px;color:#6b7280">H:{q['high']:,.0f} L:{q['low']:,.0f}</div>
             </div>""", unsafe_allow_html=True)
         else:
             st.metric(name, "Loading…")
@@ -1368,22 +1369,24 @@ with tab2:
     ic1, ic2, ic3 = st.columns(3)
     with ic1:
         vix_color = "#ef5350" if vix_i > 18 else "#26a69a"
-        st.markdown(f'<div class="metric-card" style="border-left-color:{vix_color}">'
-                    f'<div class="trade-label">India VIX</div>'
-                    f'<div style="font-size:24px;font-weight:800;color:{vix_color}">{vix_i:.2f}</div>'
-                    f'<div style="font-size:12px;color:#9ca3af">{"⚠️ High — reduce size" if vix_i > 18 else "✅ Normal range"}</div>'
+        st.markdown(f'<div style="background:#1a1d2e;border-radius:8px;padding:8px 14px;border-left:3px solid {vix_color}">'
+                    f'<div style="font-size:10px;color:#9ca3af;text-transform:uppercase">India VIX</div>'
+                    f'<div style="font-size:18px;font-weight:800;color:{vix_color}">{vix_i:.2f}</div>'
+                    f'<div style="font-size:11px;color:#9ca3af">{"⚠️ High — reduce size" if vix_i > 18 else "✅ Normal range"}</div>'
                     f'</div>', unsafe_allow_html=True)
     with ic2:
-        st.markdown(f'<div class="metric-card"><div class="trade-label">Nifty 50</div>'
-                    f'<div style="font-size:24px;font-weight:800;color:{"#26a69a" if nq_i.get("chg",0)>=0 else "#ef5350"}">'
-                    f'{n_ltp:,.2f}</div>'
-                    f'<div style="font-size:12px;color:#9ca3af">{nq_i.get("pct",0):+.2f}% today</div>'
+        n_color = "#26a69a" if nq_i.get("chg",0)>=0 else "#ef5350"
+        st.markdown(f'<div style="background:#1a1d2e;border-radius:8px;padding:8px 14px;border-left:3px solid {n_color}">'
+                    f'<div style="font-size:10px;color:#9ca3af;text-transform:uppercase">Nifty 50</div>'
+                    f'<div style="font-size:18px;font-weight:800;color:{n_color}">{n_ltp:,.2f}</div>'
+                    f'<div style="font-size:11px;color:#9ca3af">{nq_i.get("pct",0):+.2f}% today</div>'
                     f'</div>', unsafe_allow_html=True)
     with ic3:
-        st.markdown(f'<div class="metric-card"><div class="trade-label">Bank Nifty</div>'
-                    f'<div style="font-size:24px;font-weight:800;color:{"#26a69a" if bnq_i.get("chg",0)>=0 else "#ef5350"}">'
-                    f'{bn_ltp:,.2f}</div>'
-                    f'<div style="font-size:12px;color:#9ca3af">{bnq_i.get("pct",0):+.2f}% today</div>'
+        b_color = "#26a69a" if bnq_i.get("chg",0)>=0 else "#ef5350"
+        st.markdown(f'<div style="background:#1a1d2e;border-radius:8px;padding:8px 14px;border-left:3px solid {b_color}">'
+                    f'<div style="font-size:10px;color:#9ca3af;text-transform:uppercase">Bank Nifty</div>'
+                    f'<div style="font-size:18px;font-weight:800;color:{b_color}">{bn_ltp:,.2f}</div>'
+                    f'<div style="font-size:11px;color:#9ca3af">{bnq_i.get("pct",0):+.2f}% today</div>'
                     f'</div>', unsafe_allow_html=True)
 
     st.divider()
