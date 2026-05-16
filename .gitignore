@@ -1,0 +1,13 @@
+# API keys and secrets — never upload these
+.env
+
+# Trade journal — personal data
+trade_journal.csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Streamlit cache
+.streamlit/secrets.toml
