@@ -187,90 +187,106 @@ MUTUAL_FUNDS = [
      "ret_1y": 18.5, "ret_3y": 16.2, "ret_5y": 17.8, "aum": "₹36,000 Cr",
      "min_sip": 1000, "stars": 5, "profiles": ["Moderate", "Aggressive"],
      "horizon": "3y+", "goal": ["Wealth Creation", "Retirement"],
-     "why": "Consistent Nifty-beating returns, large AUM gives stability"},
+     "why": "Consistent Nifty-beating returns, large AUM gives stability",
+     "amfi_search": ["mirae asset large cap", "direct", "growth"]},
     {"name": "Axis Bluechip Fund", "category": "Large Cap", "risk": "Moderate",
      "ret_1y": 16.2, "ret_3y": 14.8, "ret_5y": 16.5, "aum": "₹28,000 Cr",
      "min_sip": 500, "stars": 4, "profiles": ["Conservative", "Moderate"],
      "horizon": "3y+", "goal": ["Wealth Creation", "Retirement"],
-     "why": "Quality-focused portfolio, lower drawdown in bear markets"},
+     "why": "Quality-focused portfolio, lower drawdown in bear markets",
+     "amfi_search": ["axis bluechip", "direct", "growth"]},
     # Flexi Cap
     {"name": "Parag Parikh Flexi Cap Fund", "category": "Flexi Cap", "risk": "Moderate",
      "ret_1y": 22.1, "ret_3y": 19.4, "ret_5y": 21.2, "aum": "₹65,000 Cr",
      "min_sip": 1000, "stars": 5, "profiles": ["Moderate", "Aggressive"],
      "horizon": "5y+", "goal": ["Wealth Creation", "Retirement"],
-     "why": "Globally diversified (US stocks included), Warren Buffett philosophy"},
+     "why": "Globally diversified (US stocks included), Warren Buffett philosophy",
+     "amfi_search": ["parag parikh flexi cap", "direct", "growth"]},
     {"name": "HDFC Flexi Cap Fund", "category": "Flexi Cap", "risk": "Moderate-High",
      "ret_1y": 24.8, "ret_3y": 21.6, "ret_5y": 20.4, "aum": "₹52,000 Cr",
      "min_sip": 100, "stars": 5, "profiles": ["Moderate", "Aggressive"],
      "horizon": "5y+", "goal": ["Wealth Creation"],
-     "why": "Strong all-weather fund, moves between large/mid/small dynamically"},
+     "why": "Strong all-weather fund, moves between large/mid/small dynamically",
+     "amfi_search": ["hdfc flexi cap", "direct", "growth"]},
     # Mid Cap
     {"name": "Nippon India Mid Cap Fund", "category": "Mid Cap", "risk": "High",
      "ret_1y": 35.2, "ret_3y": 27.8, "ret_5y": 28.4, "aum": "₹29,000 Cr",
      "min_sip": 100, "stars": 5, "profiles": ["Aggressive"],
      "horizon": "7y+", "goal": ["Wealth Creation"],
-     "why": "Consistently top-performing mid-cap, ideal for long-term wealth"},
+     "why": "Consistently top-performing mid-cap, ideal for long-term wealth",
+     "amfi_search": ["nippon india mid cap", "direct", "growth"]},
     {"name": "HDFC Mid Cap Opportunities", "category": "Mid Cap", "risk": "High",
      "ret_1y": 32.8, "ret_3y": 25.6, "ret_5y": 26.9, "aum": "₹62,000 Cr",
      "min_sip": 100, "stars": 5, "profiles": ["Aggressive"],
      "horizon": "7y+", "goal": ["Wealth Creation"],
-     "why": "India's largest mid-cap fund, proven 15-year track record"},
+     "why": "India's largest mid-cap fund, proven 15-year track record",
+     "amfi_search": ["hdfc mid-cap opportunities", "direct", "growth"]},
     # Small Cap
     {"name": "SBI Small Cap Fund", "category": "Small Cap", "risk": "Very High",
      "ret_1y": 28.4, "ret_3y": 22.1, "ret_5y": 29.6, "aum": "₹24,000 Cr",
      "min_sip": 500, "stars": 5, "profiles": ["Aggressive"],
      "horizon": "10y+", "goal": ["Wealth Creation"],
-     "why": "Best small-cap fund for consistent long-term wealth creation"},
+     "why": "Best small-cap fund for consistent long-term wealth creation",
+     "amfi_search": ["sbi small cap", "direct", "growth"]},
     # Index Funds
     {"name": "UTI Nifty 50 Index Fund", "category": "Index Fund", "risk": "Moderate",
      "ret_1y": 16.8, "ret_3y": 14.2, "ret_5y": 15.6, "aum": "₹17,000 Cr",
      "min_sip": 500, "stars": 4, "profiles": ["Conservative", "Moderate"],
      "horizon": "3y+", "goal": ["Wealth Creation", "Retirement"],
-     "why": "Lowest cost (0.1% expense ratio), tracks Nifty 50, no fund manager risk"},
+     "why": "Lowest cost (0.1% expense ratio), tracks Nifty 50, no fund manager risk",
+     "amfi_search": ["uti nifty 50 index", "direct", "growth"]},
     {"name": "Motilal Oswal Nifty Next 50 Index", "category": "Index Fund", "risk": "Moderate-High",
      "ret_1y": 19.2, "ret_3y": 16.8, "ret_5y": 17.4, "aum": "₹5,000 Cr",
      "min_sip": 500, "stars": 4, "profiles": ["Moderate", "Aggressive"],
      "horizon": "5y+", "goal": ["Wealth Creation"],
-     "why": "Next 50 Nifty companies — future blue chips at lower price"},
+     "why": "Next 50 Nifty companies — future blue chips at lower price",
+     "amfi_search": ["motilal oswal nifty next 50", "direct", "growth"]},
     # ELSS Tax Saving
     {"name": "Mirae Asset Tax Saver Fund", "category": "ELSS (Tax Saving)", "risk": "Moderate-High",
      "ret_1y": 20.4, "ret_3y": 17.6, "ret_5y": 19.8, "aum": "₹23,000 Cr",
      "min_sip": 500, "stars": 5, "profiles": ["Moderate", "Aggressive"],
      "horizon": "3y+ lock-in", "goal": ["Tax Saving", "Wealth Creation"],
-     "why": "Best ELSS fund. Saves up to ₹46,800 tax under Section 80C"},
+     "why": "Best ELSS fund. Saves up to ₹46,800 tax under Section 80C",
+     "amfi_search": ["mirae asset tax saver", "direct", "growth"]},
     {"name": "Quant ELSS Tax Saver Fund", "category": "ELSS (Tax Saving)", "risk": "High",
      "ret_1y": 28.6, "ret_3y": 24.2, "ret_5y": 28.1, "aum": "₹9,000 Cr",
      "min_sip": 500, "stars": 5, "profiles": ["Aggressive"],
      "horizon": "3y+ lock-in", "goal": ["Tax Saving", "Wealth Creation"],
-     "why": "Highest-return ELSS in last 5 years, quantitative investing approach"},
+     "why": "Highest-return ELSS in last 5 years, quantitative investing approach",
+     "amfi_search": ["quant elss", "direct", "growth"]},
     # Hybrid
     {"name": "HDFC Balanced Advantage Fund", "category": "Hybrid / BAF", "risk": "Moderate",
      "ret_1y": 18.2, "ret_3y": 15.8, "ret_5y": 16.4, "aum": "₹86,000 Cr",
      "min_sip": 100, "stars": 4, "profiles": ["Conservative", "Moderate"],
      "horizon": "3y+", "goal": ["Wealth Creation", "Retirement", "Monthly Income"],
-     "why": "Auto-balances equity/debt ratio based on market valuation"},
+     "why": "Auto-balances equity/debt ratio based on market valuation",
+     "amfi_search": ["hdfc balanced advantage", "direct", "growth"]},
     {"name": "SBI Equity Hybrid Fund", "category": "Hybrid / BAF", "risk": "Moderate",
      "ret_1y": 17.6, "ret_3y": 14.9, "ret_5y": 15.8, "aum": "₹62,000 Cr",
      "min_sip": 1000, "stars": 4, "profiles": ["Conservative", "Moderate"],
      "horizon": "3y+", "goal": ["Retirement", "Monthly Income"],
-     "why": "Stable 75:25 equity-debt mix, good for first-time investors"},
+     "why": "Stable 75:25 equity-debt mix, good for first-time investors",
+     "amfi_search": ["sbi equity hybrid", "direct", "growth"]},
     # Debt
     {"name": "HDFC Short Term Debt Fund", "category": "Short Duration Debt", "risk": "Low",
      "ret_1y": 7.8, "ret_3y": 6.9, "ret_5y": 7.2, "aum": "₹12,000 Cr",
      "min_sip": 100, "stars": 4, "profiles": ["Conservative"],
      "horizon": "1-3y", "goal": ["Emergency Fund", "Short-term Savings"],
-     "why": "More tax-efficient than FD for 3+ year holding, stable returns"},
+     "why": "More tax-efficient than FD for 3+ year holding, stable returns",
+     "amfi_search": ["hdfc short term debt", "direct", "growth"]},
     {"name": "Nippon India Liquid Fund", "category": "Liquid Fund", "risk": "Very Low",
      "ret_1y": 7.2, "ret_3y": 6.4, "ret_5y": 6.1, "aum": "₹28,000 Cr",
      "min_sip": 100, "stars": 4, "profiles": ["Conservative"],
      "horizon": "< 1y", "goal": ["Emergency Fund", "Parking Money"],
-     "why": "Better than savings account, instant redemption, very safe"},
+     "why": "Better than savings account, instant redemption, very safe",
+     "amfi_search": ["nippon india liquid", "direct", "growth"]},
     # International
     {"name": "Motilal Oswal Nasdaq 100 FOF", "category": "International", "risk": "High",
      "ret_1y": 24.6, "ret_3y": 12.4, "ret_5y": 22.8, "aum": "₹4,000 Cr",
      "min_sip": 500, "stars": 4, "profiles": ["Aggressive"],
      "horizon": "5y+", "goal": ["Wealth Creation"],
-     "why": "Invest in Apple, Microsoft, Google via Indian rupees. USD hedge benefit"},
+     "why": "Invest in Apple, Microsoft, Google via Indian rupees. USD hedge benefit",
+     "amfi_search": ["motilal oswal nasdaq 100", "direct", "growth"]},
 ]
 
 # ── Data helpers ──────────────────────────────────────────────────────────────
@@ -310,6 +326,47 @@ def get_candles(ticker: str, period: str = "5d", interval: str = "15m") -> pd.Da
         return df
     except Exception:
         return pd.DataFrame()
+
+
+@st.cache_data(ttl=21600)
+def fetch_amfi_navs() -> dict:
+    """
+    Fetch all mutual fund NAVs from AMFI (official, free, updates daily).
+    Returns dict keyed by lowercase scheme name → {nav, date, code}.
+    """
+    try:
+        url = "https://www.amfiindia.com/spages/NAVAll.txt"
+        r = requests.get(url, timeout=15)
+        r.raise_for_status()
+        nav_dict = {}
+        for line in r.text.splitlines():
+            parts = line.strip().split(";")
+            if len(parts) < 6:
+                continue
+            try:
+                nav = float(parts[4].strip())
+                nav_dict[parts[3].strip().lower()] = {
+                    "nav":  nav,
+                    "date": parts[5].strip() if len(parts) > 5 else "",
+                    "code": parts[0].strip(),
+                }
+            except ValueError:
+                continue
+        return nav_dict
+    except Exception:
+        return {}
+
+
+def lookup_nav(nav_dict: dict, search_terms: list) -> dict:
+    """Find the best matching Direct Growth fund by search keywords."""
+    best, best_score = None, 0
+    for name, data in nav_dict.items():
+        if "direct" not in name or ("growth" not in name and "gr" not in name):
+            continue
+        score = sum(1 for t in search_terms if t.lower() in name)
+        if score > best_score:
+            best_score, best = score, data
+    return best if best_score >= 2 else None
 
 
 @st.cache_data(ttl=300)
@@ -2163,6 +2220,13 @@ with tab10:
     st.markdown(f"### 🎯 Recommended Funds for You")
     st.caption(f"Profile: **{user_risk}** | Goal: **{user_goal}** | Horizon: **{user_horizon}** | SIP: ₹{mf_sip:,}/month")
 
+    with st.spinner("Fetching live NAV from AMFI..."):
+        amfi_navs = fetch_amfi_navs()
+    if amfi_navs:
+        st.caption(f"✅ Live NAV loaded from AMFI — {len(amfi_navs):,} funds")
+    else:
+        st.caption("⚠️ NAV fetch failed — showing fund details without live NAV")
+
     risk_colors = {
         "Very Low": "#3b82f6", "Low": "#26a69a", "Moderate": "#f59e0b",
         "Moderate-High": "#f97316", "High": "#ef5350", "Very High": "#dc2626",
@@ -2173,6 +2237,19 @@ with tab10:
         rc = risk_colors.get(fund["risk"], "#9ca3af")
         ret_color_1y = "#26a69a" if fund["ret_1y"] > 15 else ("#f59e0b" if fund["ret_1y"] > 10 else "#ef5350")
         corpus_10y = round(mf_sip * (((1 + fund["ret_5y"]/100/12) ** 120 - 1) / (fund["ret_5y"]/100/12)), 0)
+
+        # Live NAV lookup
+        nav_data = lookup_nav(amfi_navs, fund.get("amfi_search", []))
+        if nav_data:
+            nav_html = f"""
+              <div style="text-align:center;border:1px solid {rc};border-radius:8px;padding:6px 14px">
+                <div class="trade-label">Live NAV</div>
+                <div style="font-size:20px;font-weight:800;color:{rc}">₹{nav_data['nav']:,.2f}</div>
+                <div style="font-size:10px;color:#6b7280">as of {nav_data['date']}</div>
+              </div>"""
+        else:
+            nav_html = '<div style="text-align:center"><div class="trade-label">NAV</div><div style="color:#6b7280;font-size:12px">N/A</div></div>'
+
         st.markdown(f"""
         <div class="metric-card" style="border-left-color:{rc};margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
@@ -2186,7 +2263,8 @@ with tab10:
               </div>
               <div style="font-size:12px;color:#6b7280;margin-top:4px">🕐 Horizon: {fund['horizon']}</div>
             </div>
-            <div style="display:flex;gap:24px;flex-wrap:wrap">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+              {nav_html}
               <div style="text-align:center">
                 <div class="trade-label">1Y Return</div>
                 <div style="font-size:18px;font-weight:800;color:{ret_color_1y}">{fund['ret_1y']}%</div>
