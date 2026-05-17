@@ -1211,25 +1211,30 @@ with tab1:
     ltp_m    = nq_m.get("ltp", 0)
     st_dir_m = last_m.get("supertrend_dir", 0) if not nifty_df_m.empty else 0
 
-    # ── Helper: compact card ──────────────────────────────────────────────────
+    # ── Helper: card item ─────────────────────────────────────────────────────
     def ci(label, value, status, msg):
         colors = {"ok": ("#0d2618","#26a69a","✅"), "warn": ("#2a1f0d","#f59e0b","⚠️"), "bad": ("#2a0d0d","#ef5350","❌")}
         bg, border, icon = colors.get(status, colors["warn"])
         st.markdown(
-            f'<div style="background:{bg};border-left:3px solid {border};border-radius:6px;'
-            f'padding:7px 10px;margin:3px 0;font-size:12px">'
-            f'<span style="color:{border};font-weight:700">{icon} {label}</span><br>'
-            f'<span style="color:#e0e0e0;font-weight:600">{value}</span><br>'
-            f'<span style="color:#9ca3af;font-size:11px">{msg}</span></div>',
+            f'<div style="background:{bg};border-left:4px solid {border};border-radius:8px;'
+            f'padding:10px 12px;margin:4px 0">'
+            f'<div style="color:{border};font-weight:700;font-size:14px">{icon} {label}</div>'
+            f'<div style="color:#e0e0e0;font-weight:700;font-size:16px;margin:3px 0">{value}</div>'
+            f'<div style="color:#9ca3af;font-size:12px">{msg}</div></div>',
             unsafe_allow_html=True,
         )
 
-    # ── 6 columns side by side ────────────────────────────────────────────────
-    mc1, mc2, mc3, mc4, mc5, mc6 = st.columns(6)
+    def sec_title(n, title):
+        st.markdown(f'<div style="font-size:13px;font-weight:800;color:#9ca3af;'
+                    f'text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">{n} {title}</div>',
+                    unsafe_allow_html=True)
+
+    # ── 6 columns — widths proportional to content ────────────────────────────
+    mc1, mc2, mc3, mc4, mc5, mc6 = st.columns([1, 1.2, 1.6, 1.6, 1.5, 1.4])
 
     # 1. Volatility
     with mc1:
-        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">1️⃣ VOLATILITY</div>', unsafe_allow_html=True)
+        sec_title("1️⃣", "VOLATILITY")
         if vix_m:
             if vix_m < 14:
                 ci("India VIX", f"{vix_m:.2f}", "ok", "Low — good for trades")
@@ -1240,94 +1245,107 @@ with tab1:
 
     # 2. Gap Analysis
     with mc2:
-        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">2️⃣ GAP ANALYSIS</div>', unsafe_allow_html=True)
+        sec_title("2️⃣", "GAP")
         if abs(nifty_pct) < 0.3:
             ci("Nifty", f"{nifty_pct:+.2f}%", "ok", "Flat — wait for 9:30 AM")
         elif nifty_pct > 0.3:
-            ci("Nifty", f"{nifty_pct:+.2f}%", "warn", "Gap up — fill or continue?")
+            ci("Nifty", f"{nifty_pct:+.2f}%", "warn", "Gap up — continuation?")
         else:
-            ci("Nifty", f"{nifty_pct:+.2f}%", "warn", "Gap down — bounce or fall?")
-        if abs(bnq_m.get("pct", 0)) > 0.3:
-            bpct = bnq_m.get("pct", 0)
-            ci("BankNifty", f"{bpct:+.2f}%", "warn" if bpct > 0 else "bad",
-               "Gap up" if bpct > 0 else "Gap down")
+            ci("Nifty", f"{nifty_pct:+.2f}%", "warn", "Gap down — bounce?")
+        bpct = bnq_m.get("pct", 0)
+        ci("BankNifty", f"{bpct:+.2f}%",
+           "ok" if abs(bpct) < 0.3 else ("warn" if bpct > 0 else "bad"),
+           "Flat" if abs(bpct) < 0.3 else ("Gap up" if bpct > 0 else "Gap down"))
 
     # 3. Global Cues
     with mc3:
-        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">3️⃣ GLOBAL CUES</div>', unsafe_allow_html=True)
-        ci("S&P 500",   f"{sp_pct:+.2f}%",
+        sec_title("3️⃣", "GLOBAL CUES")
+        ci("S&P 500", f"{sp_pct:+.2f}%",
            "ok" if sp_pct > 0.3 else ("bad" if sp_pct < -0.3 else "warn"),
-           "US positive" if sp_pct > 0.3 else ("US negative" if sp_pct < -0.3 else "US flat"))
+           "US positive — bull bias" if sp_pct > 0.3 else ("US negative — caution" if sp_pct < -0.3 else "US flat — neutral"))
         ci("Crude Oil", f"{crude_pct:+.2f}%",
            "bad" if crude_pct > 1.5 else ("ok" if crude_pct < -1.0 else "warn"),
-           "Spike — negative" if crude_pct > 1.5 else ("Down — positive" if crude_pct < -1.0 else "Stable"))
-        ci("USD/INR",   f"₹{usdinr_ltp:.2f}",
+           "Spike — negative India" if crude_pct > 1.5 else ("Down — positive India" if crude_pct < -1.0 else "Stable — neutral"))
+        ci("USD/INR", f"₹{usdinr_ltp:.2f}",
            "bad" if usdinr_ltp > 85 else ("ok" if usdinr_ltp < 83.5 else "warn"),
-           "Rupee weak" if usdinr_ltp > 85 else ("Rupee strong" if usdinr_ltp < 83.5 else "Rupee stable"))
+           "Rupee weak — FII sell" if usdinr_ltp > 85 else ("Rupee strong — FII buy" if usdinr_ltp < 83.5 else "Rupee stable"))
 
     # 4. Trend Direction
     with mc4:
-        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">4️⃣ TREND</div>', unsafe_allow_html=True)
+        sec_title("4️⃣", "TREND")
         if not nifty_df_m.empty:
-            ci("EMA", "EMA9 > EMA21" if ema9_m > ema21_m else "EMA9 < EMA21",
+            ci("EMA Stack",
+               "EMA9 > EMA21 ▲" if ema9_m > ema21_m else "EMA9 < EMA21 ▼",
                "ok" if ema9_m > ema21_m else "bad",
                "Bullish — prefer CE" if ema9_m > ema21_m else "Bearish — prefer PE")
             if ltp_m and vwap_m:
-                ci("VWAP", f"{'Above' if ltp_m > vwap_m else 'Below'} {vwap_m:,.0f}",
+                ci("VWAP",
+                   f"{'Above' if ltp_m > vwap_m else 'Below'} {vwap_m:,.0f}",
                    "ok" if ltp_m > vwap_m else "bad",
-                   "Bullish" if ltp_m > vwap_m else "Bearish")
+                   "Price above VWAP — bullish" if ltp_m > vwap_m else "Price below VWAP — bearish")
             ci("Supertrend",
                "Bullish 🟢" if st_dir_m == 1 else ("Bearish 🔴" if st_dir_m == -1 else "N/A"),
                "ok" if st_dir_m == 1 else ("bad" if st_dir_m == -1 else "warn"),
-               "Uptrend confirmed" if st_dir_m == 1 else ("Downtrend confirmed" if st_dir_m == -1 else "Calculating"))
+               "Uptrend confirmed" if st_dir_m == 1 else ("Downtrend confirmed" if st_dir_m == -1 else "Calculating..."))
 
     # 5. Global Intelligence
     with mc5:
-        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">5️⃣ GLOBAL INTEL</div>', unsafe_allow_html=True)
+        sec_title("5️⃣", "GLOBAL INTEL")
         gs_status = "ok" if gs_m["score"] >= 2 else ("bad" if gs_m["score"] <= -2 else "warn")
+        gs_bg = "#0d2618" if gs_status == "ok" else ("#2a0d0d" if gs_status == "bad" else "#2a1f0d")
+        factors_html = "".join([
+            f'<div style="color:{"#26a69a" if f[2]=="bull" else ("#ef5350" if f[2]=="bear" else "#6b7280")};font-size:12px">'
+            f'{"▲" if f[2]=="bull" else ("▼" if f[2]=="bear" else "—")} {f[0]}: {f[1]}</div>'
+            for f in gs_m["factors"][:6]
+        ])
         st.markdown(
-            f'<div style="background:{"#0d2618" if gs_status=="ok" else ("#2a0d0d" if gs_status=="bad" else "#2a1f0d")};'
-            f'border-left:3px solid {gs_m["color"]};border-radius:6px;padding:10px;margin:3px 0">'
-            f'<div style="font-size:20px;font-weight:900;color:{gs_m["color"]}">{gs_m["score"]:+d}<span style="font-size:11px;color:#9ca3af">/10</span></div>'
-            f'<div style="font-size:12px;font-weight:700;color:{gs_m["color"]}">{gs_m["label"]}</div>'
-            f'<div style="font-size:10px;color:#9ca3af;margin-top:4px">'
-            + "<br>".join([f'<span style="color:{"#26a69a" if f[2]=="bull" else ("#ef5350" if f[2]=="bear" else "#6b7280")}">{f[0]}: {f[1]}</span>' for f in gs_m["factors"][:5]])
-            + '</div></div>',
+            f'<div style="background:{gs_bg};border-left:4px solid {gs_m["color"]};'
+            f'border-radius:8px;padding:12px;margin:4px 0">'
+            f'<div style="font-size:28px;font-weight:900;color:{gs_m["color"]};line-height:1">'
+            f'{gs_m["score"]:+d}<span style="font-size:13px;color:#9ca3af"> /10</span></div>'
+            f'<div style="font-size:14px;font-weight:700;color:{gs_m["color"]};margin:4px 0">{gs_m["label"]}</div>'
+            f'{factors_html}</div>',
             unsafe_allow_html=True,
         )
 
     # 6. Trading Decision
     with mc6:
-        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">6️⃣ DECISION</div>', unsafe_allow_html=True)
+        sec_title("6️⃣", "DECISION")
         bull_checks = 0
         bear_checks = 0
-        if vix_m and vix_m < 18:                               bull_checks += 1
-        if nifty_pct > 0:                                      bull_checks += 1
-        if sp_pct > 0:                                         bull_checks += 1
-        if gs_m["score"] >= 2:                                 bull_checks += 1
-        elif gs_m["score"] <= -2:                              bear_checks += 1
-        if ema9_m > ema21_m:                                   bull_checks += 1
-        if st_dir_m == 1:                                      bull_checks += 1
-        elif st_dir_m == -1:                                   bear_checks += 1
-        if ltp_m and vwap_m and ltp_m > vwap_m:               bull_checks += 1
+        if vix_m and vix_m < 18:              bull_checks += 1
+        if nifty_pct > 0:                     bull_checks += 1
+        if sp_pct > 0:                        bull_checks += 1
+        if gs_m["score"] >= 2:                bull_checks += 1
+        elif gs_m["score"] <= -2:             bear_checks += 1
+        if ema9_m > ema21_m:                  bull_checks += 1
+        if st_dir_m == 1:                     bull_checks += 1
+        elif st_dir_m == -1:                  bear_checks += 1
+        if ltp_m and vwap_m and ltp_m > vwap_m: bull_checks += 1
         bear_checks = max(7 - bull_checks, bear_checks)
 
         if vix_m and vix_m > 20:
-            verdict, vc, advice = "⛔ NO TRADE", "#ef5350", "VIX > 20. Sit out today."
+            verdict, vc = "⛔ NO TRADE",  "#ef5350"
+            advice = "VIX > 20\nSit out today."
         elif gs_m["score"] <= -4:
-            verdict, vc, advice = "⛔ NO TRADE", "#ef5350", "Strong global headwinds."
+            verdict, vc = "⛔ NO TRADE",  "#ef5350"
+            advice = "Strong global\nheadwinds."
         elif bull_checks >= 4:
-            verdict, vc, advice = "🟢 BULLISH", "#26a69a", f"{bull_checks}/7 bull\nBuy CE near VWAP"
+            verdict, vc = "🟢 BULLISH",   "#26a69a"
+            advice = f"{bull_checks}/7 bullish\nBuy CE near VWAP\nTrail SL on ST"
         elif bear_checks >= 4:
-            verdict, vc, advice = "🔴 BEARISH", "#ef5350", f"{bear_checks}/7 bear\nSell rallies near VWAP"
+            verdict, vc = "🔴 BEARISH",   "#ef5350"
+            advice = f"{bear_checks}/7 bearish\nBuy PE near VWAP\nTrail SL on ST"
         else:
-            verdict, vc, advice = "🟡 NEUTRAL", "#f59e0b", f"Mixed {bull_checks}B/{bear_checks}Be\nWait for breakout"
+            verdict, vc = "🟡 NEUTRAL",   "#f59e0b"
+            advice = f"{bull_checks}B / {bear_checks}Be out of 7\nWait for breakout\nafter 10 AM"
 
+        vd_bg = "#0d2618" if vc == "#26a69a" else ("#2a0d0d" if vc == "#ef5350" else "#2a1f0d")
         st.markdown(
-            f'<div style="background:{"#0d2618" if vc=="#26a69a" else ("#2a0d0d" if vc=="#ef5350" else "#2a1f0d")};'
-            f'border-left:3px solid {vc};border-radius:6px;padding:12px 10px;margin:3px 0;text-align:center">'
-            f'<div style="font-size:16px;font-weight:900;color:{vc}">{verdict}</div>'
-            f'<div style="font-size:11px;color:#9ca3af;margin-top:6px;white-space:pre-line">{advice}</div>'
+            f'<div style="background:{vd_bg};border-left:4px solid {vc};border-radius:8px;'
+            f'padding:14px 12px;margin:4px 0;text-align:center">'
+            f'<div style="font-size:20px;font-weight:900;color:{vc}">{verdict}</div>'
+            f'<div style="font-size:13px;color:#9ca3af;margin-top:8px;white-space:pre-line;line-height:1.8">{advice}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
