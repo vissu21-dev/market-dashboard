@@ -1190,146 +1190,149 @@ with tab1:
     st.markdown("## 🌅 Morning Market Checklist")
     st.caption("Run this every morning before 9:15 AM to prepare your trading plan for the day.")
 
-    nq_m   = quotes.get("Nifty 50",   {})
-    bnq_m  = quotes.get("Bank Nifty", {})
-    vix_m  = quotes.get("India VIX",  {}).get("ltp", 0)
-    sp_m   = {name: get_quote(ticker) for name, ticker in {"S&P 500":"^GSPC","Crude Oil":"CL=F","USD/INR":"USDINR=X"}.items()}
-
-    def check_item(label, status, value, ok_msg, warn_msg, bad_msg):
-        if status == "ok":
-            cls, icon = "checklist-item-ok",   "✅"
-            msg = ok_msg
-        elif status == "warn":
-            cls, icon = "checklist-item-warn",  "⚠️"
-            msg = warn_msg
-        else:
-            cls, icon = "checklist-item-bad",   "❌"
-            msg = bad_msg
-        st.markdown(f'<div class="{cls}">{icon} <b>{label}:</b> {value} — {msg}</div>',
-                    unsafe_allow_html=True)
-
-    st.markdown("### 1. Volatility Check")
-    if vix_m:
-        if vix_m < 14:
-            check_item("India VIX", "ok",   f"{vix_m:.2f}", "Low volatility — good for range trades", "", "")
-        elif vix_m < 18:
-            check_item("India VIX", "warn", f"{vix_m:.2f}", "", "Moderate — use normal position size", "")
-        else:
-            check_item("India VIX", "bad",  f"{vix_m:.2f}", "", "", "High VIX — reduce size by 50%, avoid naked options")
-
-    st.markdown("### 2. Gap Analysis")
-    nifty_pct = nq_m.get("pct", 0)
-    if abs(nifty_pct) < 0.3:
-        check_item("Nifty Gap", "ok",   f"{nifty_pct:+.2f}%", "Flat open — wait for direction after 9:30 AM", "", "")
-    elif nifty_pct > 0.3:
-        check_item("Nifty Gap", "warn", f"{nifty_pct:+.2f}%", "", "Gap up — watch for gap fill or continuation", "")
-    else:
-        check_item("Nifty Gap", "warn", f"{nifty_pct:+.2f}%", "", "Gap down — watch for bounce or further selling", "")
-
-    st.markdown("### 3. Global Cues")
-    sp_pct = sp_m.get("S&P 500", {}).get("pct", 0)
-    if sp_pct > 0.3:
-        check_item("S&P 500", "ok",   f"{sp_pct:+.2f}%", "US positive — supports bullish bias", "", "")
-    elif sp_pct < -0.3:
-        check_item("S&P 500", "bad",  f"{sp_pct:+.2f}%", "", "", "US negative — caution on longs")
-    else:
-        check_item("S&P 500", "warn", f"{sp_pct:+.2f}%", "", "Flat US markets — neutral global cue", "")
-
-    crude_pct = sp_m.get("Crude Oil", {}).get("pct", 0)
-    if crude_pct > 1.5:
-        check_item("Crude Oil", "bad",  f"{crude_pct:+.2f}%", "", "", "Crude spike — negative for India, watch auto/paint stocks")
-    elif crude_pct < -1.0:
-        check_item("Crude Oil", "ok",   f"{crude_pct:+.2f}%", "Crude down — positive for India economy", "", "")
-    else:
-        check_item("Crude Oil", "warn", f"{crude_pct:+.2f}%", "", "Crude stable — neutral", "")
-
-    usdinr_ltp = sp_m.get("USD/INR", {}).get("ltp", 84)
-    if usdinr_ltp > 85:
-        check_item("USD/INR", "bad",  f"₹{usdinr_ltp:.2f}", "", "", "Rupee weak — FII selling pressure likely")
-    elif usdinr_ltp < 83.5:
-        check_item("USD/INR", "ok",   f"₹{usdinr_ltp:.2f}", "Rupee strong — FII positive", "", "")
-    else:
-        check_item("USD/INR", "warn", f"₹{usdinr_ltp:.2f}", "", "Rupee stable — neutral", "")
-
-    st.markdown("### 4. Trend Direction")
+    # ── Fetch all data upfront ────────────────────────────────────────────────
+    nq_m       = quotes.get("Nifty 50",   {})
+    bnq_m      = quotes.get("Bank Nifty", {})
+    vix_m      = quotes.get("India VIX",  {}).get("ltp", 0)
+    sp_m       = {n: get_quote(t) for n, t in {"S&P 500":"^GSPC","Crude Oil":"CL=F","USD/INR":"USDINR=X"}.items()}
     nifty_df_m = get_candles("^NSEI", period="5d", interval="15m")
     nifty_df_m = add_indicators(nifty_df_m)
-    if not nifty_df_m.empty:
-        last_m = nifty_df_m.iloc[-1]
-        ema9_m  = last_m.get("ema9",  0)
-        ema21_m = last_m.get("ema21", 0)
-        vwap_m  = last_m.get("vwap",  0)
-        ltp_m   = nq_m.get("ltp", 0)
-        st_dir_m = last_m.get("supertrend_dir", 0)
+    g_quotes_m = {n: get_quote(t) for n, t in GLOBAL.items()}
+    gs_m       = compute_global_sentiment(g_quotes_m)
+    nifty_pct  = nq_m.get("pct", 0)
+    sp_pct     = sp_m.get("S&P 500",  {}).get("pct", 0)
+    crude_pct  = sp_m.get("Crude Oil",{}).get("pct", 0)
+    usdinr_ltp = sp_m.get("USD/INR",  {}).get("ltp", 84)
 
-        if ema9_m > ema21_m:
-            check_item("EMA Trend", "ok",   "EMA9 > EMA21", "Bullish trend — prefer CE", "", "")
-        else:
-            check_item("EMA Trend", "bad",  "EMA9 < EMA21", "", "", "Bearish trend — prefer PE")
+    last_m   = nifty_df_m.iloc[-1] if not nifty_df_m.empty else {}
+    ema9_m   = last_m.get("ema9",  0) if not nifty_df_m.empty else 0
+    ema21_m  = last_m.get("ema21", 0) if not nifty_df_m.empty else 0
+    vwap_m   = last_m.get("vwap",  0) if not nifty_df_m.empty else 0
+    ltp_m    = nq_m.get("ltp", 0)
+    st_dir_m = last_m.get("supertrend_dir", 0) if not nifty_df_m.empty else 0
 
-        if ltp_m and vwap_m:
-            if ltp_m > vwap_m:
-                check_item("VWAP", "ok",  f"Price {ltp_m:,.0f} > VWAP {vwap_m:,.0f}", "Above VWAP — bullish", "", "")
+    # ── Helper: compact card ──────────────────────────────────────────────────
+    def ci(label, value, status, msg):
+        colors = {"ok": ("#0d2618","#26a69a","✅"), "warn": ("#2a1f0d","#f59e0b","⚠️"), "bad": ("#2a0d0d","#ef5350","❌")}
+        bg, border, icon = colors.get(status, colors["warn"])
+        st.markdown(
+            f'<div style="background:{bg};border-left:3px solid {border};border-radius:6px;'
+            f'padding:7px 10px;margin:3px 0;font-size:12px">'
+            f'<span style="color:{border};font-weight:700">{icon} {label}</span><br>'
+            f'<span style="color:#e0e0e0;font-weight:600">{value}</span><br>'
+            f'<span style="color:#9ca3af;font-size:11px">{msg}</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    # ── 6 columns side by side ────────────────────────────────────────────────
+    mc1, mc2, mc3, mc4, mc5, mc6 = st.columns(6)
+
+    # 1. Volatility
+    with mc1:
+        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">1️⃣ VOLATILITY</div>', unsafe_allow_html=True)
+        if vix_m:
+            if vix_m < 14:
+                ci("India VIX", f"{vix_m:.2f}", "ok", "Low — good for trades")
+            elif vix_m < 18:
+                ci("India VIX", f"{vix_m:.2f}", "warn", "Moderate — normal size")
             else:
-                check_item("VWAP", "bad", f"Price {ltp_m:,.0f} < VWAP {vwap_m:,.0f}", "", "", "Below VWAP — bearish")
+                ci("India VIX", f"{vix_m:.2f}", "bad", "High — reduce size 50%")
 
-        if st_dir_m == 1:
-            check_item("Supertrend", "ok",  "Bullish",  "ST green — uptrend confirmed", "", "")
-        elif st_dir_m == -1:
-            check_item("Supertrend", "bad", "Bearish", "", "", "ST red — downtrend confirmed")
+    # 2. Gap Analysis
+    with mc2:
+        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">2️⃣ GAP ANALYSIS</div>', unsafe_allow_html=True)
+        if abs(nifty_pct) < 0.3:
+            ci("Nifty", f"{nifty_pct:+.2f}%", "ok", "Flat — wait for 9:30 AM")
+        elif nifty_pct > 0.3:
+            ci("Nifty", f"{nifty_pct:+.2f}%", "warn", "Gap up — fill or continue?")
+        else:
+            ci("Nifty", f"{nifty_pct:+.2f}%", "warn", "Gap down — bounce or fall?")
+        if abs(bnq_m.get("pct", 0)) > 0.3:
+            bpct = bnq_m.get("pct", 0)
+            ci("BankNifty", f"{bpct:+.2f}%", "warn" if bpct > 0 else "bad",
+               "Gap up" if bpct > 0 else "Gap down")
 
-    st.markdown("### 5. Global Intelligence Score")
-    g_quotes_m = {name: get_quote(ticker) for name, ticker in GLOBAL.items()}
-    gs_m = compute_global_sentiment(g_quotes_m)
-    st.markdown(f"""
-    <div class="metric-card" style="border-left-color:{gs_m['color']}">
-      <div style="font-size:13px;color:#9ca3af">Global Sentiment for India Today</div>
-      <div style="font-size:20px;font-weight:800;color:{gs_m['color']}">{gs_m['label']}</div>
-      <div style="font-size:12px;color:#9ca3af;margin-top:4px">Score: {gs_m['score']:+d}/10 &nbsp;|&nbsp;
-        {'  ·  '.join([f"{f[0]}: {f[1]}" for f in gs_m['factors'][:4]])}
-      </div>
-    </div>""", unsafe_allow_html=True)
+    # 3. Global Cues
+    with mc3:
+        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">3️⃣ GLOBAL CUES</div>', unsafe_allow_html=True)
+        ci("S&P 500",   f"{sp_pct:+.2f}%",
+           "ok" if sp_pct > 0.3 else ("bad" if sp_pct < -0.3 else "warn"),
+           "US positive" if sp_pct > 0.3 else ("US negative" if sp_pct < -0.3 else "US flat"))
+        ci("Crude Oil", f"{crude_pct:+.2f}%",
+           "bad" if crude_pct > 1.5 else ("ok" if crude_pct < -1.0 else "warn"),
+           "Spike — negative" if crude_pct > 1.5 else ("Down — positive" if crude_pct < -1.0 else "Stable"))
+        ci("USD/INR",   f"₹{usdinr_ltp:.2f}",
+           "bad" if usdinr_ltp > 85 else ("ok" if usdinr_ltp < 83.5 else "warn"),
+           "Rupee weak" if usdinr_ltp > 85 else ("Rupee strong" if usdinr_ltp < 83.5 else "Rupee stable"))
 
-    st.markdown("### 6. Trading Decision")
-    bull_checks = 0
-    bear_checks = 0
-    if vix_m and vix_m < 18: bull_checks += 1
-    if nifty_pct > 0: bull_checks += 1
-    if sp_pct > 0: bull_checks += 1
-    if gs_m["score"] >= 2: bull_checks += 1
-    elif gs_m["score"] <= -2: bear_checks += 1
-    if not nifty_df_m.empty:
-        last_m = nifty_df_m.iloc[-1]
-        if last_m.get("ema9", 0) > last_m.get("ema21", 0): bull_checks += 1
-        if last_m.get("supertrend_dir", 0) == 1: bull_checks += 1
-        if nq_m.get("ltp", 0) > last_m.get("vwap", 0): bull_checks += 1
+    # 4. Trend Direction
+    with mc4:
+        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">4️⃣ TREND</div>', unsafe_allow_html=True)
+        if not nifty_df_m.empty:
+            ci("EMA", "EMA9 > EMA21" if ema9_m > ema21_m else "EMA9 < EMA21",
+               "ok" if ema9_m > ema21_m else "bad",
+               "Bullish — prefer CE" if ema9_m > ema21_m else "Bearish — prefer PE")
+            if ltp_m and vwap_m:
+                ci("VWAP", f"{'Above' if ltp_m > vwap_m else 'Below'} {vwap_m:,.0f}",
+                   "ok" if ltp_m > vwap_m else "bad",
+                   "Bullish" if ltp_m > vwap_m else "Bearish")
+            ci("Supertrend",
+               "Bullish 🟢" if st_dir_m == 1 else ("Bearish 🔴" if st_dir_m == -1 else "N/A"),
+               "ok" if st_dir_m == 1 else ("bad" if st_dir_m == -1 else "warn"),
+               "Uptrend confirmed" if st_dir_m == 1 else ("Downtrend confirmed" if st_dir_m == -1 else "Calculating"))
 
-    bear_checks = max(7 - bull_checks, bear_checks)
-    if vix_m and vix_m > 20:
-        st.markdown('<div class="no-trade-banner">⛔ NO TRADE DAY — VIX above 20. Sit on hands today.</div>',
-                    unsafe_allow_html=True)
-    elif gs_m["score"] <= -4:
-        st.markdown('<div class="no-trade-banner">⛔ STRONG GLOBAL HEADWINDS — Avoid aggressive longs. Very defensive day.</div>',
-                    unsafe_allow_html=True)
-    elif bull_checks >= 4:
-        st.markdown(f"""<div class="checklist-item-ok" style="font-size:16px;padding:16px">
-        🟢 <b>BULLISH DAY</b> — {bull_checks}/7 factors bullish<br>
-        <span style="font-size:13px;color:#9ca3af">
-        Preferred: CE (Call) options | Wait for 9:30 AM | Buy dips near VWAP | Trail SL above supertrend
-        </span></div>""", unsafe_allow_html=True)
-    elif bear_checks >= 4:
-        st.markdown(f"""<div class="checklist-item-bad" style="font-size:16px;padding:16px">
-        🔴 <b>BEARISH DAY</b> — {bear_checks}/7 factors bearish<br>
-        <span style="font-size:13px;color:#9ca3af">
-        Preferred: PE (Put) options | Sell rallies near VWAP | Trail SL below supertrend
-        </span></div>""", unsafe_allow_html=True)
-    else:
-        st.markdown(f"""<div class="checklist-item-warn" style="font-size:16px;padding:16px">
-        🟡 <b>NEUTRAL/SIDEWAYS DAY</b> — Mixed signals ({bull_checks} bull / {bear_checks} bear out of 7)<br>
-        <span style="font-size:13px;color:#9ca3af">
-        Avoid directional trades | Consider Iron Condor or wait for breakout after 10 AM
-        </span></div>""", unsafe_allow_html=True)
+    # 5. Global Intelligence
+    with mc5:
+        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">5️⃣ GLOBAL INTEL</div>', unsafe_allow_html=True)
+        gs_status = "ok" if gs_m["score"] >= 2 else ("bad" if gs_m["score"] <= -2 else "warn")
+        st.markdown(
+            f'<div style="background:{"#0d2618" if gs_status=="ok" else ("#2a0d0d" if gs_status=="bad" else "#2a1f0d")};'
+            f'border-left:3px solid {gs_m["color"]};border-radius:6px;padding:10px;margin:3px 0">'
+            f'<div style="font-size:20px;font-weight:900;color:{gs_m["color"]}">{gs_m["score"]:+d}<span style="font-size:11px;color:#9ca3af">/10</span></div>'
+            f'<div style="font-size:12px;font-weight:700;color:{gs_m["color"]}">{gs_m["label"]}</div>'
+            f'<div style="font-size:10px;color:#9ca3af;margin-top:4px">'
+            + "<br>".join([f'<span style="color:{"#26a69a" if f[2]=="bull" else ("#ef5350" if f[2]=="bear" else "#6b7280")}">{f[0]}: {f[1]}</span>' for f in gs_m["factors"][:5]])
+            + '</div></div>',
+            unsafe_allow_html=True,
+        )
 
+    # 6. Trading Decision
+    with mc6:
+        st.markdown('<div style="font-size:12px;font-weight:700;color:#9ca3af;margin-bottom:6px">6️⃣ DECISION</div>', unsafe_allow_html=True)
+        bull_checks = 0
+        bear_checks = 0
+        if vix_m and vix_m < 18:                               bull_checks += 1
+        if nifty_pct > 0:                                      bull_checks += 1
+        if sp_pct > 0:                                         bull_checks += 1
+        if gs_m["score"] >= 2:                                 bull_checks += 1
+        elif gs_m["score"] <= -2:                              bear_checks += 1
+        if ema9_m > ema21_m:                                   bull_checks += 1
+        if st_dir_m == 1:                                      bull_checks += 1
+        elif st_dir_m == -1:                                   bear_checks += 1
+        if ltp_m and vwap_m and ltp_m > vwap_m:               bull_checks += 1
+        bear_checks = max(7 - bull_checks, bear_checks)
+
+        if vix_m and vix_m > 20:
+            verdict, vc, advice = "⛔ NO TRADE", "#ef5350", "VIX > 20. Sit out today."
+        elif gs_m["score"] <= -4:
+            verdict, vc, advice = "⛔ NO TRADE", "#ef5350", "Strong global headwinds."
+        elif bull_checks >= 4:
+            verdict, vc, advice = "🟢 BULLISH", "#26a69a", f"{bull_checks}/7 bull\nBuy CE near VWAP"
+        elif bear_checks >= 4:
+            verdict, vc, advice = "🔴 BEARISH", "#ef5350", f"{bear_checks}/7 bear\nSell rallies near VWAP"
+        else:
+            verdict, vc, advice = "🟡 NEUTRAL", "#f59e0b", f"Mixed {bull_checks}B/{bear_checks}Be\nWait for breakout"
+
+        st.markdown(
+            f'<div style="background:{"#0d2618" if vc=="#26a69a" else ("#2a0d0d" if vc=="#ef5350" else "#2a1f0d")};'
+            f'border-left:3px solid {vc};border-radius:6px;padding:12px 10px;margin:3px 0;text-align:center">'
+            f'<div style="font-size:16px;font-weight:900;color:{vc}">{verdict}</div>'
+            f'<div style="font-size:11px;color:#9ca3af;margin-top:6px;white-space:pre-line">{advice}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    st.divider()
     st.markdown("### ⏰ Intraday Time Guide")
     time_data = {
         "Time": ["9:15–9:30 AM", "9:30–10:00 AM", "10:00 AM–1:00 PM", "1:00–2:00 PM", "2:00–3:00 PM", "3:00–3:15 PM"],
