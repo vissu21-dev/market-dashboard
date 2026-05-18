@@ -293,18 +293,43 @@ MUTUAL_FUNDS = [
 @st.cache_data(ttl=30)
 def get_quote(ticker: str) -> dict:
     """
-    Live quote using fast_info exclusively — last_price, previous_close,
-    open, day_high, day_low.  No download needed; works for all tickers.
+    Live quote with two-layer approach:
+      Layer 1 — 1-minute intraday download (most accurate live LTP + today OHLC)
+      Layer 2 — fast_info fallback (works for all tickers incl. ^BSESN)
+    prev_close always from fast_info.previous_close (never from daily row).
     """
     try:
-        fi    = yf.Ticker(ticker).fast_info
+        fi   = yf.Ticker(ticker).fast_info
+        prev = float(fi.previous_close) if hasattr(fi, "previous_close") and fi.previous_close else 0.0
+
+        # Layer 1: 1-min download gives the freshest LTP
+        try:
+            intra = yf.download(ticker, period="1d", interval="1m",
+                                progress=False, auto_adjust=True,
+                                multi_level_index=False)
+            if not intra.empty and "Close" in intra.columns and len(intra) > 1:
+                ltp   = float(intra["Close"].iloc[-1])
+                open_ = float(intra["Open"].iloc[0])
+                high  = float(intra["High"].max())
+                low   = float(intra["Low"].min())
+                if not prev:
+                    prev = open_
+                chg = ltp - prev
+                pct = (chg / prev) * 100 if prev else 0
+                return {"ltp": ltp, "open": open_, "high": high, "low": low,
+                        "prev": prev, "chg": chg, "pct": pct}
+        except Exception:
+            pass
+
+        # Layer 2: fast_info (works even when 1m download fails e.g. ^BSESN)
         ltp   = float(fi.last_price)
-        prev  = float(fi.previous_close)
-        open_ = float(fi.open)        if fi.open      else ltp
-        high  = float(fi.day_high)    if fi.day_high  else ltp
-        low   = float(fi.day_low)     if fi.day_low   else ltp
-        chg   = ltp - prev
-        pct   = (chg / prev) * 100 if prev else 0
+        open_ = float(fi.open)     if fi.open     else ltp
+        high  = float(fi.day_high) if fi.day_high else ltp
+        low   = float(fi.day_low)  if fi.day_low  else ltp
+        if not prev:
+            prev = ltp
+        chg = ltp - prev
+        pct = (chg / prev) * 100 if prev else 0
         return {"ltp": ltp, "open": open_, "high": high, "low": low,
                 "prev": prev, "chg": chg, "pct": pct}
     except Exception:
@@ -781,216 +806,220 @@ def nearest_strike(price: float, step: int) -> int:
 
 
 def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
-                           name: str, step: int = 50) -> dict:
+                           name: str, step: int = 50,
+                           orb: dict = None, pivots: dict = None) -> dict:
     """
-    Generate CALL and PUT intraday trade setups from technical indicators.
-    Returns dict with 'call', 'put', 'market_condition', 'no_trade'.
+    Trading-expert signal engine for Indian intraday options.
+    ORB breakout is primary signal; VWAP/EMA/MACD/Supertrend are confirmations.
+    Returns actionable dict with index-level SL/targets, not just premium %.
     """
     if df.empty or len(df) < 20 or ltp == 0:
-        return {"no_trade": True, "reason": "Insufficient data"}
+        return {"no_trade": True, "reason": "Insufficient data — market may not be open yet."}
 
     last    = df.iloc[-1]
-    prev    = df.iloc[-2] if len(df) > 2 else last
+    prev_c  = df.iloc[-2] if len(df) > 2 else last
 
-    rsi     = float(last.get("rsi",   50) or 50)
-    macd    = float(last.get("macd",   0) or 0)
-    macd_s  = float(last.get("macd_s", 0) or 0)
-    ema9    = float(last.get("ema9",  ltp) or ltp)
-    ema21   = float(last.get("ema21", ltp) or ltp)
-    ema50   = float(last.get("ema50", ltp) or ltp)
-    vwap    = float(last.get("vwap",  ltp) or ltp)
-    bb_up   = float(last.get("bb_upper", ltp * 1.01) or ltp * 1.01)
-    bb_lo   = float(last.get("bb_lower", ltp * 0.99) or ltp * 0.99)
-    vol     = float(last.get("volume", 0) or 0)
-    avg_vol = float(df["volume"].tail(20).mean() or 1)
+    rsi      = float(last.get("rsi",   50) or 50)
+    macd     = float(last.get("macd",   0) or 0)
+    macd_s   = float(last.get("macd_s", 0) or 0)
+    ema9     = float(last.get("ema9",  ltp) or ltp)
+    ema21    = float(last.get("ema21", ltp) or ltp)
+    ema50    = float(last.get("ema50", ltp) or ltp)
+    vwap     = float(last.get("vwap",  ltp) or ltp)
+    bb_up    = float(last.get("bb_upper", ltp * 1.01) or ltp * 1.01)
+    bb_lo    = float(last.get("bb_lower", ltp * 0.99) or ltp * 0.99)
+    st_dir   = int(last.get("supertrend_dir", 0) or 0)
+    stoch_rsi= float(last.get("stoch_rsi", 0.5) or 0.5)
+    obv      = float(last.get("obv",     0) or 0)
+    obv_ema  = float(last.get("obv_ema", 0) or 0)
+    atr_pct  = float(last.get("atr_pct", 0) or 0)
+    vol      = float(last.get("volume", 0) or 0)
+    avg_vol  = float(df["volume"].tail(20).mean() or 1)
 
-    # ── Score each factor ────────────────────────────────────────────────────
+    orb_high = float(orb["high"]) if orb and orb.get("high") else None
+    orb_low  = float(orb["low"])  if orb and orb.get("low")  else None
+    piv_p  = float(pivots["P"])  if pivots and pivots.get("P")  else None
+    piv_r1 = float(pivots["R1"]) if pivots and pivots.get("R1") else None
+    piv_r2 = float(pivots["R2"]) if pivots and pivots.get("R2") else None
+    piv_s1 = float(pivots["S1"]) if pivots and pivots.get("S1") else None
+    piv_s2 = float(pivots["S2"]) if pivots and pivots.get("S2") else None
+
     bull_score = 0
     bear_score = 0
     confirmations = []
 
-    # EMA stack
+    # ── ORB (primary signal — highest weight) ────────────────────────────────
+    orb_bias = 0  # +1 bull, -1 bear, 0 inside
+    if orb_high and orb_low:
+        if ltp > orb_high:
+            bull_score += 3; orb_bias = 1
+            confirmations.append(f"ORB BREAKOUT UP — price above {orb_high:,.0f}")
+        elif ltp < orb_low:
+            bear_score += 3; orb_bias = -1
+            confirmations.append(f"ORB BREAKDOWN — price below {orb_low:,.0f}")
+        else:
+            confirmations.append(f"Inside ORB ({orb_low:,.0f}–{orb_high:,.0f}) — wait for breakout")
+
+    # ── Pivot vs price ────────────────────────────────────────────────────────
+    if piv_p:
+        if ltp > piv_p:
+            bull_score += 1; confirmations.append(f"Above Pivot P ({piv_p:,.0f}) — bullish bias")
+        else:
+            bear_score += 1; confirmations.append(f"Below Pivot P ({piv_p:,.0f}) — bearish bias")
+
+    # ── VWAP ─────────────────────────────────────────────────────────────────
+    if ltp > vwap * 1.001:
+        bull_score += 2; confirmations.append(f"Price above VWAP ({vwap:,.0f})")
+    elif ltp < vwap * 0.999:
+        bear_score += 2; confirmations.append(f"Price below VWAP ({vwap:,.0f})")
+
+    # ── EMA stack ─────────────────────────────────────────────────────────────
     if ema9 > ema21 > ema50:
-        bull_score += 2; confirmations.append("EMA stack bullish")
+        bull_score += 2; confirmations.append("EMA stack bullish (9>21>50)")
     elif ema9 < ema21 < ema50:
-        bear_score += 2; confirmations.append("EMA stack bearish")
+        bear_score += 2; confirmations.append("EMA stack bearish (9<21<50)")
     elif ema9 > ema21:
         bull_score += 1; confirmations.append("EMA9 > EMA21")
     else:
         bear_score += 1; confirmations.append("EMA9 < EMA21")
 
-    # VWAP
-    if ltp > vwap * 1.001:
-        bull_score += 2; confirmations.append("Price above VWAP")
-    elif ltp < vwap * 0.999:
-        bear_score += 2; confirmations.append("Price below VWAP")
-
-    # RSI
-    if 55 < rsi < 75:
-        bull_score += 1; confirmations.append(f"RSI bullish ({rsi:.0f})")
-    elif 25 < rsi < 45:
-        bear_score += 1; confirmations.append(f"RSI bearish ({rsi:.0f})")
-    elif rsi >= 75:
-        bear_score += 1; confirmations.append(f"RSI overbought ({rsi:.0f}) — caution")
-    elif rsi <= 25:
-        bull_score += 1; confirmations.append(f"RSI oversold ({rsi:.0f}) — reversal watch")
-
-    # MACD
-    if macd > macd_s and macd > 0:
-        bull_score += 2; confirmations.append("MACD bullish crossover above zero")
-    elif macd > macd_s and macd < 0:
-        bull_score += 1; confirmations.append("MACD bullish crossover (below zero)")
-    elif macd < macd_s and macd < 0:
-        bear_score += 2; confirmations.append("MACD bearish crossover below zero")
-    elif macd < macd_s and macd > 0:
-        bear_score += 1; confirmations.append("MACD bearish crossover (above zero)")
-
-    # Volume
-    if vol > avg_vol * 1.5:
-        if ltp > float(prev.get("close", ltp) or ltp):
-            bull_score += 1; confirmations.append("Volume breakout bullish")
-        else:
-            bear_score += 1; confirmations.append("Volume breakout bearish")
-
-    # Bollinger
-    if ltp > bb_up * 0.999:
-        bull_score += 1; confirmations.append("Price at BB upper — strong breakout")
-    elif ltp < bb_lo * 1.001:
-        bear_score += 1; confirmations.append("Price at BB lower — strong breakdown")
-
-    # Stochastic RSI
-    stoch_rsi = float(last.get("stoch_rsi", 0.5) or 0.5)
-    if stoch_rsi > 0.8:
-        bull_score += 1; confirmations.append(f"Stoch RSI overbought ({stoch_rsi:.2f}) — momentum strong")
-    elif stoch_rsi < 0.2:
-        bear_score += 1; confirmations.append(f"Stoch RSI oversold ({stoch_rsi:.2f}) — bearish momentum")
-
-    # OBV trend (smart money flow)
-    obv     = float(last.get("obv",     0) or 0)
-    obv_ema = float(last.get("obv_ema", 0) or 0)
-    if obv > obv_ema:
-        bull_score += 1; confirmations.append("OBV above EMA — smart money accumulating")
-    elif obv < obv_ema:
-        bear_score += 1; confirmations.append("OBV below EMA — smart money distributing")
-
-    # Supertrend
-    st_dir = int(last.get("supertrend_dir", 0) or 0)
+    # ── Supertrend ────────────────────────────────────────────────────────────
     if st_dir == 1:
-        bull_score += 1; confirmations.append("Supertrend bullish")
+        bull_score += 2; confirmations.append("Supertrend BULLISH")
     elif st_dir == -1:
-        bear_score += 1; confirmations.append("Supertrend bearish")
+        bear_score += 2; confirmations.append("Supertrend BEARISH")
 
-    # ATR volatility regime
-    atr_pct = float(last.get("atr_pct", 0) or 0)
-    if atr_pct > 0.8:
-        confirmations.append(f"High volatility (ATR {atr_pct:.2f}%) — widen SL, reduce size")
+    # ── MACD ─────────────────────────────────────────────────────────────────
+    if macd > macd_s and macd > 0:
+        bull_score += 2; confirmations.append("MACD above zero + bullish cross")
+    elif macd > macd_s:
+        bull_score += 1; confirmations.append("MACD bullish cross (below zero)")
+    elif macd < macd_s and macd < 0:
+        bear_score += 2; confirmations.append("MACD below zero + bearish cross")
+    elif macd < macd_s:
+        bear_score += 1; confirmations.append("MACD bearish cross (above zero)")
 
-    total   = bull_score + bear_score
-    net     = bull_score - bear_score
-    high_vix = vix > 18 if vix else False
+    # ── RSI ───────────────────────────────────────────────────────────────────
+    if 55 < rsi < 70:
+        bull_score += 1; confirmations.append(f"RSI bullish zone ({rsi:.0f})")
+    elif 30 < rsi < 45:
+        bear_score += 1; confirmations.append(f"RSI bearish zone ({rsi:.0f})")
+    elif rsi >= 70:
+        confirmations.append(f"RSI overbought ({rsi:.0f}) — use tighter SL on CE")
+    elif rsi <= 30:
+        confirmations.append(f"RSI oversold ({rsi:.0f}) — use tighter SL on PE")
 
-    # ── No-trade conditions ──────────────────────────────────────────────────
-    if vix > 22:
+    # ── Volume surge ─────────────────────────────────────────────────────────
+    if vol > avg_vol * 1.5:
+        prev_close_val = float(prev_c.get("close", ltp) or ltp)
+        if ltp > prev_close_val:
+            bull_score += 1; confirmations.append("Volume surge with price up")
+        else:
+            bear_score += 1; confirmations.append("Volume surge with price down")
+
+    # ── OBV ───────────────────────────────────────────────────────────────────
+    if obv > obv_ema:
+        bull_score += 1; confirmations.append("OBV rising — buying interest")
+    elif obv < obv_ema:
+        bear_score += 1; confirmations.append("OBV falling — selling pressure")
+
+    net = bull_score - bear_score
+    vix_f = float(vix) if vix else 15
+
+    # ── No-trade conditions ───────────────────────────────────────────────────
+    if vix_f > 28:
         return {"no_trade": True,
-                "reason": f"India VIX too high ({vix:.1f}) — avoid all directional trades"}
-    if abs(net) < 3:
+                "reason": f"VIX too high ({vix_f:.1f}) — extreme volatility, avoid buying options."}
+    if orb_bias == 0 and orb_high and orb_low:
+        # Inside ORB = no confirmed breakout
+        return {
+            "no_trade": True,
+            "reason": (f"Price inside ORB ({orb_low:,.0f}–{orb_high:,.0f}). "
+                       f"Wait for breakout above {orb_high:,.0f} (BUY CE) "
+                       f"or below {orb_low:,.0f} (BUY PE) on 5-min candle close."),
+            "orb_high": orb_high, "orb_low": orb_low,
+            "vwap": vwap, "atm": nearest_strike(ltp, step),
+            "pivots": {"P": piv_p, "R1": piv_r1, "S1": piv_s1},
+        }
+    if abs(net) < 2:
         return {"no_trade": True,
-                "reason": "Market is sideways — insufficient directional confirmation. Wait for a clear breakout."}
+                "reason": "Indicators mixed — no clear edge. Wait for alignment before entering."}
 
-    # ── ATM strike calculation ───────────────────────────────────────────────
-    atm      = nearest_strike(ltp, step)
-    otm_call = atm + step
-    otm_put  = atm - step
+    # ── Trade direction ───────────────────────────────────────────────────────
+    direction = "CE" if net > 0 else "PE"
+    atm       = nearest_strike(ltp, step)
 
-    # Premium: Black-Scholes ATM approximation using live VIX + days to expiry
+    # ── Premium estimate (range) ──────────────────────────────────────────────
     exp_info  = next_expiry_info()
     days_left = exp_info["nifty"]["days"] if "Bank" not in name else exp_info["banknifty"]["days"]
     days_safe = max(float(days_left), 0.5)
-    vix_ann   = max(float(vix) if vix else 15, 8) / 100
-    base_prem = ltp * vix_ann * np.sqrt(days_safe / 252) * 0.25   # calibrated for Indian weekly options
-    call_prem = round(base_prem * (1.0 if net > 0 else 0.75), 1)
-    put_prem  = round(base_prem * (1.0 if net < 0 else 0.75), 1)
-    call_prem = max(call_prem, 10)
-    put_prem  = max(put_prem, 10)
+    vix_ann   = max(vix_f, 8) / 100
+    base_mid  = ltp * vix_ann * np.sqrt(days_safe / 252) * 0.25
+    base_lo   = round(base_mid * 0.75, 0)
+    base_hi   = round(base_mid * 1.35, 0)
 
-    # ── Confidence ───────────────────────────────────────────────────────────
-    def confidence(score):
-        if score >= 6:   return "HIGH",   "conf-high", "🟢"
-        if score >= 4:   return "MEDIUM", "conf-med",  "🟡"
-        return               "LOW",    "conf-low",  "🔴"
+    # ── Index-level SL / targets ──────────────────────────────────────────────
+    if direction == "CE":
+        # SL = ORB low (or VWAP if ORB not available), Target = R1 / R2
+        idx_sl  = orb_low  if orb_low  else round(ltp - step * 2)
+        idx_t1  = piv_r1   if piv_r1   else round(ltp + step * 2)
+        idx_t2  = piv_r2   if piv_r2   else round(ltp + step * 4)
+        idx_sl_label = f"{idx_sl:,.0f} (ORB Low)" if orb_low else f"{idx_sl:,.0f}"
+        idx_t1_label = f"{idx_t1:,.0f} (Pivot R1)" if piv_r1 else f"{idx_t1:,.0f}"
+        idx_t2_label = f"{idx_t2:,.0f} (Pivot R2)" if piv_r2 else f"{idx_t2:,.0f}"
+        entry_cond = (f"Enter after {'ORB high (' + str(int(orb_high)) + ')' if orb_high else 'resistance'} "
+                      f"breaks on 5-min candle close with volume")
+    else:
+        # SL = ORB high (or VWAP), Target = S1 / S2
+        idx_sl  = orb_high if orb_high else round(ltp + step * 2)
+        idx_t1  = piv_s1   if piv_s1   else round(ltp - step * 2)
+        idx_t2  = piv_s2   if piv_s2   else round(ltp - step * 4)
+        idx_sl_label = f"{idx_sl:,.0f} (ORB High)" if orb_high else f"{idx_sl:,.0f}"
+        idx_t1_label = f"{idx_t1:,.0f} (Pivot S1)" if piv_s1 else f"{idx_t1:,.0f}"
+        idx_t2_label = f"{idx_t2:,.0f} (Pivot S2)" if piv_s2 else f"{idx_t2:,.0f}"
+        entry_cond = (f"Enter after {'ORB low (' + str(int(orb_low)) + ')' if orb_low else 'support'} "
+                      f"breaks on 5-min candle close with volume")
 
-    call_conf, call_cls, call_icon = confidence(bull_score)
-    put_conf,  put_cls,  put_icon  = confidence(bear_score)
+    # ── Confidence ────────────────────────────────────────────────────────────
+    dom_score = max(bull_score, bear_score)
+    if dom_score >= 8:   conf_label, conf_color = "HIGH", "#26a69a"
+    elif dom_score >= 5: conf_label, conf_color = "MEDIUM", "#f59e0b"
+    else:                conf_label, conf_color = "LOW", "#ef5350"
 
-    # ── Signal status ─────────────────────────────────────────────────────────
-    def signal_status(score, direction):
-        if score >= 5:  return "BUY NOW",  "signal-buy"
-        if score >= 3:  return "WATCH",    "signal-wait"
-        return               "AVOID",    "signal-exit"
-
-    call_status, call_status_cls = signal_status(bull_score, "call")
-    put_status,  put_status_cls  = signal_status(bear_score, "put")
-
-    # ── CALL setup ───────────────────────────────────────────────────────────
-    call_entry  = call_prem
-    call_sl     = round(call_entry * 0.70, 1)   # 30% SL
-    call_tgt1   = round(call_entry * 1.50, 1)   # 50% profit
-    call_tgt2   = round(call_entry * 2.20, 1)   # 120% profit
-    call_rr     = round((call_tgt1 - call_entry) / (call_entry - call_sl), 2)
-    call_exit_t = "Exit by 2:45 PM or at Target 1"
-
-    # ── PUT setup ────────────────────────────────────────────────────────────
-    put_entry   = put_prem
-    put_sl      = round(put_entry * 0.70, 1)
-    put_tgt1    = round(put_entry * 1.50, 1)
-    put_tgt2    = round(put_entry * 2.20, 1)
-    put_rr      = round((put_tgt1 - put_entry) / (put_entry - put_sl), 2)
-    put_exit_t  = "Exit by 2:45 PM or at Target 1"
-
-    market_cond = "Bullish" if net > 2 else ("Bearish" if net < -2 else "Neutral")
+    # ── VIX advisory ─────────────────────────────────────────────────────────
+    if vix_f >= 20:
+        vix_advice = f"VIX {vix_f:.1f} — high IV. Use ATM (not OTM), keep lot size small."
+    elif vix_f >= 15:
+        vix_advice = f"VIX {vix_f:.1f} — elevated. OTM1 is fine; avoid deep OTM."
+    else:
+        vix_advice = f"VIX {vix_f:.1f} — normal. All strikes tradeable."
 
     return {
         "no_trade":      False,
-        "market_cond":   market_cond,
+        "direction":     direction,
         "net_score":     net,
+        "bull_score":    bull_score,
+        "bear_score":    bear_score,
+        "conf_label":    conf_label,
+        "conf_color":    conf_color,
         "confirmations": confirmations,
-        "high_vix":      high_vix,
-        "vix":           vix,
+        "vix_advice":    vix_advice,
         "ltp":           ltp,
         "vwap":          vwap,
         "atm":           atm,
-        "call": {
-            "type":       "CALL (CE)",
-            "strike":     f"{atm} CE" if net >= 0 else f"{otm_call} CE",
-            "entry":      call_entry,
-            "sl":         call_sl,
-            "tgt1":       call_tgt1,
-            "tgt2":       call_tgt2,
-            "rr":         call_rr,
-            "conf":       call_conf,
-            "conf_cls":   call_cls,
-            "conf_icon":  call_icon,
-            "status":     call_status,
-            "status_cls": call_status_cls,
-            "exit_time":  call_exit_t,
-            "score":      bull_score,
-        },
-        "put": {
-            "type":       "PUT (PE)",
-            "strike":     f"{atm} PE" if net <= 0 else f"{otm_put} PE",
-            "entry":      put_entry,
-            "sl":         put_sl,
-            "tgt1":       put_tgt1,
-            "tgt2":       put_tgt2,
-            "rr":         put_rr,
-            "conf":       put_conf,
-            "conf_cls":   put_cls,
-            "conf_icon":  put_icon,
-            "status":     put_status,
-            "status_cls": put_status_cls,
-            "exit_time":  put_exit_t,
-            "score":      bear_score,
-        },
+        "days_left":     days_left,
+        "base_lo":       base_lo,
+        "base_hi":       base_hi,
+        "entry_cond":    entry_cond,
+        "idx_sl":        idx_sl,
+        "idx_sl_label":  idx_sl_label,
+        "idx_t1":        idx_t1,
+        "idx_t1_label":  idx_t1_label,
+        "idx_t2":        idx_t2,
+        "idx_t2_label":  idx_t2_label,
+        "orb_high":      orb_high,
+        "orb_low":       orb_low,
+        "pivots": {"P": piv_p, "R1": piv_r1, "R2": piv_r2, "S1": piv_s1, "S2": piv_s2},
     }
 
 
@@ -1477,170 +1506,234 @@ with tab1:
             help="Dashboard will highlight strikes you can afford with this budget",
         )
 
-    def show_intraday_signals(df, ltp, vix, name, step):
-        setup = intraday_option_setup(df, ltp, vix, name, step)
-        st.markdown(f"### {name} — Intraday Signals")
+    # ── Also fetch pivots for signal engine ──────────────────────────────────
+    nifty_pivots_i = get_pivots("^NSEI")
+    bank_pivots_i  = get_pivots("^NSEBANK")
 
+    def _level_chip(label, val, color):
+        return (f'<div style="background:#1a1d2e;border:1px solid {color};border-radius:6px;'
+                f'padding:6px 10px;text-align:center;min-width:80px">'
+                f'<div style="color:#6b7280;font-size:10px;font-weight:700">{label}</div>'
+                f'<div style="color:{color};font-size:14px;font-weight:800">{val}</div></div>')
+
+    def show_intraday_signals(df, ltp, vix, name, step, orb=None, pivots=None):
+        setup = intraday_option_setup(df, ltp, vix, name, step, orb, pivots)
+        direction  = setup.get("direction", "CE")
+        dir_color  = "#26a69a" if direction == "CE" else "#ef5350"
+        dir_emoji  = "📈" if direction == "CE" else "📉"
+        atm        = setup.get("atm", nearest_strike(ltp, step))
+        vix_f      = float(vix) if vix else 15
+        lot_sz     = 75 if "Bank" not in name else 30
+        days_left  = setup.get("days_left", 3)
+
+        st.markdown(f"### {name} — Trade Setup")
+
+        # ── KEY LEVELS ROW ────────────────────────────────────────────────────
+        st.markdown("**Key Levels**")
+        kl_html = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">'
+        if orb and orb.get("high"):
+            kl_html += _level_chip("ORB High", f"{orb['high']:,.0f}", "#ef5350")
+            kl_html += _level_chip("ORB Low",  f"{orb['low']:,.0f}",  "#26a69a")
+        vwap_val = setup.get("vwap", 0)
+        if vwap_val:
+            kl_html += _level_chip("VWAP", f"{vwap_val:,.0f}", "#a78bfa")
+        if pivots:
+            if pivots.get("P"):  kl_html += _level_chip("Pivot P", f"{pivots['P']:,}", "#f59e0b")
+            if pivots.get("R1"): kl_html += _level_chip("R1", f"{pivots['R1']:,}", "#ef5350")
+            if pivots.get("R2"): kl_html += _level_chip("R2", f"{pivots['R2']:,}", "#ef5350")
+            if pivots.get("S1"): kl_html += _level_chip("S1", f"{pivots['S1']:,}", "#26a69a")
+            if pivots.get("S2"): kl_html += _level_chip("S2", f"{pivots['S2']:,}", "#26a69a")
+        kl_html += _level_chip("ATM", f"{atm:,}", "#9ca3af")
+        kl_html += '</div>'
+        st.markdown(kl_html, unsafe_allow_html=True)
+
+        # ── NO TRADE / WAIT BANNER ────────────────────────────────────────────
         if setup.get("no_trade"):
-            st.markdown(f'<div class="no-trade-banner">⛔ NO TRADE ZONE<br>'
-                        f'<span style="font-size:14px;font-weight:400">{setup["reason"]}</span></div>',
-                        unsafe_allow_html=True)
+            reason = setup["reason"]
+            st.markdown(
+                f'<div style="background:#2a1f0d;border-left:4px solid #f59e0b;border-radius:8px;'
+                f'padding:14px 16px;margin:8px 0">'
+                f'<div style="color:#f59e0b;font-weight:800;font-size:16px">⏳ WAIT — No Trade Yet</div>'
+                f'<div style="color:#e0e0e0;font-size:13px;margin-top:6px">{reason}</div></div>',
+                unsafe_allow_html=True)
+            # Show confirmations even in wait state
+            if setup.get("confirmations"):
+                with st.expander("Current indicator readings", expanded=False):
+                    for c in setup["confirmations"]:
+                        st.markdown(f"• {c}")
             return
 
-        # Market condition
-        cond  = setup["market_cond"]
-        cond_color = "#26a69a" if cond == "Bullish" else ("#ef5350" if cond == "Bearish" else "#f59e0b")
-        st.markdown(f'<span style="color:{cond_color};font-size:18px;font-weight:700">'
-                    f'Market Condition: {cond}</span> &nbsp;'
-                    f'<span style="color:#9ca3af;font-size:13px">|&nbsp; VWAP: {setup["vwap"]:,.0f} &nbsp;'
-                    f'| ATM Strike: {setup["atm"]}</span>', unsafe_allow_html=True)
+        # ── MAIN SIGNAL BANNER ────────────────────────────────────────────────
+        bg_color = "#0d2618" if direction == "CE" else "#2a0d0d"
+        st.markdown(
+            f'<div style="background:{bg_color};border:2px solid {dir_color};border-radius:10px;'
+            f'padding:16px 20px;margin:8px 0">'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">'
+            f'<div>'
+            f'<div style="color:{dir_color};font-size:22px;font-weight:900">'
+            f'{dir_emoji} BUY {direction} — {setup["conf_label"]} CONFIDENCE</div>'
+            f'<div style="color:#e0e0e0;font-size:13px;margin-top:4px">{setup["entry_cond"]}</div>'
+            f'</div>'
+            f'<div style="text-align:right">'
+            f'<div style="color:#9ca3af;font-size:11px">VWAP</div>'
+            f'<div style="color:#a78bfa;font-weight:700;font-size:15px">{vwap_val:,.0f}</div>'
+            f'</div></div>'
+            f'<div style="color:#9ca3af;font-size:12px;margin-top:8px">'
+            f'{setup.get("vix_advice","")}</div>'
+            f'</div>', unsafe_allow_html=True)
 
-        if setup.get("high_vix"):
-            st.warning(f"⚠️ VIX is elevated ({setup['vix']:.1f}) — use smaller position size")
-
-        # Confirmations
-        with st.expander("📊 Signal Confirmations", expanded=False):
+        # ── SIGNAL CONFIRMATIONS ──────────────────────────────────────────────
+        with st.expander(f"Signal factors (Bull {setup['bull_score']} | Bear {setup['bear_score']})",
+                         expanded=False):
             for c in setup["confirmations"]:
-                st.markdown(f"• {c}")
+                icon = "🟢" if any(w in c for w in ["bullish","above","BREAKOUT","rising","buying"]) else \
+                       ("🔴" if any(w in c for w in ["bearish","below","BREAKDOWN","falling","selling"]) else "🟡")
+                st.markdown(f"{icon} {c}")
 
-        # Trade cards
-        c1, c2 = st.columns(2)
-        with c1:
-            render_trade_card(setup, "call")
-        with c2:
-            render_trade_card(setup, "put")
+        st.markdown("---")
 
-        # Quick reference table
-        st.markdown("#### Quick Reference")
-        call_t = setup["call"]
-        put_t  = setup["put"]
-        ref_df = pd.DataFrame({
-            "": ["Strike", "Entry ₹", "Stop-Loss ₹", "Target 1 ₹", "Target 2 ₹", "Risk:Reward", "Confidence", "Signal"],
-            "CALL (CE)": [call_t["strike"], call_t["entry"], call_t["sl"],
-                          call_t["tgt1"], call_t["tgt2"], f"1:{call_t['rr']}",
-                          call_t["conf"], call_t["status"]],
-            "PUT (PE)":  [put_t["strike"],  put_t["entry"],  put_t["sl"],
-                          put_t["tgt1"],  put_t["tgt2"],  f"1:{put_t['rr']}",
-                          put_t["conf"],  put_t["status"]],
-        })
-        st.dataframe(ref_df.set_index(""), use_container_width=True)
+        # ── INDEX-LEVEL SL / TARGETS (primary reference) ──────────────────────
+        sl_lbl = setup["idx_sl_label"]
+        t1_lbl = setup["idx_t1_label"]
+        t2_lbl = setup["idx_t2_label"]
+        idx_move_t1 = abs(setup["idx_t1"] - ltp)
+        idx_move_sl = abs(setup["idx_sl"] - ltp)
+        rr_idx = round(idx_move_t1 / max(idx_move_sl, 1), 1)
 
-        # ── Strike Ladder ─────────────────────────────────────────────────────
-        st.markdown("#### 🎯 Strike Selection — Choose by Budget")
-        st.caption("Estimated premiums based on VIX and days to expiry. Actual premiums may differ — verify on your broker.")
+        lv1, lv2, lv3, lv4 = st.columns(4)
+        for col, label, val, color, note in [
+            (lv1, "Entry (LTP)", f"{ltp:,.2f}", dir_color, "Current market price"),
+            (lv2, "Index SL",    sl_lbl,        "#ef5350", f"Exit if {name} crosses this"),
+            (lv3, "Index T1",    t1_lbl,        "#26a69a", "Book 50-60% qty here"),
+            (lv4, "Index T2",    t2_lbl,        "#26a69a", "Trail rest to T2"),
+        ]:
+            with col:
+                st.markdown(
+                    f'<div style="background:#1a1d2e;border-left:3px solid {color};border-radius:6px;'
+                    f'padding:10px 12px">'
+                    f'<div style="color:#6b7280;font-size:11px">{label}</div>'
+                    f'<div style="color:{color};font-weight:800;font-size:15px">{val}</div>'
+                    f'<div style="color:#6b7280;font-size:10px">{note}</div></div>',
+                    unsafe_allow_html=True)
 
-        atm     = setup["atm"]
-        vix_val = max(float(vix) if vix else 15, 8)
-        exp_info   = next_expiry_info()
-        days_left  = exp_info["nifty"]["days"] if "Bank" not in name else exp_info["banknifty"]["days"]
+        st.markdown(
+            f'<div style="color:#9ca3af;font-size:12px;margin:6px 0 14px">'
+            f'Index needs to move <b style="color:{dir_color}">{idx_move_t1:,.0f} pts</b> to T1 '
+            f'vs <b style="color:#ef5350">{idx_move_sl:,.0f} pts</b> risk — '
+            f'<b>R:R = 1:{rr_idx}</b></div>', unsafe_allow_html=True)
+
+        # ── STRIKE LADDER ─────────────────────────────────────────────────────
+        st.markdown("#### Strike Selection")
+        st.caption("Premiums are estimates based on VIX + days to expiry. CHECK ACTUAL PRICE ON YOUR BROKER before entering.")
+
         days_safe  = max(float(days_left), 0.5)
-        lot_sz     = 75 if "Bank" not in name else 30
-
-        # Black-Scholes ATM approximation — calibrated multiplier 0.25 for Indian weekly options
-        base_prem = ltp * (vix_val / 100) * np.sqrt(days_safe / 252) * 0.25
+        vix_ann    = max(vix_f, 8) / 100
+        base_mid   = ltp * vix_ann * np.sqrt(days_safe / 252) * 0.25
+        # Show premium as a range (±30%) to acknowledge estimation error
+        def prem_range(mult):
+            mid = base_mid * mult
+            return f"~{max(int(mid*0.70),5)}–{int(mid*1.35)}"
 
         OTM_LEVELS = [
-            ("ATM",       0,  1.00, "Highest delta — moves most with index. Best for strong trending days."),
-            ("OTM 1",     1,  0.58, "Popular choice — good balance of cost vs. movement potential."),
-            ("OTM 2",     2,  0.33, "Lower cost — needs ~0.5% index move to start profiting."),
-            ("Deep OTM",  3,  0.18, "Cheapest — needs strong trending day (0.8%+ move). High risk."),
+            ("ATM",      0, 1.00, "Best for strong trends. Moves 1:1 with index."),
+            ("OTM 1",    1, 0.58, "Good balance. Needs ~50pt move to profit."),
+            ("OTM 2",    2, 0.33, "Cheaper. Needs ~100pt index move."),
+            ("Deep OTM", 3, 0.18, "Lottery ticket. Needs 200pt+ trending move."),
         ]
 
-        for direction, sign, emoji in [("CE", +1, "📈"), ("PE", -1, "📉")]:
-            is_preferred = (sign > 0 and setup["net_score"] > 0) or (sign < 0 and setup["net_score"] < 0)
-            dir_color    = "#26a69a" if direction == "CE" else "#ef5350"
-            badge        = ' <span style="background:#f59e0b;color:#000;padding:1px 8px;border-radius:8px;font-size:11px;font-weight:700">★ PREFERRED</span>' if is_preferred else ""
+        # Recommended direction gets full opacity; opposite is dimmed
+        for opt_dir, sign in [(direction, +1 if direction=="CE" else -1),
+                               ("PE" if direction=="CE" else "CE",
+                                -1 if direction=="CE" else +1)]:
+            is_rec = (opt_dir == direction)
+            oc     = "#26a69a" if opt_dir == "CE" else "#ef5350"
+            hdr    = f'{"★ RECOMMENDED" if is_rec else "OPPOSITE SIDE"}  {opt_dir}'
             st.markdown(
-                f'<div style="color:{dir_color};font-weight:700;font-size:15px;margin:14px 0 6px">'
-                f'{emoji} {direction} Options{badge}</div>',
-                unsafe_allow_html=True,
-            )
+                f'<div style="color:{oc};font-weight:700;font-size:14px;'
+                f'margin:14px 0 4px;opacity:{"1" if is_rec else "0.4"}">{hdr}</div>',
+                unsafe_allow_html=True)
+            if not is_rec:
+                st.markdown('<div style="opacity:0.4">', unsafe_allow_html=True)
 
-            rows = []
             for label, offset, mult, note in OTM_LEVELS:
-                strike       = atm + sign * offset * step
-                prem         = max(round(base_prem * mult, 1), 5.0)
-                sl           = round(prem * 0.65, 1)
-                t1           = round(prem * 1.60, 1)
-                t2           = round(prem * 2.50, 1)
-                rr           = round((t1 - prem) / max(prem - sl, 1), 1)
-                budget_1lot  = int(prem * lot_sz)
-                affordable   = budget_1lot <= user_budget
-                max_lots     = int(user_budget // budget_1lot) if budget_1lot > 0 else 0
-                rows.append({
-                    "Strike":         f"{strike} {direction}",
-                    "Type":           label,
-                    "Est. Premium ₹": prem,
-                    "Stop-Loss ₹":    sl,
-                    "Target 1 ₹":     t1,
-                    "Target 2 ₹":     t2,
-                    "R:R":            f"1:{rr}",
-                    f"Budget (1 lot)": f"₹{budget_1lot:,}",
-                    f"Max lots @ ₹{user_budget:,}": max_lots if affordable else "—",
-                    "Status":         "✅ Affordable" if affordable else "❌ Over budget",
-                    "_note":          note,
-                    "_affordable":    affordable,
-                })
+                strike      = atm + sign * offset * step
+                pr          = prem_range(mult)
+                mid_prem    = base_mid * mult
+                cost_lo     = int(max(mid_prem*0.70, 5) * lot_sz)
+                cost_hi     = int(mid_prem * 1.35 * lot_sz)
+                affordable  = cost_lo <= user_budget
+                max_lots    = int(user_budget // max(cost_lo, 1))
+                # premium SL = -30%, T1 = +60%, T2 = +120%
+                prem_sl_pct = "−30%"
+                prem_t1_pct = "+60%"
+                prem_t2_pct = "+120%"
+                idx_pts_needed = offset * step * 1.0  # rough: each OTM step needs ~step pts more
 
-            for row in rows:
-                aff     = row["_affordable"]
-                bg      = "rgba(38,166,154,0.07)" if aff and direction == "CE" else \
-                          ("rgba(239,83,80,0.07)"  if aff and direction == "PE" else "rgba(255,255,255,0.02)")
-                border  = dir_color if aff else "#374151"
-                opacity = "1" if aff else "0.45"
-                lots_disp = row[f"Max lots @ ₹{user_budget:,}"]
+                row_bg     = f"rgba({'38,166,154' if opt_dir=='CE' else '239,83,80'},0.07)" if is_rec and affordable else "rgba(255,255,255,0.02)"
+                row_border = oc if (is_rec and affordable) else "#374151"
+                op         = "1" if is_rec else "0.4"
+                rec_badge  = ' <span style="background:#f59e0b;color:#000;padding:1px 6px;border-radius:4px;font-size:10px">REC</span>' if is_rec and label == "OTM 1" else ""
+
                 st.markdown(f"""
-                <div style="background:{bg};border:1px solid {border};border-radius:8px;
-                            padding:10px 14px;margin:5px 0;opacity:{opacity}">
-                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                <div style="background:{row_bg};border:1px solid {row_border};border-radius:8px;
+                            padding:10px 14px;margin:4px 0;opacity:{op}">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
                     <div>
-                      <span style="color:{dir_color};font-weight:800;font-size:15px">{row['Strike']}</span>
-                      <span style="background:#1a1d2e;color:#9ca3af;padding:2px 8px;border-radius:8px;
-                                   font-size:11px;margin-left:8px">{row['Type']}</span>
+                      <span style="color:{oc};font-weight:800;font-size:16px">{strike} {opt_dir}</span>
+                      {rec_badge}
+                      <span style="color:#6b7280;font-size:11px;margin-left:8px">{label}</span>
                     </div>
-                    <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">
-                      <div><span style="color:#6b7280">Premium</span>
-                           <div style="font-weight:700;color:{dir_color}">₹{row['Est. Premium ₹']}</div></div>
-                      <div><span style="color:#6b7280">SL</span>
-                           <div style="font-weight:700;color:#ef5350">₹{row['Stop-Loss ₹']}</div></div>
-                      <div><span style="color:#6b7280">Target 1</span>
-                           <div style="font-weight:700;color:#26a69a">₹{row['Target 1 ₹']}</div></div>
-                      <div><span style="color:#6b7280">Target 2</span>
-                           <div style="font-weight:700;color:#26a69a">₹{row['Target 2 ₹']}</div></div>
-                      <div><span style="color:#6b7280">R:R</span>
-                           <div style="font-weight:700">{row['R:R']}</div></div>
-                      <div><span style="color:#6b7280">1 lot costs</span>
-                           <div style="font-weight:700">{row['Budget (1 lot)']}</div></div>
-                      <div><span style="color:#6b7280">Max lots</span>
-                           <div style="font-weight:800;color:{'#26a69a' if aff else '#6b7280'};font-size:15px">{lots_disp}</div></div>
+                    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
+                      <div><div style="color:#6b7280">Est. Premium</div>
+                           <div style="color:{oc};font-weight:700">₹{pr}</div></div>
+                      <div><div style="color:#6b7280">1-lot cost</div>
+                           <div style="font-weight:700">₹{cost_lo:,}–{cost_hi:,}</div></div>
+                      <div><div style="color:#6b7280">Max lots</div>
+                           <div style="color:{'#26a69a' if affordable else '#6b7280'};font-weight:800;font-size:14px">{max_lots if affordable else '—'}</div></div>
+                      <div><div style="color:#6b7280">Prem SL / T1 / T2</div>
+                           <div style="font-weight:700"><span style="color:#ef5350">{prem_sl_pct}</span> &nbsp;
+                           <span style="color:#26a69a">{prem_t1_pct}</span> &nbsp;
+                           <span style="color:#26a69a">{prem_t2_pct}</span></div></div>
+                      <div><div style="color:#6b7280">Index SL</div>
+                           <div style="color:#ef5350;font-weight:700">{setup['idx_sl_label']}</div></div>
+                      <div><div style="color:#6b7280">Index T1</div>
+                           <div style="color:#26a69a;font-weight:700">{setup['idx_t1_label']}</div></div>
                     </div>
-                    <div style="font-size:12px;font-weight:700">{'✅' if aff else '❌'}</div>
                   </div>
-                  <div style="font-size:11px;color:#6b7280;margin-top:5px">💡 {row['_note']}</div>
+                  <div style="color:#6b7280;font-size:11px;margin-top:4px">💡 {note}</div>
                 </div>""", unsafe_allow_html=True)
 
-        st.caption(f"Lot sizes — Nifty: 75 | Bank Nifty: 30 | Fin Nifty: 40 | Expiry in {days_left} day(s)")
+            if not is_rec:
+                st.markdown('</div>', unsafe_allow_html=True)
 
-        # Risk rules reminder
+        st.caption(f"Lot sizes: Nifty=75 | BankNifty=30 | Expiry in {days_left} day(s) | "
+                   f"Premiums are ESTIMATES — always verify on your broker/Upstox before buying")
+
+        # ── RISK RULES ────────────────────────────────────────────────────────
         st.markdown("""
-        <div style="background:#1a1d2e;border-radius:8px;padding:12px 16px;margin-top:10px;
-                    border-left:4px solid #f59e0b;font-size:13px;color:#9ca3af">
-        ⚠️ <b style="color:#f59e0b">Risk Rules:</b>
-        Risk max 1–2% capital per trade &nbsp;|&nbsp;
-        Exit at SL without hesitation &nbsp;|&nbsp;
-        Book Target 1 first, trail for Target 2 &nbsp;|&nbsp;
-        Exit all positions before 3:15 PM
-        </div>
-        """, unsafe_allow_html=True)
+        <div style="background:#1a1d2e;border-left:4px solid #f59e0b;border-radius:8px;
+                    padding:12px 16px;margin-top:12px;font-size:13px">
+        <b style="color:#f59e0b">Risk Rules (Non-negotiable)</b><br>
+        <span style="color:#9ca3af">
+        • Risk only 1–2% of capital per trade &nbsp;|&nbsp;
+        • Exit at premium SL (−30%) without hesitation &nbsp;|&nbsp;
+        • Exit if index crosses your SL level — do NOT average down &nbsp;|&nbsp;
+        • Book 50% at T1, trail rest for T2 &nbsp;|&nbsp;
+        • No new entries after 1:30 PM &nbsp;|&nbsp;
+        • Exit ALL positions by 3:00 PM
+        </span></div>""", unsafe_allow_html=True)
+
+    nifty_pivs_for_signal = {k: float(v) for k, v in nifty_pivots_i.items()} if nifty_pivots_i else {}
+    bank_pivs_for_signal  = {k: float(v) for k, v in bank_pivots_i.items()}  if bank_pivots_i  else {}
 
     if sel_index == "Nifty 50":
-        show_intraday_signals(intra_nifty_df, n_ltp, vix_i, "Nifty 50", 50)
+        show_intraday_signals(intra_nifty_df, n_ltp, vix_i, "Nifty 50",   50,  orb_n,  nifty_pivs_for_signal)
     elif sel_index == "Bank Nifty":
-        show_intraday_signals(intra_bank_df, bn_ltp, vix_i, "Bank Nifty", 100)
+        show_intraday_signals(intra_bank_df,  bn_ltp, vix_i, "Bank Nifty", 100, orb_bn, bank_pivs_for_signal)
     else:
-        show_intraday_signals(intra_nifty_df, n_ltp, vix_i, "Nifty 50", 50)
+        show_intraday_signals(intra_nifty_df, n_ltp, vix_i, "Nifty 50",   50,  orb_n,  nifty_pivs_for_signal)
         st.divider()
-        show_intraday_signals(intra_bank_df, bn_ltp, vix_i, "Bank Nifty", 100)
+        show_intraday_signals(intra_bank_df,  bn_ltp, vix_i, "Bank Nifty", 100, orb_bn, bank_pivs_for_signal)
 
 
 # ── TAB 2: Nifty ─────────────────────────────────────────────────────────────
