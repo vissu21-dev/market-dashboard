@@ -1036,12 +1036,16 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
     otm_call = atm + step
     otm_put  = atm - step
 
-    # Approximate premium (simplified: ATM ~0.7–1.2% of underlying for weekly)
-    base_prem = ltp * 0.008
-    call_prem = round(base_prem * (1.0 if net > 0 else 0.7), 1)
-    put_prem  = round(base_prem * (1.0 if net < 0 else 0.7), 1)
-    call_prem = max(call_prem, 20)
-    put_prem  = max(put_prem, 20)
+    # Premium: Black-Scholes ATM approximation using live VIX + days to expiry
+    exp_info  = next_expiry_info()
+    days_left = exp_info["nifty"]["days"] if "Bank" not in name else exp_info["banknifty"]["days"]
+    days_safe = max(float(days_left), 0.5)
+    vix_ann   = max(float(vix) if vix else 15, 8) / 100
+    base_prem = ltp * vix_ann * np.sqrt(days_safe / 252) * 0.25   # calibrated for Indian weekly options
+    call_prem = round(base_prem * (1.0 if net > 0 else 0.75), 1)
+    put_prem  = round(base_prem * (1.0 if net < 0 else 0.75), 1)
+    call_prem = max(call_prem, 10)
+    put_prem  = max(put_prem, 10)
 
     # ── Confidence ───────────────────────────────────────────────────────────
     def confidence(score):
@@ -1305,8 +1309,8 @@ st.divider()
 
 # ── Charts + Signals ──────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
-    "🌅 Morning Checklist",
     "⚡ Intraday Signals",
+    "🌅 Morning Checklist",
     "🕯️ Nifty 50",
     "🏦 Bank Nifty",
     "🌍 Global Cues",
@@ -1320,7 +1324,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
 # ══════════════════════════════════════════════════════════════════════════════
 #  TAB 0 — Morning Checklist
 # ══════════════════════════════════════════════════════════════════════════════
-with tab1:
+with tab2:
     st.markdown("## 🌅 Morning Market Checklist")
     st.caption("Run this every morning before 9:15 AM to prepare your trading plan for the day.")
 
@@ -1503,7 +1507,7 @@ with tab1:
 # ══════════════════════════════════════════════════════════════════════════════
 #  TAB 1 — Intraday Signals
 # ══════════════════════════════════════════════════════════════════════════════
-with tab2:
+with tab1:
     st.markdown("## ⚡ Intraday Option Trade Signals")
     st.caption("Signals update on every Refresh. Data: Yahoo Finance (15-min delay). For live signals use Upstox/Angel API.")
 
@@ -1666,8 +1670,8 @@ with tab2:
         days_safe  = max(float(days_left), 0.5)
         lot_sz     = 75 if "Bank" not in name else 30
 
-        # VIX + time-adjusted base premium (rough Black-Scholes approximation)
-        base_prem = ltp * (vix_val / 100) * np.sqrt(days_safe / 252) * 0.45
+        # Black-Scholes ATM approximation — calibrated multiplier 0.25 for Indian weekly options
+        base_prem = ltp * (vix_val / 100) * np.sqrt(days_safe / 252) * 0.25
 
         OTM_LEVELS = [
             ("ATM",       0,  1.00, "Highest delta — moves most with index. Best for strong trending days."),
