@@ -299,18 +299,33 @@ _NSE_INDEX_MAP = {
 
 @st.cache_data(ttl=30)
 def fetch_nse_indices() -> dict:
-    """Fetch live quotes for all Indian indices from NSE API."""
+    """
+    Fetch live quotes from NSE API (establishes a browser-like session first).
+    Falls back to Yahoo Finance fast_info if NSE is unreachable.
+    """
+    _HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "application/json",
-            "Referer": "https://www.nseindia.com/",
-        }
-        r = requests.get("https://www.nseindia.com/api/allIndices",
-                         headers=headers, timeout=8)
+        session = requests.Session()
+        # Establish cookies by visiting the main page first
+        session.get("https://www.nseindia.com/", headers=_HEADERS, timeout=10)
+        api_headers = {**_HEADERS, "Accept": "application/json",
+                       "Referer": "https://www.nseindia.com/"}
+        r = session.get("https://www.nseindia.com/api/allIndices",
+                        headers=api_headers, timeout=8)
         r.raise_for_status()
+        data = r.json().get("data", [])
+        if not data:
+            raise ValueError("empty NSE response")
         result = {}
-        for idx in r.json().get("data", []):
+        for idx in data:
             dash_name = _NSE_INDEX_MAP.get(idx.get("index", ""))
             if not dash_name:
                 continue
@@ -327,7 +342,35 @@ def fetch_nse_indices() -> dict:
             }
         return result
     except Exception:
-        return {}
+        pass
+
+    # ── Fallback: Yahoo Finance for NSE tickers ────────────────────────────────
+    yf_map = {
+        "Nifty 50":   "^NSEI",
+        "Bank Nifty": "^NSEBANK",
+        "India VIX":  "^INDIAVIX",
+        "Nifty IT":   "^CNXIT",
+    }
+    result = {}
+    for name, ticker in yf_map.items():
+        try:
+            t    = yf.Ticker(ticker)
+            info = t.fast_info
+            hist = t.history(period="2d", interval="1d")
+            if hist.empty:
+                continue
+            ltp  = float(info.last_price) if hasattr(info, "last_price") else float(hist["Close"].iloc[-1])
+            prev = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else ltp
+            chg  = ltp - prev
+            pct  = (chg / prev * 100) if prev else 0
+            result[name] = {
+                "ltp": ltp, "open": float(hist["Open"].iloc[-1]),
+                "high": float(hist["High"].iloc[-1]), "low": float(hist["Low"].iloc[-1]),
+                "prev": prev, "chg": chg, "pct": pct,
+            }
+        except Exception:
+            continue
+    return result
 
 
 @st.cache_data(ttl=3600)
@@ -1212,7 +1255,7 @@ market_open = is_market_open()
 col_h1, col_h2, col_h3, col_h4 = st.columns([3, 1, 1, 1])
 with col_h1:
     st.markdown("## 📈 India Market Dashboard")
-    st.caption(f"Last updated: {now_ist.strftime('%d %b %Y  %H:%M:%S IST')}  |  Data: Yahoo Finance (15-min delay)")
+    st.caption(f"Last updated: {now_ist.strftime('%d %b %Y  %H:%M:%S IST')}  |  Indian indices: NSE live API  |  Global: Yahoo Finance")
 with col_h2:
     status_color = "#26a69a" if market_open else "#ef5350"
     st.markdown(f'<div style="margin-top:20px"><span style="color:{status_color}; font-size:16px; font-weight:700;">● Market {"OPEN" if market_open else "CLOSED"}</span></div>', unsafe_allow_html=True)
