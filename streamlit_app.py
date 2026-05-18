@@ -293,34 +293,18 @@ MUTUAL_FUNDS = [
 @st.cache_data(ttl=30)
 def get_quote(ticker: str) -> dict:
     """
-    Live quote using yf.fast_info (LTP) + daily history (OHLC / prev close).
-    Works for all tickers: Indian indices, Sensex, global.
+    Live quote using fast_info exclusively — last_price, previous_close,
+    open, day_high, day_low.  No download needed; works for all tickers.
     """
     try:
-        t    = yf.Ticker(ticker)
-        info = t.fast_info
-
-        # fast_info gives the most current price (updates every ~15s on Yahoo)
-        ltp = float(info.last_price) if hasattr(info, "last_price") and info.last_price else None
-
-        # Daily history for prev close + today's OHLC
-        hist = yf.download(ticker, period="5d", interval="1d",
-                           progress=False, auto_adjust=True)
-        if hist.empty:
-            return {}
-        if isinstance(hist.columns, pd.MultiIndex):
-            hist.columns = [c[0] for c in hist.columns]
-
-        prev  = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else float(hist["Close"].iloc[-1])
-        high  = float(hist["High"].iloc[-1])
-        low   = float(hist["Low"].iloc[-1])
-        open_ = float(hist["Open"].iloc[-1])
-
-        if ltp is None:
-            ltp = float(hist["Close"].iloc[-1])
-
-        chg = ltp - prev
-        pct = (chg / prev) * 100 if prev else 0
+        fi    = yf.Ticker(ticker).fast_info
+        ltp   = float(fi.last_price)
+        prev  = float(fi.previous_close)
+        open_ = float(fi.open)        if fi.open      else ltp
+        high  = float(fi.day_high)    if fi.day_high  else ltp
+        low   = float(fi.day_low)     if fi.day_low   else ltp
+        chg   = ltp - prev
+        pct   = (chg / prev) * 100 if prev else 0
         return {"ltp": ltp, "open": open_, "high": high, "low": low,
                 "prev": prev, "chg": chg, "pct": pct}
     except Exception:
