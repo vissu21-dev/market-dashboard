@@ -293,18 +293,32 @@ MUTUAL_FUNDS = [
 @st.cache_data(ttl=30)
 def get_quote(ticker: str) -> dict:
     try:
-        t = yf.Ticker(ticker)
-        info = t.fast_info
-        hist = t.history(period="2d", interval="1d")
+        # Fetch daily OHLC for prev close, high, low, open
+        hist = yf.download(ticker, period="5d", interval="1d",
+                           progress=False, auto_adjust=True)
         if hist.empty:
             return {}
-        ltp   = float(info.last_price) if hasattr(info, "last_price") else float(hist["Close"].iloc[-1])
-        prev  = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else ltp
-        chg   = ltp - prev
-        pct   = (chg / prev) * 100 if prev else 0
+        # Flatten MultiIndex columns if present
+        if isinstance(hist.columns, pd.MultiIndex):
+            hist.columns = [c[0] for c in hist.columns]
+
+        prev  = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else float(hist["Close"].iloc[-1])
         high  = float(hist["High"].iloc[-1])
         low   = float(hist["Low"].iloc[-1])
         open_ = float(hist["Open"].iloc[-1])
+
+        # Use 1-min candle for the freshest LTP (more accurate than fast_info)
+        intra = yf.download(ticker, period="1d", interval="1m",
+                            progress=False, auto_adjust=True)
+        if not intra.empty:
+            if isinstance(intra.columns, pd.MultiIndex):
+                intra.columns = [c[0] for c in intra.columns]
+            ltp = float(intra["Close"].iloc[-1])
+        else:
+            ltp = float(hist["Close"].iloc[-1])
+
+        chg = ltp - prev
+        pct = (chg / prev) * 100 if prev else 0
         return {"ltp": ltp, "open": open_, "high": high, "low": low,
                 "prev": prev, "chg": chg, "pct": pct}
     except Exception:
