@@ -289,36 +289,113 @@ MUTUAL_FUNDS = [
      "amfi_search": ["motilal oswal nasdaq 100", "direct", "growth"]},
 ]
 
+# ── NSE live index map (NSE API name → dashboard name) ────────────────────────
+_NSE_INDEX_MAP = {
+    "NIFTY 50":   "Nifty 50",
+    "NIFTY BANK": "Bank Nifty",
+    "INDIA VIX":  "India VIX",
+    "NIFTY IT":   "Nifty IT",
+}
+
+@st.cache_data(ttl=30)
+def fetch_nse_indices() -> dict:
+    """Fetch live quotes for all Indian indices from NSE API."""
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json",
+            "Referer": "https://www.nseindia.com/",
+        }
+        r = requests.get("https://www.nseindia.com/api/allIndices",
+                         headers=headers, timeout=8)
+        r.raise_for_status()
+        result = {}
+        for idx in r.json().get("data", []):
+            dash_name = _NSE_INDEX_MAP.get(idx.get("index", ""))
+            if not dash_name:
+                continue
+            ltp  = float(idx["last"])
+            prev = float(idx["previousClose"])
+            chg  = float(idx["variation"])
+            pct  = float(idx["percentChange"])
+            result[dash_name] = {
+                "ltp":  ltp,
+                "open": float(idx.get("open", ltp)),
+                "high": float(idx.get("high", ltp)),
+                "low":  float(idx.get("low",  ltp)),
+                "prev": prev, "chg": chg, "pct": pct,
+            }
+        return result
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=3600)
+def _sensex_prev_close() -> float:
+    """Get Sensex previous close from Yahoo Finance daily data (reliable)."""
+    try:
+        hist = yf.download("^BSESN", period="5d", interval="1d",
+                           progress=False, auto_adjust=True)
+        if hist.empty:
+            return 0.0
+        if isinstance(hist.columns, pd.MultiIndex):
+            hist.columns = [c[0] for c in hist.columns]
+        return float(hist["Close"].iloc[-1])
+    except Exception:
+        return 0.0
+
+
 # ── Data helpers ──────────────────────────────────────────────────────────────
 @st.cache_data(ttl=30)
 def get_quote(ticker: str) -> dict:
+    """
+    For Indian indices (^NSEI, ^NSEBANK, ^INDIAVIX, ^CNXIT): use NSE live API.
+    For Sensex (^BSESN): derive from prev close + Nifty live % (BSE API is blocked).
+    For global tickers: use Yahoo Finance.
+    """
+    # ── Indian NSE indices ─────────────────────────────────────────────────────
+    nse_ticker_map = {
+        "^NSEI":    "Nifty 50",
+        "^NSEBANK": "Bank Nifty",
+        "^INDIAVIX":"India VIX",
+        "^CNXIT":   "Nifty IT",
+    }
+    if ticker in nse_ticker_map:
+        nse = fetch_nse_indices()
+        name = nse_ticker_map[ticker]
+        return nse.get(name, {})
+
+    # ── Sensex — prev close from Yahoo, live % from Nifty NSE data ─────────────
+    if ticker == "^BSESN":
+        try:
+            prev = _sensex_prev_close()
+            nse  = fetch_nse_indices()
+            nifty = nse.get("Nifty 50", {})
+            pct   = nifty.get("pct", 0)
+            ltp   = round(prev * (1 + pct / 100), 2) if prev else 0.0
+            chg   = ltp - prev
+            return {"ltp": ltp, "open": ltp, "high": ltp, "low": ltp,
+                    "prev": prev, "chg": chg, "pct": pct}
+        except Exception:
+            return {}
+
+    # ── Global / other tickers — Yahoo Finance ─────────────────────────────────
     try:
-        # Fetch daily OHLC for prev close, high, low, open
+        t = yf.Ticker(ticker)
+        info = t.fast_info
         hist = yf.download(ticker, period="5d", interval="1d",
                            progress=False, auto_adjust=True)
         if hist.empty:
             return {}
-        # Flatten MultiIndex columns if present
         if isinstance(hist.columns, pd.MultiIndex):
             hist.columns = [c[0] for c in hist.columns]
-
         prev  = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else float(hist["Close"].iloc[-1])
         high  = float(hist["High"].iloc[-1])
         low   = float(hist["Low"].iloc[-1])
         open_ = float(hist["Open"].iloc[-1])
-
-        # Use 1-min candle for the freshest LTP (more accurate than fast_info)
-        intra = yf.download(ticker, period="1d", interval="1m",
-                            progress=False, auto_adjust=True)
-        if not intra.empty:
-            if isinstance(intra.columns, pd.MultiIndex):
-                intra.columns = [c[0] for c in intra.columns]
-            ltp = float(intra["Close"].iloc[-1])
-        else:
-            ltp = float(hist["Close"].iloc[-1])
-
-        chg = ltp - prev
-        pct = (chg / prev) * 100 if prev else 0
+        ltp   = float(info.last_price) if hasattr(info, "last_price") and info.last_price else float(hist["Close"].iloc[-1])
+        chg   = ltp - prev
+        pct   = (chg / prev) * 100 if prev else 0
         return {"ltp": ltp, "open": open_, "high": high, "low": low,
                 "prev": prev, "chg": chg, "pct": pct}
     except Exception:
