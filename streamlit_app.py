@@ -1652,8 +1652,6 @@ with tab1:
                 f'<div style="color:{oc};font-weight:700;font-size:14px;'
                 f'margin:14px 0 4px;opacity:{"1" if is_rec else "0.4"}">{hdr}</div>',
                 unsafe_allow_html=True)
-            if not is_rec:
-                st.markdown('<div style="opacity:0.4">', unsafe_allow_html=True)
 
             for label, offset, mult, note in OTM_LEVELS:
                 strike      = atm + sign * offset * step
@@ -1679,9 +1677,7 @@ with tab1:
                             padding:10px 14px;margin:4px 0;opacity:{op}">
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
                     <div>
-                      <span style="color:{oc};font-weight:800;font-size:16px">{strike} {opt_dir}</span>
-                      {rec_badge}
-                      <span style="color:#6b7280;font-size:11px;margin-left:8px">{label}</span>
+                      <span style="color:{oc};font-weight:800;font-size:16px">{strike} {opt_dir}</span>{rec_badge}<span style="color:#6b7280;font-size:11px;margin-left:8px">{label}</span>
                     </div>
                     <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
                       <div><div style="color:#6b7280">Est. Premium</div>
@@ -1703,8 +1699,6 @@ with tab1:
                   <div style="color:#6b7280;font-size:11px;margin-top:4px">💡 {note}</div>
                 </div>""", unsafe_allow_html=True)
 
-            if not is_rec:
-                st.markdown('</div>', unsafe_allow_html=True)
 
         st.caption(f"Lot sizes: Nifty=75 | BankNifty=30 | Expiry in {days_left} day(s) | "
                    f"Premiums are ESTIMATES — always verify on your broker/Upstox before buying")
