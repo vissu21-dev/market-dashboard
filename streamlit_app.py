@@ -13,6 +13,18 @@ from datetime import datetime, timedelta
 import pytz
 import os
 import csv
+import sys
+
+# Upstox data fetcher (same folder)
+_dashboard_dir = os.path.dirname(os.path.abspath(__file__))
+if _dashboard_dir not in sys.path:
+    sys.path.insert(0, _dashboard_dir)
+try:
+    import config as upstox_config
+    import data_fetcher as upstox_df
+    _UPSTOX_AVAILABLE = bool(upstox_config.ACCESS_TOKEN)
+except Exception:
+    _UPSTOX_AVAILABLE = False
 
 st.set_page_config(
     page_title="India Market Dashboard",
@@ -289,20 +301,92 @@ MUTUAL_FUNDS = [
      "amfi_search": ["motilal oswal nasdaq 100", "direct", "growth"]},
 ]
 
+# ── Ticker ↔ Upstox instrument key mapping ────────────────────────────────────
+_YF_TO_UPSTOX = {
+    "^NSEI":      "NSE_INDEX|Nifty 50",
+    "^NSEBANK":   "NSE_INDEX|Nifty Bank",
+    "^BSESN":     "BSE_INDEX|SENSEX",
+    "^INDIAVIX":  "NSE_INDEX|India VIX",
+    "^CNXIT":     "NSE_INDEX|Nifty IT",
+    "^CNXFIN":    "NSE_INDEX|Nifty Fin Service",
+    "^NSEMDCP50": "NSE_INDEX|NIFTY MID SELECT",
+}
+_YF_INT_TO_UPSTOX = {
+    "1m": "1minute", "2m": "2minute", "5m": "5minute",
+    "15m": "15minute", "30m": "30minute",
+    "1h": "60minute", "60m": "60minute",
+    "1d": "day", "1wk": "week", "1mo": "month",
+}
+_PERIOD_TO_DAYS = {
+    "1d": 1, "5d": 5, "1mo": 30, "3mo": 90,
+    "6mo": 180, "1y": 365, "2y": 730,
+}
+
+def _upstox_quote(upstox_key: str) -> dict:
+    """Fetch single index quote from Upstox. Returns get_quote-compatible dict."""
+    try:
+        import requests as _req
+        headers = {"Authorization": f"Bearer {upstox_config.ACCESS_TOKEN}", "Accept": "application/json"}
+        r = _req.get(upstox_config.BASE_URL + "/market-quote/quotes",
+                     params={"instrument_key": upstox_key}, headers=headers, timeout=8)
+        r.raise_for_status()
+        v = list(r.json().get("data", {}).values())[0]
+        ltp  = float(v.get("last_price") or 0)
+        chg  = float(v.get("net_change") or 0)
+        ohlc = v.get("ohlc") or {}
+        prev = round(ltp - chg, 2)
+        pct  = (chg / prev * 100) if prev else 0
+        return {
+            "ltp":  ltp,
+            "open": float(ohlc.get("open") or ltp),
+            "high": float(ohlc.get("high") or ltp),
+            "low":  float(ohlc.get("low")  or ltp),
+            "prev": prev, "chg": chg, "pct": pct,
+        }
+    except Exception:
+        return {}
+
+
+def _upstox_candles(upstox_key: str, upstox_interval: str,
+                    from_date: str, to_date: str) -> pd.DataFrame:
+    """Fetch OHLCV candles from Upstox and return normalised DataFrame."""
+    try:
+        import requests as _req
+        headers = {"Authorization": f"Bearer {upstox_config.ACCESS_TOKEN}", "Accept": "application/json"}
+        _intraday = {"1minute","2minute","5minute","10minute","15minute","30minute","60minute"}
+        if upstox_interval in _intraday:
+            url = f"{upstox_config.BASE_URL}/historical-candle/intraday/{upstox_key}/{upstox_interval}"
+            params = {}
+        else:
+            url = f"{upstox_config.BASE_URL}/historical-candle/{upstox_key}/{upstox_interval}/{to_date}/{from_date}"
+            params = {}
+        r = _req.get(url, params=params, headers=headers, timeout=15)
+        r.raise_for_status()
+        candles = r.json().get("data", {}).get("candles", [])
+        if not candles:
+            return pd.DataFrame()
+        df = pd.DataFrame(candles, columns=["timestamp","open","high","low","close","volume","oi"])
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df.sort_values("timestamp").reset_index(drop=True)
+        for col in ["open","high","low","close","volume"]:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+
 # ── Data helpers ──────────────────────────────────────────────────────────────
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=15)
 def get_quote(ticker: str) -> dict:
-    """
-    Live quote with two-layer approach:
-      Layer 1 — 1-minute intraday download (most accurate live LTP + today OHLC)
-      Layer 2 — fast_info fallback (works for all tickers incl. ^BSESN)
-    prev_close always from fast_info.previous_close (never from daily row).
-    """
+    """Upstox-first quote; falls back to Yahoo Finance for global tickers."""
+    if _UPSTOX_AVAILABLE and ticker in _YF_TO_UPSTOX:
+        q = _upstox_quote(_YF_TO_UPSTOX[ticker])
+        if q:
+            return q
+    # Yahoo Finance fallback
     try:
         fi   = yf.Ticker(ticker).fast_info
         prev = float(fi.previous_close) if hasattr(fi, "previous_close") and fi.previous_close else 0.0
-
-        # Layer 1: 1-min download gives the freshest LTP
         try:
             intra = yf.download(ticker, period="1d", interval="1m",
                                 progress=False, auto_adjust=True,
@@ -312,22 +396,18 @@ def get_quote(ticker: str) -> dict:
                 open_ = float(intra["Open"].iloc[0])
                 high  = float(intra["High"].max())
                 low   = float(intra["Low"].min())
-                if not prev:
-                    prev = open_
+                if not prev: prev = open_
                 chg = ltp - prev
                 pct = (chg / prev) * 100 if prev else 0
                 return {"ltp": ltp, "open": open_, "high": high, "low": low,
                         "prev": prev, "chg": chg, "pct": pct}
         except Exception:
             pass
-
-        # Layer 2: fast_info (works even when 1m download fails e.g. ^BSESN)
         ltp   = float(fi.last_price)
         open_ = float(fi.open)     if fi.open     else ltp
         high  = float(fi.day_high) if fi.day_high else ltp
         low   = float(fi.day_low)  if fi.day_low  else ltp
-        if not prev:
-            prev = ltp
+        if not prev: prev = ltp
         chg = ltp - prev
         pct = (chg / prev) * 100 if prev else 0
         return {"ltp": ltp, "open": open_, "high": high, "low": low,
@@ -338,6 +418,18 @@ def get_quote(ticker: str) -> dict:
 
 @st.cache_data(ttl=60)
 def get_candles(ticker: str, period: str = "5d", interval: str = "15m") -> pd.DataFrame:
+    """Upstox-first candles; falls back to Yahoo Finance."""
+    if _UPSTOX_AVAILABLE and ticker in _YF_TO_UPSTOX:
+        upstox_key = _YF_TO_UPSTOX[ticker]
+        upstox_int = _YF_INT_TO_UPSTOX.get(interval, "15minute")
+        days       = _PERIOD_TO_DAYS.get(period, 5)
+        today      = datetime.now(IST).date()
+        from_date  = str(today - timedelta(days=days))
+        to_date    = str(today)
+        df = _upstox_candles(upstox_key, upstox_int, from_date, to_date)
+        if not df.empty:
+            return df
+    # Yahoo Finance fallback
     try:
         df = yf.download(ticker, period=period, interval=interval,
                          progress=False, auto_adjust=True)
@@ -346,7 +438,7 @@ def get_candles(ticker: str, period: str = "5d", interval: str = "15m") -> pd.Da
         df = df.reset_index()
         df.columns = [c.lower() if isinstance(c, str) else c[0].lower() for c in df.columns]
         df = df.rename(columns={"datetime": "timestamp", "date": "timestamp"})
-        if "timestamp" not in df.columns and df.columns[0] != "timestamp":
+        if "timestamp" not in df.columns:
             df = df.rename(columns={df.columns[0]: "timestamp"})
         return df
     except Exception:
@@ -606,10 +698,17 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df["macd"]   = c.ewm(span=12, adjust=False).mean() - c.ewm(span=26, adjust=False).mean()
     df["macd_s"] = df["macd"].ewm(span=9, adjust=False).mean()
     df["macd_h"] = df["macd"] - df["macd_s"]
-    # VWAP
-    if "volume" in df.columns:
+    # VWAP — use volume if available; fall back to price-only typical-price average
+    if "volume" in df.columns and df["volume"].sum() > 0:
         tp = (df["high"] + df["low"] + df["close"]) / 3
-        df["vwap"] = (tp * df["volume"]).cumsum() / df["volume"].cumsum()
+        vol = df["volume"].replace(0, np.nan)
+        df["vwap"] = (tp * vol).cumsum() / vol.cumsum()
+        # If still all-NaN (index has no volume), use simple TP cumulative mean
+        if df["vwap"].isna().all():
+            df["vwap"] = tp.expanding().mean()
+    else:
+        tp = (df["high"] + df["low"] + df["close"]) / 3
+        df["vwap"] = tp.expanding().mean()
     # Bollinger
     df["bb_mid"]   = c.rolling(20).mean()
     df["bb_upper"] = df["bb_mid"] + 2 * c.rolling(20).std()
@@ -678,21 +777,135 @@ def is_market_open() -> bool:
 
 
 def next_expiry_info() -> dict:
-    today = datetime.now(IST).date()
-    n_days = (3 - today.weekday()) % 7 or 7   # Thursday = Nifty
-    b_days = (2 - today.weekday()) % 7 or 7   # Wednesday = BankNifty
+    now   = datetime.now(IST)
+    today = now.date()
+    after_close = now.hour > 15 or (now.hour == 15 and now.minute >= 30)
+
+    # Nifty weekly = Tuesday (weekday 1); BankNifty weekly = Wednesday (weekday 2)
+    n_days = (1 - today.weekday()) % 7
+    b_days = (2 - today.weekday()) % 7
+
+    # On expiry day after market close, roll to next week
+    if n_days == 0 and after_close:
+        n_days = 7
+    if b_days == 0 and after_close:
+        b_days = 7
+
     n_date = today + timedelta(days=n_days)
     b_date = today + timedelta(days=b_days)
+    n_label = "Today" if n_days == 0 else n_date.strftime("%d %b")
+    b_label = "Today" if b_days == 0 else b_date.strftime("%d %b")
     return {
-        "nifty":     {"date": n_date.strftime("%d %b"), "days": n_days},
-        "banknifty": {"date": b_date.strftime("%d %b"), "days": b_days},
+        "nifty":     {"date": n_label, "days": n_days,
+                      "date_str": n_date.strftime("%Y-%m-%d")},
+        "banknifty": {"date": b_label, "days": b_days,
+                      "date_str": b_date.strftime("%Y-%m-%d")},
     }
+
+
+# Upstox key → yfinance ticker mapping for batch index quotes
+_UPSTOX_INDEX_KEYS = {
+    "^NSEI":    "NSE_INDEX|Nifty 50",
+    "^NSEBANK": "NSE_INDEX|Nifty Bank",
+    "^BSESN":   "BSE_INDEX|SENSEX",
+    "^INDIAVIX":"NSE_INDEX|India VIX",
+    "^CNXIT":   "NSE_INDEX|Nifty IT",
+    "NIFTY_FIN":"NSE_INDEX|Nifty Fin Service",
+    "NIFTY_MID":"NSE_INDEX|NIFTY MID SELECT",
+}
+
+@st.cache_data(ttl=15)
+def get_upstox_index_quotes() -> dict:
+    """
+    Fetch live quotes for all indices from Upstox in one call.
+    Returns {yf_ticker: {"ltp","open","high","low","prev","chg","pct"}}
+    """
+    if not _UPSTOX_AVAILABLE:
+        return {}
+    try:
+        joined = ",".join(_UPSTOX_INDEX_KEYS.values())
+        r = upstox_df._headers.__func__(upstox_df) if False else None  # unused
+        import requests as _req
+        headers = {"Authorization": f"Bearer {upstox_config.ACCESS_TOKEN}", "Accept": "application/json"}
+        resp = _req.get(upstox_config.BASE_URL + "/market-quote/quotes",
+                        params={"instrument_key": joined}, headers=headers, timeout=10)
+        resp.raise_for_status()
+        raw = resp.json().get("data", {})
+        result = {}
+        inv_map = {v.replace("|", ":"): k for k, v in _UPSTOX_INDEX_KEYS.items()}
+        for api_key, v in raw.items():
+            yf_ticker = inv_map.get(api_key)
+            if not yf_ticker:
+                continue
+            ltp  = float(v.get("last_price") or 0)
+            chg  = float(v.get("net_change") or 0)
+            ohlc = v.get("ohlc") or {}
+            prev = round(ltp - chg, 2) if ltp and chg else float(ohlc.get("close") or ltp)
+            pct  = (chg / prev * 100) if prev else 0
+            result[yf_ticker] = {
+                "ltp":  ltp,
+                "open": float(ohlc.get("open") or ltp),
+                "high": float(ohlc.get("high") or ltp),
+                "low":  float(ohlc.get("low")  or ltp),
+                "prev": prev,
+                "chg":  chg,
+                "pct":  pct,
+            }
+        return result
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=30)
+def get_live_chain(instrument_key: str, expiry_date: str) -> dict:
+    """
+    Fetch live option premiums from Upstox.
+    Returns {strike: {"ce": ltp, "pe": ltp, "ce_iv": iv, "pe_iv": iv}}
+    Falls back to empty dict if token missing or API fails.
+    """
+    if not _UPSTOX_AVAILABLE:
+        return {}
+    try:
+        df = upstox_df.get_option_chain(instrument_key, expiry_date)
+        if df.empty:
+            return {}
+        result = {}
+        for _, row in df.iterrows():
+            result[int(row["strike"])] = {
+                "ce":    float(row.get("ce_ltp", 0) or 0),
+                "pe":    float(row.get("pe_ltp", 0) or 0),
+                "ce_iv": float(row.get("ce_iv",  0) or 0),
+                "pe_iv": float(row.get("pe_iv",  0) or 0),
+            }
+        return result
+    except Exception:
+        return {}
 
 
 @st.cache_data(ttl=60)
 def get_orb(ticker: str) -> dict:
-    """Opening Range = first 15 minutes (9:15–9:30) high and low."""
+    """Opening Range = first 15 minutes (9:15–9:30). Upstox-first."""
     try:
+        if _UPSTOX_AVAILABLE and ticker in _YF_TO_UPSTOX:
+            today   = datetime.now(IST).date()
+            df = _upstox_candles(_YF_TO_UPSTOX[ticker], "1minute", str(today), str(today))
+            if not df.empty:
+                df["timestamp"] = pd.to_datetime(df["timestamp"])
+                market_open_t = pd.Timestamp(today).tz_localize(IST).replace(hour=9, minute=15)
+                orb_end_t     = pd.Timestamp(today).tz_localize(IST).replace(hour=9, minute=30)
+                ts = df["timestamp"]
+                if ts.dt.tz is None:
+                    ts = ts.dt.tz_localize(IST)
+                orb = df[(ts >= market_open_t) & (ts < orb_end_t)]
+                if orb.empty:
+                    orb = df.head(15)
+                if not orb.empty:
+                    return {
+                        "high":  float(orb["high"].max()),
+                        "low":   float(orb["low"].min()),
+                        "range": float(orb["high"].max() - orb["low"].min()),
+                    }
+        # Yahoo fallback
         df = yf.download(ticker, period="1d", interval="1m", progress=False, auto_adjust=True)
         if df.empty:
             return {}
@@ -712,24 +925,32 @@ def get_orb(ticker: str) -> dict:
 
 @st.cache_data(ttl=3600)
 def get_pivots(ticker: str) -> dict:
-    """Classic pivot points from previous trading day's OHLC."""
+    """Classic pivot points from previous trading day's OHLC. Upstox-first."""
     try:
+        if _UPSTOX_AVAILABLE and ticker in _YF_TO_UPSTOX:
+            today     = datetime.now(IST).date()
+            from_date = str(today - timedelta(days=7))
+            df = _upstox_candles(_YF_TO_UPSTOX[ticker], "day", from_date, str(today))
+            if not df.empty and len(df) >= 2:
+                prev = df.iloc[-2]
+                h = float(prev["high"]); l = float(prev["low"]); c = float(prev["close"])
+                p = (h + l + c) / 3
+                return {
+                    "P": round(p), "R1": round(2*p - l), "R2": round(p + h - l),
+                    "R3": round(h + 2*(p - l)), "S1": round(2*p - h),
+                    "S2": round(p - (h - l)),   "S3": round(l - 2*(h - p)),
+                }
+        # Yahoo fallback
         df = yf.download(ticker, period="5d", interval="1d", progress=False, auto_adjust=True)
         if len(df) < 2:
             return {}
         prev = df.iloc[-2]
-        h = float(prev["High"])
-        l = float(prev["Low"])
-        c = float(prev["Close"])
+        h = float(prev["High"]); l = float(prev["Low"]); c = float(prev["Close"])
         p = (h + l + c) / 3
         return {
-            "P":  round(p),
-            "R1": round(2 * p - l),
-            "R2": round(p + h - l),
-            "R3": round(h + 2 * (p - l)),
-            "S1": round(2 * p - h),
-            "S2": round(p - (h - l)),
-            "S3": round(l - 2 * (h - p)),
+            "P": round(p), "R1": round(2*p - l), "R2": round(p + h - l),
+            "R3": round(h + 2*(p - l)), "S1": round(2*p - h),
+            "S2": round(p - (h - l)),   "S3": round(l - 2*(h - p)),
         }
     except Exception:
         return {}
@@ -950,11 +1171,16 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
     atm       = nearest_strike(ltp, step)
 
     # ── Premium estimate (range) ──────────────────────────────────────────────
-    exp_info  = next_expiry_info()
-    days_left = exp_info["nifty"]["days"] if "Bank" not in name else exp_info["banknifty"]["days"]
-    days_safe = max(float(days_left), 0.5)
-    vix_ann   = max(vix_f, 8) / 100
-    base_mid  = ltp * vix_ann * np.sqrt(days_safe / 252) * 0.25
+    exp_info    = next_expiry_info()
+    days_left   = exp_info["nifty"]["days"]  if "Bank" not in name else exp_info["banknifty"]["days"]
+    expiry_date = exp_info["nifty"]["date"]  if "Bank" not in name else exp_info["banknifty"]["date"]
+    days_safe   = max(float(days_left), 0.5)
+    vix_ann     = max(vix_f, 8) / 100
+    # BS ATM approx: P = 0.4 × S × σ × √(T/252)
+    # Nifty actual IV ≈ VIX × 0.77; BNF actual IV ≈ VIX × 1.00
+    # Combined constant: Nifty = 0.4×0.77 = 0.308; BNF = 0.4×1.00 = 0.40
+    bs_factor   = 0.40 if "Bank" in name else 0.308
+    base_mid    = ltp * vix_ann * np.sqrt(days_safe / 252) * bs_factor
     base_lo   = round(base_mid * 0.75, 0)
     base_hi   = round(base_mid * 1.35, 0)
 
@@ -1008,6 +1234,7 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
         "vwap":          vwap,
         "atm":           atm,
         "days_left":     days_left,
+        "expiry_date":   expiry_date,
         "base_lo":       base_lo,
         "base_hi":       base_hi,
         "entry_cond":    entry_cond,
@@ -1150,6 +1377,93 @@ def candlestick_fig(df: pd.DataFrame, title: str,
 now_ist = datetime.now(IST)
 market_open = is_market_open()
 
+# ── SIDEBAR: Upstox Token Manager ─────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("## 🔑 Upstox Token")
+
+    # Auto-capture auth code from redirect URL (?code=XXX)
+    _qp = st.query_params
+    _auto_code = _qp.get("code", "")
+    if _auto_code and _UPSTOX_AVAILABLE is False or _auto_code:
+        if _auto_code and not st.session_state.get("_token_exchanged_code") == _auto_code:
+            st.info(f"Auth code detected in URL. Click **Get Token** to activate.")
+            st.session_state["_pending_code"] = _auto_code
+
+    # Token status
+    if _UPSTOX_AVAILABLE:
+        _tok_preview = upstox_config.ACCESS_TOKEN[:12] + "..." if upstox_config.ACCESS_TOKEN else ""
+        st.success(f"✅ Token active  `{_tok_preview}`")
+        st.caption("Expires at midnight IST. Refresh each morning.")
+    else:
+        st.error("❌ No token — using Yahoo Finance fallback")
+
+    st.markdown("---")
+    st.markdown("**Refresh token (daily)**")
+
+    # Step 1 — generate auth URL
+    if st.button("Step 1 — Open Upstox Login", use_container_width=True):
+        if _UPSTOX_AVAILABLE or True:
+            try:
+                _auth_url = upstox_auth.get_auth_url()
+                st.session_state["_auth_url"] = _auth_url
+            except Exception as _e:
+                st.error(f"Could not generate URL: {_e}")
+
+    if st.session_state.get("_auth_url"):
+        st.markdown(
+            f'<a href="{st.session_state["_auth_url"]}" target="_blank" '
+            f'style="display:block;background:#3b82f6;color:#fff;text-align:center;'
+            f'padding:8px;border-radius:6px;text-decoration:none;font-weight:700">'
+            f'👉 Login to Upstox</a>', unsafe_allow_html=True)
+        st.caption("After login you'll be redirected back here automatically.")
+
+    # Step 2 — paste or auto-filled code
+    _default_code = st.session_state.get("_pending_code", "")
+    _code_input = st.text_input("Step 2 — Paste auth code", value=_default_code,
+                                placeholder="Paste code from redirect URL")
+
+    if st.button("Get New Token ✅", use_container_width=True, type="primary"):
+        _code = _code_input.strip()
+        if not _code:
+            st.warning("Paste the auth code first.")
+        else:
+            with st.spinner("Exchanging code for token..."):
+                try:
+                    _tokens = upstox_auth.exchange_code_for_token(_code)
+                    _new_token = _tokens.get("access_token", "")
+                    if _new_token:
+                        # Write to .env
+                        _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+                        _lines = open(_env_path).readlines() if os.path.exists(_env_path) else []
+                        _updated = False
+                        _new_lines = []
+                        for _l in _lines:
+                            if _l.startswith("UPSTOX_ACCESS_TOKEN="):
+                                _new_lines.append(f"UPSTOX_ACCESS_TOKEN={_new_token}\n")
+                                _updated = True
+                            else:
+                                _new_lines.append(_l)
+                        if not _updated:
+                            _new_lines.append(f"UPSTOX_ACCESS_TOKEN={_new_token}\n")
+                        with open(_env_path, "w") as _f:
+                            _f.writelines(_new_lines)
+                        # Update in-memory config
+                        upstox_config.ACCESS_TOKEN = _new_token
+                        st.session_state["_token_exchanged_code"] = _code
+                        st.session_state["_pending_code"] = ""
+                        st.session_state["_auth_url"] = ""
+                        st.cache_data.clear()
+                        st.success("✅ Token saved! Dashboard refreshing...")
+                        st.query_params.clear()
+                        st.rerun()
+                    else:
+                        st.error("No token in response — code may be expired. Try again.")
+                except Exception as _ex:
+                    st.error(f"Error: {_ex}")
+
+    st.markdown("---")
+    st.caption("Token valid for current trading day only.\nRun Step 1 each morning before 9:15 AM.")
+
 # Header
 col_h1, col_h2, col_h3, col_h4 = st.columns([3, 1, 1, 1])
 with col_h1:
@@ -1179,8 +1493,13 @@ if market_open:
 
 st.divider()
 
-# ── Fetch all Indian index quotes ─────────────────────────────────────────────
-quotes = {name: get_quote(ticker) for name, ticker in TICKERS.items()}
+# ── Fetch all Indian index quotes (Upstox preferred, Yahoo fallback) ──────────
+_upstox_quotes = get_upstox_index_quotes()
+_ticker_to_name = {v: k for k, v in TICKERS.items()}
+quotes = {}
+for name, ticker in TICKERS.items():
+    uq = _upstox_quotes.get(ticker)
+    quotes[name] = uq if uq else get_quote(ticker)
 
 # ── Row 1: Index cards ────────────────────────────────────────────────────────
 st.markdown('<div class="section-title">Market Overview</div>', unsafe_allow_html=True)
@@ -1524,7 +1843,18 @@ with tab1:
         atm        = setup.get("atm", nearest_strike(ltp, step))
         vix_f      = float(vix) if vix else 15
         lot_sz     = 75 if "Bank" not in name else 30
-        days_left  = setup.get("days_left", 3)
+        days_left   = setup.get("days_left", 3)
+        expiry_date = setup.get("expiry_date", "—")
+
+        # Live option chain from Upstox (falls back to {} if token missing)
+        exp_info_live = next_expiry_info()
+        if "Bank" in name:
+            _ikey   = "NSE_INDEX|Nifty Bank"
+            _expstr = exp_info_live["banknifty"]["date_str"]
+        else:
+            _ikey   = "NSE_INDEX|Nifty 50"
+            _expstr = exp_info_live["nifty"]["date_str"]
+        live_chain = get_live_chain(_ikey, _expstr)
 
         st.markdown(f"### {name} — Trade Setup")
 
@@ -1535,7 +1865,7 @@ with tab1:
             kl_html += _level_chip("ORB High", f"{orb['high']:,.0f}", "#ef5350")
             kl_html += _level_chip("ORB Low",  f"{orb['low']:,.0f}",  "#26a69a")
         vwap_val = setup.get("vwap", 0)
-        if vwap_val:
+        if vwap_val and not (isinstance(vwap_val, float) and np.isnan(vwap_val)):
             kl_html += _level_chip("VWAP", f"{vwap_val:,.0f}", "#a78bfa")
         if pivots:
             if pivots.get("P"):  kl_html += _level_chip("Pivot P", f"{pivots['P']:,}", "#f59e0b")
@@ -1628,17 +1958,21 @@ with tab1:
 
         days_safe  = max(float(days_left), 0.5)
         vix_ann    = max(vix_f, 8) / 100
-        base_mid   = ltp * vix_ann * np.sqrt(days_safe / 252) * 0.25
-        # Show premium as a range (±30%) to acknowledge estimation error
+        bs_factor  = 0.40 if "Bank" in name else 0.308
+        base_mid   = ltp * vix_ann * np.sqrt(days_safe / 252) * bs_factor
+        # Show ±20% range to acknowledge real-world bid-ask spread
         def prem_range(mult):
             mid = base_mid * mult
-            return f"~{max(int(mid*0.70),5)}–{int(mid*1.35)}"
+            return f"~{max(int(mid*0.80),5)}–{int(mid*1.20)}"
 
+        # OTM multipliers calibrated from live market data:
+        # Nifty 23650 CE ATM=104 | 23350 PE (6-step OTM)=24.65 (ratio 0.24)
+        # Extrapolated for 1/2/3 steps: ~0.72 / 0.45 / 0.27
         OTM_LEVELS = [
-            ("ATM",      0, 1.00, "Best for strong trends. Moves 1:1 with index."),
-            ("OTM 1",    1, 0.58, "Good balance. Needs ~50pt move to profit."),
-            ("OTM 2",    2, 0.33, "Cheaper. Needs ~100pt index move."),
-            ("Deep OTM", 3, 0.18, "Lottery ticket. Needs 200pt+ trending move."),
+            ("ATM",      0, 1.00, "Best for strong breakouts. Highest premium, highest delta."),
+            ("OTM 1",    1, 0.72, "Recommended — good delta, manageable cost. Needs ~1 step move."),
+            ("OTM 2",    2, 0.45, "Lower cost. Needs ~2x the index move to profit."),
+            ("Deep OTM", 3, 0.27, "High risk. Needs a large sustained move — avoid near expiry."),
         ]
 
         # Recommended direction gets full opacity; opposite is dimmed
@@ -1655,10 +1989,20 @@ with tab1:
 
             for label, offset, mult, note in OTM_LEVELS:
                 strike      = atm + sign * offset * step
-                pr          = prem_range(mult)
-                mid_prem    = base_mid * mult
-                cost_lo     = int(max(mid_prem*0.70, 5) * lot_sz)
-                cost_hi     = int(mid_prem * 1.35 * lot_sz)
+                # Use live Upstox premium if available, else fall back to BS estimate
+                chain_row   = live_chain.get(int(strike), {})
+                live_ltp    = chain_row.get("ce" if opt_dir == "CE" else "pe", 0)
+                live_iv     = chain_row.get("ce_iv" if opt_dir == "CE" else "pe_iv", 0)
+                if live_ltp and live_ltp > 0:
+                    pr          = f"₹{live_ltp:.0f}"
+                    prem_source = "LIVE"
+                    mid_prem    = live_ltp
+                else:
+                    pr          = f"~{prem_range(mult)}"
+                    prem_source = "EST"
+                    mid_prem    = base_mid * mult
+                cost_lo     = int(max(mid_prem * 0.90, 5) * lot_sz)
+                cost_hi     = int(mid_prem * 1.10 * lot_sz)
                 affordable  = cost_lo <= user_budget
                 max_lots    = int(user_budget // max(cost_lo, 1))
                 # premium SL = -30%, T1 = +60%, T2 = +120%
@@ -1675,33 +2019,36 @@ with tab1:
                 st.markdown(f"""
                 <div style="background:{row_bg};border:1px solid {row_border};border-radius:8px;
                             padding:10px 14px;margin:4px 0;opacity:{op}">
-                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
                     <div>
                       <span style="color:{oc};font-weight:800;font-size:16px">{strike} {opt_dir}</span>{rec_badge}<span style="color:#6b7280;font-size:11px;margin-left:8px">{label}</span>
                     </div>
-                    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
-                      <div><div style="color:#6b7280">Est. Premium</div>
-                           <div style="color:{oc};font-weight:700">₹{pr}</div></div>
-                      <div><div style="color:#6b7280">1-lot cost</div>
-                           <div style="font-weight:700">₹{cost_lo:,}–{cost_hi:,}</div></div>
-                      <div><div style="color:#6b7280">Max lots</div>
-                           <div style="color:{'#26a69a' if affordable else '#6b7280'};font-weight:800;font-size:14px">{max_lots if affordable else '—'}</div></div>
-                      <div><div style="color:#6b7280">Prem SL / T1 / T2</div>
-                           <div style="font-weight:700"><span style="color:#ef5350">{prem_sl_pct}</span> &nbsp;
-                           <span style="color:#26a69a">{prem_t1_pct}</span> &nbsp;
-                           <span style="color:#26a69a">{prem_t2_pct}</span></div></div>
-                      <div><div style="color:#6b7280">Index SL</div>
-                           <div style="color:#ef5350;font-weight:700">{setup['idx_sl_label']}</div></div>
-                      <div><div style="color:#6b7280">Index T1</div>
-                           <div style="color:#26a69a;font-weight:700">{setup['idx_t1_label']}</div></div>
+                    <div style="background:#1e2130;border-radius:6px;padding:3px 10px;font-size:12px">
+                      📅 <span style="color:#9ca3af">Expiry:</span> <span style="color:#e0e0e0;font-weight:700">{expiry_date}</span> <span style="color:#6b7280">({days_left}d)</span>
                     </div>
                   </div>
-                  <div style="color:#6b7280;font-size:11px;margin-top:4px">💡 {note}</div>
+                  <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
+                    <div><div style="color:#6b7280">{'Premium 🟢 LIVE' if prem_source=='LIVE' else 'Premium 🟡 EST'}</div>
+                         <div style="color:{oc};font-weight:700">{pr}</div>
+                         {'<div style="color:#6b7280;font-size:10px">IV: '+f"{live_iv:.1f}%</div>" if live_iv else ''}</div>
+                    <div><div style="color:#6b7280">1-lot cost</div>
+                         <div style="font-weight:700">₹{cost_lo:,}–{cost_hi:,}</div></div>
+                    <div><div style="color:#6b7280">Max lots</div>
+                         <div style="color:{'#26a69a' if affordable else '#6b7280'};font-weight:800;font-size:14px">{max_lots if affordable else '—'}</div></div>
+                    <div><div style="color:#6b7280">Prem SL / T1 / T2</div>
+                         <div style="font-weight:700"><span style="color:#ef5350">{prem_sl_pct}</span> &nbsp;
+                         <span style="color:#26a69a">{prem_t1_pct}</span> &nbsp;
+                         <span style="color:#26a69a">{prem_t2_pct}</span></div></div>
+                    <div><div style="color:#6b7280">Index SL</div>
+                         <div style="color:#ef5350;font-weight:700">{setup['idx_sl_label']}</div></div>
+                    <div><div style="color:#6b7280">Index T1</div>
+                         <div style="color:#26a69a;font-weight:700">{setup['idx_t1_label']}</div></div>
+                  </div>
+                  <div style="color:#6b7280;font-size:11px;margin-top:6px">💡 {note}</div>
                 </div>""", unsafe_allow_html=True)
 
-
-        st.caption(f"Lot sizes: Nifty=75 | BankNifty=30 | Expiry in {days_left} day(s) | "
-                   f"Premiums are ESTIMATES — always verify on your broker/Upstox before buying")
+        live_label = "🟢 LIVE from Upstox" if live_chain else "🟡 Estimated (add token for live)"
+        st.caption(f"Lot sizes: Nifty=75 | BankNifty=30 | Expiry in {days_left} day(s) | Premiums: {live_label}")
 
         # ── RISK RULES ────────────────────────────────────────────────────────
         st.markdown("""
