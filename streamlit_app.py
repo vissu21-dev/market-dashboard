@@ -58,19 +58,41 @@ st.set_page_config(
 
 IST = pytz.timezone("Asia/Kolkata")
 
+# ── Owner detection via secret URL key ───────────────────────────────────────
+# Owner accesses: https://your-app.streamlit.app/?key=YOUR_OWNER_KEY
+# Public users access the normal URL — toolbar is hidden for them
+_OWNER_KEY = os.getenv("OWNER_KEY", "vissu@dashboard2026")  # change in .env / Streamlit secrets
+
+def _check_owner() -> bool:
+    """Returns True if current session belongs to the owner."""
+    # Persist across page interactions via session_state
+    if st.session_state.get("_is_owner"):
+        return True
+    params = st.query_params
+    if params.get("key") == _OWNER_KEY:
+        st.session_state["_is_owner"] = True
+        return True
+    return False
+
+_IS_OWNER = _check_owner()
+
 # ── Dark theme CSS ────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-body, .stApp { background-color: #0e1117; color: #e0e0e0; }
-/* Hide Streamlit toolbar icons (Share, Star, Edit, GitHub) and sidebar toggle */
-header[data-testid="stHeader"]        { display: none !important; }
-[data-testid="stToolbar"]             { display: none !important; }
-[data-testid="collapsedControl"]      { display: none !important; }
+# Toolbar hidden for PUBLIC users; owner sees full Streamlit UI
+_public_hide_css = "" if _IS_OWNER else """
+/* Hide Streamlit toolbar icons and sidebar toggle for public users */
+header[data-testid="stHeader"]            { display: none !important; }
+[data-testid="stToolbar"]                 { display: none !important; }
+[data-testid="collapsedControl"]          { display: none !important; }
 [data-testid="stSidebarCollapsedControl"] { display: none !important; }
-footer { visibility: hidden !important; }
-#MainMenu { visibility: hidden !important; }
-/* Remove top padding left by hidden header */
 .block-container { padding-top: 1rem !important; }
+"""
+
+st.markdown(f"""
+<style>
+body, .stApp {{ background-color: #0e1117; color: #e0e0e0; }}
+footer {{ visibility: hidden !important; }}
+#MainMenu {{ visibility: hidden !important; }}
+{_public_hide_css}
 .metric-card {
     background: #1a1d2e; border-radius: 10px; padding: 14px 18px;
     border-left: 4px solid #3b82f6; margin-bottom: 10px;
