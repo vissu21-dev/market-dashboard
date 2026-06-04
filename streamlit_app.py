@@ -62,9 +62,7 @@ IST = pytz.timezone("Asia/Kolkata")
 st.markdown("""
 <style>
 body, .stApp { background-color: #0e1117; color: #e0e0e0; }
-/* Hide Streamlit Cloud manage-app toolbar and footer branding */
-[data-testid="manage-app-button"] { display: none !important; }
-[data-testid="collapsedControl"]  { display: none !important; }
+/* Hide footer branding for all users (Manage app remains visible to owner only) */
 footer { visibility: hidden !important; }
 #MainMenu { visibility: hidden !important; }
 .metric-card {
