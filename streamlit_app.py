@@ -385,8 +385,20 @@ def get_quote(ticker: str) -> dict:
             return q
     # Yahoo Finance fallback
     try:
-        fi   = yf.Ticker(ticker).fast_info
-        prev = float(fi.previous_close) if hasattr(fi, "previous_close") and fi.previous_close else 0.0
+        fi = yf.Ticker(ticker).fast_info
+        # Use daily history for accurate previous close (fast_info.previous_close
+        # can be off by several points for NSE indices)
+        prev = 0.0
+        try:
+            daily = yf.download(ticker, period="5d", interval="1d",
+                                progress=False, auto_adjust=True,
+                                multi_level_index=False)
+            if len(daily) >= 2:
+                prev = float(daily["Close"].iloc[-2])
+        except Exception:
+            pass
+        if not prev:
+            prev = float(fi.previous_close) if hasattr(fi, "previous_close") and fi.previous_close else 0.0
         try:
             intra = yf.download(ticker, period="1d", interval="1m",
                                 progress=False, auto_adjust=True,
@@ -1495,11 +1507,28 @@ st.divider()
 
 # ── Fetch all Indian index quotes (Upstox preferred, Yahoo fallback) ──────────
 _upstox_quotes = get_upstox_index_quotes()
+_is_live        = bool(_upstox_quotes)          # True = Upstox real-time, False = yfinance delayed
 _ticker_to_name = {v: k for k, v in TICKERS.items()}
 quotes = {}
 for name, ticker in TICKERS.items():
     uq = _upstox_quotes.get(ticker)
     quotes[name] = uq if uq else get_quote(ticker)
+
+# ── Data source badge ─────────────────────────────────────────────────────────
+_fetch_time = datetime.now(IST).strftime("%H:%M:%S")
+if _is_live:
+    st.markdown(
+        f'<div style="font-size:11px;color:#26a69a;margin-bottom:4px">'
+        f'🟢 Live data · Upstox · as of {_fetch_time} IST</div>',
+        unsafe_allow_html=True,
+    )
+else:
+    st.markdown(
+        f'<div style="font-size:11px;color:#f59e0b;margin-bottom:4px">'
+        f'🟡 Delayed data (15 min) · Yahoo Finance · as of {_fetch_time} IST &nbsp;'
+        f'— Upstox token missing or expired</div>',
+        unsafe_allow_html=True,
+    )
 
 # ── Row 1: Index cards ────────────────────────────────────────────────────────
 st.markdown('<div class="section-title">Market Overview</div>', unsafe_allow_html=True)
