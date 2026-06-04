@@ -901,7 +901,7 @@ def get_upstox_index_quotes() -> dict:
         return {}
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=12)
 def get_live_chain(instrument_key: str, expiry_date: str) -> dict:
     """
     Fetch live option premiums from Upstox.

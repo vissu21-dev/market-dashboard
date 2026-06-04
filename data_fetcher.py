@@ -108,7 +108,7 @@ def get_historical_candles(
 
 # ── Option chain ──────────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=12)
 def get_option_chain(instrument_key: str, expiry_date: str) -> pd.DataFrame:
     """
     Returns option chain DataFrame with columns:
