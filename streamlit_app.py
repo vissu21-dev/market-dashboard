@@ -62,9 +62,15 @@ IST = pytz.timezone("Asia/Kolkata")
 st.markdown("""
 <style>
 body, .stApp { background-color: #0e1117; color: #e0e0e0; }
-/* Hide footer branding for all users (Manage app remains visible to owner only) */
+/* Hide Streamlit toolbar icons (Share, Star, Edit, GitHub) and sidebar toggle */
+header[data-testid="stHeader"]        { display: none !important; }
+[data-testid="stToolbar"]             { display: none !important; }
+[data-testid="collapsedControl"]      { display: none !important; }
+[data-testid="stSidebarCollapsedControl"] { display: none !important; }
 footer { visibility: hidden !important; }
 #MainMenu { visibility: hidden !important; }
+/* Remove top padding left by hidden header */
+.block-container { padding-top: 1rem !important; }
 .metric-card {
     background: #1a1d2e; border-radius: 10px; padding: 14px 18px;
     border-left: 4px solid #3b82f6; margin-bottom: 10px;
