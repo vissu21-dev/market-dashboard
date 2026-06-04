@@ -27,6 +27,13 @@ try:
 except Exception:
     _ZERODHA_AVAILABLE = False
 
+# Trade recommendation engine
+try:
+    import trade_engine as te
+    _TRADE_ENGINE_OK = True
+except Exception:
+    _TRADE_ENGINE_OK = False
+
 # Upstox (secondary data source, fallback)
 try:
     import config as upstox_config
@@ -113,6 +120,7 @@ TICKERS = {
     "India VIX":    "^INDIAVIX",
     "Sensex":       "^BSESN",
     "Nifty IT":     "^CNXIT",
+    "Fin Nifty":    "^CNXFIN",
 }
 GLOBAL = {
     "S&P 500":      "^GSPC",
@@ -319,6 +327,13 @@ _YF_TO_UPSTOX = {
     "^CNXIT":     "NSE_INDEX|Nifty IT",
     "^CNXFIN":    "NSE_INDEX|Nifty Fin Service",
     "^NSEMDCP50": "NSE_INDEX|NIFTY MID SELECT",
+}
+
+# Option chain keys and metadata for tradeable indices
+_OPTION_INDEX_META = {
+    "Nifty 50":   {"upstox_key": "NSE_INDEX|Nifty 50",       "step": 50,  "lot": 75,  "yf": "^NSEI"},
+    "Bank Nifty": {"upstox_key": "NSE_INDEX|Nifty Bank",      "step": 100, "lot": 30,  "yf": "^NSEBANK"},
+    "Fin Nifty":  {"upstox_key": "NSE_INDEX|Nifty Fin Service","step": 50,  "lot": 40,  "yf": "^CNXFIN"},
 }
 _YF_INT_TO_UPSTOX = {
     "1m": "1minute", "2m": "2minute", "5m": "5minute",
@@ -855,7 +870,7 @@ _UPSTOX_INDEX_KEYS = {
     "^BSESN":   "BSE_INDEX|SENSEX",
     "^INDIAVIX":"NSE_INDEX|India VIX",
     "^CNXIT":   "NSE_INDEX|Nifty IT",
-    "NIFTY_FIN":"NSE_INDEX|Nifty Fin Service",
+    "^CNXFIN":  "NSE_INDEX|Nifty Fin Service",
     "NIFTY_MID":"NSE_INDEX|NIFTY MID SELECT",
 }
 
@@ -917,10 +932,14 @@ def get_live_chain(instrument_key: str, expiry_date: str) -> dict:
         result = {}
         for _, row in df.iterrows():
             result[int(row["strike"])] = {
-                "ce":    float(row.get("ce_ltp", 0) or 0),
-                "pe":    float(row.get("pe_ltp", 0) or 0),
-                "ce_iv": float(row.get("ce_iv",  0) or 0),
-                "pe_iv": float(row.get("pe_iv",  0) or 0),
+                "ce":     float(row.get("ce_ltp",    0) or 0),
+                "pe":     float(row.get("pe_ltp",    0) or 0),
+                "ce_iv":  float(row.get("ce_iv",     0) or 0),
+                "pe_iv":  float(row.get("pe_iv",     0) or 0),
+                "ce_oi":  float(row.get("ce_oi",     0) or 0),
+                "pe_oi":  float(row.get("pe_oi",     0) or 0),
+                "ce_vol": float(row.get("ce_volume", 0) or 0),
+                "pe_vol": float(row.get("pe_volume", 0) or 0),
             }
         return result
     except Exception:
@@ -1588,7 +1607,7 @@ st.divider()
 
 # ── Charts + Signals ──────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
-    "⚡ Intraday Signals",
+    "🎯 Trade Command",
     "🌅 Morning Checklist",
     "🕯️ Nifty 50",
     "🏦 Bank Nifty",
@@ -1787,8 +1806,8 @@ with tab2:
 #  TAB 1 — Intraday Signals
 # ══════════════════════════════════════════════════════════════════════════════
 with tab1:
-    st.markdown("## ⚡ Intraday Option Trade Signals")
-    st.caption("Signals update on every Refresh. Data: Yahoo Finance (15-min delay). For live signals use Upstox/Angel API.")
+    st.markdown("## 🎯 Intraday Trade Command Center")
+    st.caption("Professional options trading signals — acts as your intraday mentor. Refresh for latest data.")
 
     # Load data if not already loaded
     intra_nifty_df = get_candles("^NSEI",    period="5d", interval="15m")
@@ -2132,14 +2151,358 @@ with tab1:
     nifty_pivs_for_signal = {k: float(v) for k, v in nifty_pivots_i.items()} if nifty_pivots_i else {}
     bank_pivs_for_signal  = {k: float(v) for k, v in bank_pivots_i.items()}  if bank_pivots_i  else {}
 
-    if sel_index == "Nifty 50":
-        show_intraday_signals(intra_nifty_df, n_ltp, vix_i, "Nifty 50",   50,  orb_n,  nifty_pivs_for_signal)
-    elif sel_index == "Bank Nifty":
-        show_intraday_signals(intra_bank_df,  bn_ltp, vix_i, "Bank Nifty", 100, orb_bn, bank_pivs_for_signal)
+    # ── OLD signals (kept for existing users, shown below new section) ────────
+    st.divider()
+    st.markdown("#### 📊 Technical Signals (Legacy View)")
+    with st.expander("Show detailed technical signals", expanded=False):
+        if sel_index == "Nifty 50":
+            show_intraday_signals(intra_nifty_df, n_ltp, vix_i, "Nifty 50",   50,  orb_n,  nifty_pivs_for_signal)
+        elif sel_index == "Bank Nifty":
+            show_intraday_signals(intra_bank_df,  bn_ltp, vix_i, "Bank Nifty", 100, orb_bn, bank_pivs_for_signal)
+        else:
+            show_intraday_signals(intra_nifty_df, n_ltp, vix_i, "Nifty 50",   50,  orb_n,  nifty_pivs_for_signal)
+            st.divider()
+            show_intraday_signals(intra_bank_df,  bn_ltp, vix_i, "Bank Nifty", 100, orb_bn, bank_pivs_for_signal)
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # NEW: PROFESSIONAL TRADE COMMAND CENTER
+    # ═══════════════════════════════════════════════════════════════════════════
+    if not _TRADE_ENGINE_OK:
+        st.warning("Trade engine not loaded. Check trade_engine.py.")
     else:
-        show_intraday_signals(intra_nifty_df, n_ltp, vix_i, "Nifty 50",   50,  orb_n,  nifty_pivs_for_signal)
-        st.divider()
-        show_intraday_signals(intra_bank_df,  bn_ltp, vix_i, "Bank Nifty", 100, orb_bn, bank_pivs_for_signal)
+        st.markdown("---")
+        st.markdown("## 🎯 Professional Trade Recommendations")
+
+        # ── Fetch global sentiment score ──────────────────────────────────────
+        global_quotes_tc = {}
+        for gname, gticker in GLOBAL.items():
+            gq = get_quote(gticker)
+            if gq:
+                global_quotes_tc[gname] = gq
+        g_sentiment = compute_global_sentiment(global_quotes_tc)
+        g_score     = g_sentiment.get("score", 0)
+
+        # ── Fetch FII/DII and breadth (cached 10 min) ─────────────────────────
+        @st.cache_data(ttl=600)
+        def _fetch_fii():
+            return te.fetch_fii_dii()
+
+        @st.cache_data(ttl=300)
+        def _fetch_breadth():
+            return te.fetch_market_breadth()
+
+        fii_dii_data = _fetch_fii()
+        breadth_data = _fetch_breadth()
+
+        # ── Market Context Banner ─────────────────────────────────────────────
+        st.markdown("### 🌐 Market Context")
+        mc1, mc2, mc3, mc4, mc5 = st.columns(5)
+
+        with mc1:
+            g_color = "#26a69a" if g_score >= 2 else ("#ef5350" if g_score <= -2 else "#f59e0b")
+            g_arrow = "🟢" if g_score >= 2 else ("🔴" if g_score <= -2 else "🟡")
+            st.markdown(f"""<div class="metric-card" style="border-left-color:{g_color}">
+            <div class="trade-label">Global Cues</div>
+            <div style="font-size:18px;font-weight:800;color:{g_color}">{g_arrow} {g_sentiment.get('label','—')[:20]}</div>
+            <div style="font-size:11px;color:#9ca3af">Score: {g_score:+d}/10</div>
+            </div>""", unsafe_allow_html=True)
+
+        with mc2:
+            vcolor = "#ef5350" if vix_i > 20 else ("#f59e0b" if vix_i > 16 else "#26a69a")
+            st.markdown(f"""<div class="metric-card" style="border-left-color:{vcolor}">
+            <div class="trade-label">India VIX</div>
+            <div style="font-size:22px;font-weight:800;color:{vcolor}">{vix_i:.2f}</div>
+            <div style="font-size:11px;color:#9ca3af">{"⚠️ High" if vix_i>20 else ("⚠️ Watch" if vix_i>16 else "✅ Normal")}</div>
+            </div>""", unsafe_allow_html=True)
+
+        with mc3:
+            if fii_dii_data:
+                fii_n   = fii_dii_data.get("fii_net", 0)
+                dii_n   = fii_dii_data.get("dii_net", 0)
+                fc = "#26a69a" if fii_n > 0 else "#ef5350"
+                dc = "#26a69a" if dii_n > 0 else "#ef5350"
+                st.markdown(f"""<div class="metric-card">
+                <div class="trade-label">FII / DII (₹Cr)</div>
+                <div style="font-size:14px;font-weight:700;color:{fc}">FII: {fii_n:+,.0f}</div>
+                <div style="font-size:14px;font-weight:700;color:{dc}">DII: {dii_n:+,.0f}</div>
+                </div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("""<div class="metric-card">
+                <div class="trade-label">FII / DII</div>
+                <div style="font-size:13px;color:#6b7280">Data unavailable</div>
+                <div style="font-size:11px;color:#6b7280">NSE updates after 4 PM</div>
+                </div>""", unsafe_allow_html=True)
+
+        with mc4:
+            if breadth_data:
+                bc = "#26a69a" if breadth_data.get("bias") == "bullish" else (
+                     "#ef5350" if breadth_data.get("bias") == "bearish" else "#f59e0b")
+                st.markdown(f"""<div class="metric-card" style="border-left-color:{bc}">
+                <div class="trade-label">Market Breadth</div>
+                <div style="font-size:13px;font-weight:700;color:{bc}">{breadth_data.get('label','—')}</div>
+                <div style="font-size:11px;color:#9ca3af">A/D Ratio: {breadth_data.get('ratio',0):.1f}</div>
+                </div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("""<div class="metric-card">
+                <div class="trade-label">Market Breadth</div>
+                <div style="font-size:13px;color:#6b7280">Unavailable</div>
+                </div>""", unsafe_allow_html=True)
+
+        with mc5:
+            now_ist  = datetime.now(IST)
+            mkt_time = now_ist.strftime("%H:%M")
+            is_open  = is_market_open()
+            mins_e   = te._market_minutes_elapsed()
+            hold_str = te._max_hold_till(mins_e)
+            tc = "#26a69a" if is_open else "#6b7280"
+            st.markdown(f"""<div class="metric-card" style="border-left-color:{tc}">
+            <div class="trade-label">Session</div>
+            <div style="font-size:16px;font-weight:800;color:{tc}">{'🟢 OPEN' if is_open else '🔴 CLOSED'} {mkt_time}</div>
+            <div style="font-size:10px;color:#9ca3af">Max hold: {hold_str[:20]}</div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # ── Per-index recommendation cards ────────────────────────────────────
+        exp_info_tc = next_expiry_info()
+
+        INDICES_TC = [
+            ("Nifty 50",   "^NSEI",    intra_nifty_df, n_ltp,  50,  75,
+             exp_info_tc["nifty"],     "NSE_INDEX|Nifty 50",     orb_n,  nifty_pivs_for_signal),
+            ("Bank Nifty", "^NSEBANK", intra_bank_df,  bn_ltp, 100, 30,
+             exp_info_tc["banknifty"],"NSE_INDEX|Nifty Bank",    orb_bn, bank_pivs_for_signal),
+        ]
+
+        # Fin Nifty
+        intra_fin_df = add_indicators(get_candles("^CNXFIN", period="5d", interval="15m"))
+        fn_ltp  = quotes.get("Fin Nifty", {}).get("ltp", 0)
+        fn_orb  = get_orb("^CNXFIN")
+        fn_pivs = {k: float(v) for k, v in get_pivots("^CNXFIN").items()} if get_pivots("^CNXFIN") else {}
+
+        # Fin Nifty expiry = Tuesday same as Nifty
+        INDICES_TC.append(
+            ("Fin Nifty", "^CNXFIN", intra_fin_df, fn_ltp, 50, 40,
+             exp_info_tc["nifty"], "NSE_INDEX|Nifty Fin Service", fn_orb, fn_pivs)
+        )
+
+        for (iname, iticker, idf, iltp, istep, ilot,
+             iexp, iupstox_key, iorb, ipivots) in INDICES_TC:
+
+            expiry_label_tc   = f"{iexp['date']} ({iexp['days']}d)"
+            expiry_date_str   = iexp["date_str"]
+            live_chain_tc     = get_live_chain(iupstox_key, expiry_date_str)
+
+            rec = te.generate_recommendation(
+                name=iname, df=idf, ltp=iltp, vix=vix_i,
+                orb=iorb, pivots=ipivots,
+                live_chain=live_chain_tc,
+                global_score=g_score,
+                step=istep, lot_size=ilot,
+                expiry_label=expiry_label_tc,
+                expiry_date_str=expiry_date_str,
+                fii_dii=fii_dii_data,
+                breadth=breadth_data,
+            )
+
+            # ── Status color & badge ──────────────────────────────────────────
+            status = rec.get("status", "AVOID")
+            direction = rec.get("direction", "")
+            conf = rec.get("confidence", 0)
+
+            STATUS_META = {
+                "HIGH_CONVICTION": ("#26a69a", "🔥 HIGH CONVICTION"),
+                "MODERATE":        ("#f59e0b", "✅ MODERATE CONVICTION"),
+                "WATCHLIST":       ("#3b82f6", "👀 WATCHLIST"),
+                "AVOID":           ("#ef5350", "🚫 AVOID — STAY OUT"),
+            }
+            s_color, s_label = STATUS_META.get(status, ("#6b7280", "—"))
+            dir_emoji = "📈" if direction == "CALL" else ("📉" if direction == "PUT" else "")
+            dir_color = "#26a69a" if direction == "CALL" else "#ef5350"
+
+            with st.container():
+                # Header bar
+                st.markdown(f"""
+                <div style="background:linear-gradient(90deg,{s_color}22,transparent);
+                border-left:5px solid {s_color};border-radius:10px;
+                padding:14px 20px;margin:8px 0 4px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                    <div>
+                      <span style="font-size:20px;font-weight:900;color:{s_color}">{s_label}</span>
+                      <span style="font-size:16px;font-weight:700;color:#e0e0e0;margin-left:12px">{iname}</span>
+                      {'<span style="font-size:15px;font-weight:800;color:'+dir_color+';margin-left:8px">'+dir_emoji+' '+direction+' OPTION</span>' if direction else ''}
+                    </div>
+                    <div style="text-align:right">
+                      <div style="font-size:22px;font-weight:900;color:{s_color}">{conf:.0f}%</div>
+                      <div style="font-size:11px;color:#9ca3af">Confidence</div>
+                    </div>
+                  </div>
+                  {'<div style="margin-top:8px;background:#1a1d2e;border-radius:6px;height:8px;overflow:hidden"><div style="background:'+s_color+';width:'+str(conf)+'%;height:100%;border-radius:6px"></div></div>' if status != 'AVOID' else ''}
+                </div>""", unsafe_allow_html=True)
+
+                if status == "AVOID":
+                    st.markdown(f"""
+                    <div style="background:#2a0d0d;border:1px solid #ef5350;border-radius:8px;
+                    padding:16px 20px;margin:4px 0 16px">
+                      <div style="font-size:14px;font-weight:700;color:#ef5350;margin-bottom:6px">
+                        ⛔ Why to stay out:
+                      </div>
+                      <div style="font-size:13px;color:#d1d5db">{rec.get('reason','—')}</div>
+                    </div>""", unsafe_allow_html=True)
+
+                elif status == "WATCHLIST":
+                    st.markdown(f"""
+                    <div style="background:#0d1a2e;border:1px solid #3b82f6;border-radius:8px;
+                    padding:16px 20px;margin:4px 0 16px">
+                      <div style="font-size:14px;font-weight:700;color:#3b82f6;margin-bottom:6px">
+                        👀 Monitor — conditions not fully met yet:
+                      </div>
+                      <div style="font-size:13px;color:#d1d5db">{rec.get('avoid_note',rec.get('reason','—'))}</div>
+                    </div>""", unsafe_allow_html=True)
+
+                else:
+                    # Full trade card
+                    iltp_v = rec.get("ltp", iltp)
+                    c1, c2 = st.columns([3, 2])
+
+                    with c1:
+                        # Option setup
+                        strike   = rec.get("strike", 0)
+                        sl_lbl   = rec.get("strike_label", "")
+                        exp_lbl  = rec.get("expiry_label", "")
+                        e_lo     = rec.get("entry_prem_low",  0)
+                        e_hi     = rec.get("entry_prem_high", 0)
+                        e_mid    = rec.get("entry_prem_mid",  0)
+                        psl      = rec.get("prem_sl", 0)
+                        pt1      = rec.get("prem_t1", 0)
+                        pt2      = rec.get("prem_t2", 0)
+                        pt3      = rec.get("prem_t3", 0)
+                        i_sl_lbl = rec.get("idx_sl_label", "")
+                        i_t1_lbl = rec.get("idx_t1_label", "")
+                        i_t2_lbl = rec.get("idx_t2_label", "")
+                        i_t3_lbl = rec.get("idx_t3_label", "")
+                        rr       = rec.get("rr_ratio", 0)
+                        mh       = rec.get("max_hold", "—")
+                        ei_lo    = rec.get("entry_idx_low", 0)
+                        ei_hi    = rec.get("entry_idx_high", 0)
+                        lot      = rec.get("lot_size", 75)
+
+                        st.markdown(f"""
+                        <div style="background:#1a1d2e;border:2px solid {dir_color};border-radius:12px;
+                             padding:18px;margin:6px 0">
+                          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                            <div>
+                              <span style="color:{dir_color};font-size:22px;font-weight:900">
+                                {strike:,} {direction}
+                              </span>
+                              <span style="color:#9ca3af;font-size:12px;margin-left:8px">{sl_lbl}</span>
+                            </div>
+                            <div style="background:#0e1117;border-radius:6px;padding:4px 12px;font-size:12px">
+                              📅 {exp_lbl}
+                            </div>
+                          </div>
+                          <div style="background:#0e1117;border-radius:8px;padding:10px 14px;margin-bottom:10px">
+                            <div style="color:#9ca3af;font-size:11px;margin-bottom:4px">ENTRY ZONE</div>
+                            <div style="color:#e0e0e0;font-size:16px;font-weight:700">
+                              Premium: ₹{e_lo}–₹{e_hi}
+                              &nbsp;<span style="color:#9ca3af;font-size:12px">(live: ~₹{e_mid:.0f})</span>
+                            </div>
+                            <div style="color:#6b7280;font-size:11px;margin-top:2px">
+                              Index entry zone: {ei_lo:,} – {ei_hi:,}
+                            </div>
+                          </div>
+                          <table style="width:100%;border-collapse:collapse;font-size:13px">
+                            <tr style="color:#9ca3af;font-size:10px;text-transform:uppercase">
+                              <td>Level</td><td>Premium</td><td>Index Level</td><td>P&L / lot</td>
+                            </tr>
+                            <tr style="color:#ef5350;border-top:1px solid #374151">
+                              <td style="padding:5px 0;font-weight:700">🛑 Stop Loss</td>
+                              <td>₹{psl} <span style="color:#6b7280;font-size:10px">(−30%)</span></td>
+                              <td style="color:#9ca3af">{i_sl_lbl}</td>
+                              <td style="color:#ef5350">−₹{int((e_mid-psl)*lot):,}</td>
+                            </tr>
+                            <tr style="color:#26a69a;border-top:1px solid #1e2130">
+                              <td style="padding:5px 0;font-weight:700">🎯 Target 1</td>
+                              <td>₹{pt1} <span style="color:#6b7280;font-size:10px">(+60%)</span></td>
+                              <td style="color:#9ca3af">{i_t1_lbl}</td>
+                              <td style="color:#26a69a">+₹{int((pt1-e_mid)*lot):,}</td>
+                            </tr>
+                            <tr style="color:#26a69a;border-top:1px solid #1e2130">
+                              <td style="padding:5px 0;font-weight:700">🎯 Target 2</td>
+                              <td>₹{pt2} <span style="color:#6b7280;font-size:10px">(+100%)</span></td>
+                              <td style="color:#9ca3af">{i_t2_lbl}</td>
+                              <td style="color:#26a69a">+₹{int((pt2-e_mid)*lot):,}</td>
+                            </tr>
+                            <tr style="color:#f59e0b;border-top:1px solid #1e2130">
+                              <td style="padding:5px 0;font-weight:700">🏆 Target 3</td>
+                              <td>₹{pt3} <span style="color:#6b7280;font-size:10px">(+150%)</span></td>
+                              <td style="color:#9ca3af">{i_t3_lbl}</td>
+                              <td style="color:#f59e0b">+₹{int((pt3-e_mid)*lot):,}</td>
+                            </tr>
+                          </table>
+                          <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap">
+                            <div style="background:#0e1117;border-radius:6px;padding:6px 14px;font-size:12px">
+                              ⚖️ R:R = <b style="color:#f59e0b">1:{rr}</b>
+                            </div>
+                            <div style="background:#0e1117;border-radius:6px;padding:6px 14px;font-size:12px">
+                              ⏱️ Hold till: <b style="color:#9ca3af">{mh}</b>
+                            </div>
+                            <div style="background:#0e1117;border-radius:6px;padding:6px 14px;font-size:12px">
+                              📦 Lot: <b>{lot} units</b>
+                            </div>
+                          </div>
+                        </div>""", unsafe_allow_html=True)
+
+                    with c2:
+                        # Why this trade
+                        reasons = rec.get("reasons", [])
+                        st.markdown(f"""
+                        <div style="background:#1a1d2e;border-radius:10px;padding:14px;
+                             border:1px solid #374151;height:100%">
+                          <div style="color:#f59e0b;font-weight:700;font-size:13px;margin-bottom:10px">
+                            🧠 ANALYSIS
+                          </div>
+                          {''.join([f'<div style="font-size:12px;padding:3px 0;border-bottom:1px solid #1e2130;color:#d1d5db">{r}</div>' for r in reasons[:10]])}
+                          <div style="color:#6b7280;font-size:11px;margin-top:8px">
+                            VIX: {rec.get('vix_note','—')}
+                          </div>
+                        </div>""", unsafe_allow_html=True)
+
+                    # Exit conditions
+                    exits = rec.get("exits", [])
+                    exit_html = "".join([
+                        f'<div style="font-size:12px;padding:5px 8px;border-left:3px solid '
+                        f'{"#ef5350" if "Exit" in e or "⏰" in e else "#374151"};margin:3px 0;'
+                        f'color:#d1d5db;background:#1a1d2e;border-radius:0 6px 6px 0">{e}</div>'
+                        for e in exits
+                    ])
+                    st.markdown(f"""
+                    <div style="margin:8px 0 4px">
+                      <div style="color:#ef5350;font-weight:700;font-size:13px;margin-bottom:6px">
+                        ❌ EXIT CONDITIONS (follow strictly)
+                      </div>
+                      {exit_html}
+                    </div>""", unsafe_allow_html=True)
+
+                    # OI & PCR snapshot
+                    pcr_d  = rec.get("pcr_data", {})
+                    oid    = rec.get("oi_data",  {})
+                    if pcr_d.get("ce_oi", 0) > 0:
+                        st.markdown(f"""
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0">
+                          <div style="background:#1a1d2e;border-radius:6px;padding:6px 12px;font-size:12px">
+                            📊 PCR: <b style="color:{'#26a69a' if pcr_d['bias']=='bullish' else '#ef5350'}">{pcr_d['pcr']:.2f}</b>
+                            <span style="color:#6b7280"> ({pcr_d['label'][:25]})</span>
+                          </div>
+                          <div style="background:#1a1d2e;border-radius:6px;padding:6px 12px;font-size:12px">
+                            🏋️ Max Pain: <b style="color:#f59e0b">{rec.get('max_pain',0):,}</b>
+                          </div>
+                          <div style="background:#1a1d2e;border-radius:6px;padding:6px 12px;font-size:12px">
+                            🧱 CE Wall: <b style="color:#ef5350">{rec.get('ce_wall',0):,}</b>
+                            &nbsp;|&nbsp; PE Wall: <b style="color:#26a69a">{rec.get('pe_wall',0):,}</b>
+                          </div>
+                        </div>""", unsafe_allow_html=True)
+
+                st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ── TAB 2: Nifty ─────────────────────────────────────────────────────────────

@@ -29,6 +29,7 @@ YF_TO_ZERODHA = {
     "^INDIAVIX": "NSE:INDIA VIX",
     "^BSESN":    "BSE:SENSEX",
     "^CNXIT":    "NSE:NIFTY IT",
+    "^CNXFIN":   "NSE:NIFTY FIN SERVICE",
 }
 
 # ── Instrument tokens for historical candle API ───────────────────────────────
