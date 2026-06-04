@@ -433,15 +433,28 @@ def generate_recommendation(
                 bull += 3
                 reasons_call.append(f"✅ Price below max pain ({max_pain:,}) — gravity pull up")
 
-    # 11. Global cues (±5)
-    if global_score >= 3:
-        bull += 5
-        reasons_call.append(f"✅ Global cues positive (score: {global_score:+d}) — risk-on environment")
-        reasons_put.append(f"❌ Global markets positive — headwind for puts")
-    elif global_score <= -3:
-        bear += 5
-        reasons_put.append(f"✅ Global cues negative (score: {global_score:+d}) — risk-off environment")
-        reasons_call.append(f"❌ Global markets negative — headwind for calls")
+    # 11. Global cues + full macro intelligence (±10 combined)
+    # global_score: -10 to +10 (legacy), macro_score: -20 to +20 (new)
+    macro_score = global_score  # will be overridden if market_intel provided
+    if hasattr(generate_recommendation, "_macro_score"):
+        macro_score = generate_recommendation._macro_score
+
+    if global_score >= 4:
+        bull += 7
+        reasons_call.append(f"✅ Global cues strongly positive (score: {global_score:+d}) — risk-on environment")
+        reasons_put.append(f"❌ Global markets strongly positive — headwind for puts")
+    elif global_score >= 2:
+        bull += 4
+        reasons_call.append(f"✅ Global cues positive (score: {global_score:+d})")
+        reasons_put.append(f"❌ Global markets positive — mild headwind for puts")
+    elif global_score <= -4:
+        bear += 7
+        reasons_put.append(f"✅ Global cues strongly negative (score: {global_score:+d}) — risk-off")
+        reasons_call.append(f"❌ Global markets strongly negative — headwind for calls")
+    elif global_score <= -2:
+        bear += 4
+        reasons_put.append(f"✅ Global cues negative (score: {global_score:+d})")
+        reasons_call.append(f"❌ Global markets negative — mild headwind for calls")
     else:
         reasons_call.append(f"⚠️ Global cues mixed (score: {global_score:+d})")
         reasons_put.append(f"⚠️ Global cues mixed (score: {global_score:+d})")

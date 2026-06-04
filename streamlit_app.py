@@ -34,6 +34,13 @@ try:
 except Exception:
     _TRADE_ENGINE_OK = False
 
+# Market intelligence engine
+try:
+    import market_intelligence as mi
+    _MI_OK = True
+except Exception:
+    _MI_OK = False
+
 # Upstox (secondary data source, fallback)
 try:
     import config as upstox_config
@@ -2173,26 +2180,26 @@ with tab1:
         st.markdown("---")
         st.markdown("## 🎯 Professional Trade Recommendations")
 
-        # ── Fetch global sentiment score ──────────────────────────────────────
+        # ── Full market intelligence (cached 5 min) ───────────────────────────
+        @st.cache_data(ttl=300)
+        def _get_market_intel(vix_val, nifty_pct_val):
+            if _MI_OK:
+                return mi.get_full_intelligence(vix_india=vix_val, nifty_pct=nifty_pct_val)
+            return {}
+
+        nifty_pct_now = quotes.get("Nifty 50", {}).get("pct", 0)
+        intel = _get_market_intel(vix_i, nifty_pct_now)
+
+        # Legacy global sentiment (kept for fallback)
         global_quotes_tc = {}
         for gname, gticker in GLOBAL.items():
             gq = get_quote(gticker)
             if gq:
                 global_quotes_tc[gname] = gq
-        g_sentiment = compute_global_sentiment(global_quotes_tc)
-        g_score     = g_sentiment.get("score", 0)
-
-        # ── Fetch FII/DII and breadth (cached 10 min) ─────────────────────────
-        @st.cache_data(ttl=600)
-        def _fetch_fii():
-            return te.fetch_fii_dii()
-
-        @st.cache_data(ttl=300)
-        def _fetch_breadth():
-            return te.fetch_market_breadth()
-
-        fii_dii_data = _fetch_fii()
-        breadth_data = _fetch_breadth()
+        g_sentiment  = compute_global_sentiment(global_quotes_tc)
+        g_score      = intel.get("macro_score", g_sentiment.get("score", 0)) // 2  # scale -20→-10
+        fii_dii_data = intel.get("fii_dii",  te.fetch_fii_dii() if not intel else {})
+        breadth_data = intel.get("breadth",  te.fetch_market_breadth() if not intel else {})
 
         # ── Market Context Banner ─────────────────────────────────────────────
         st.markdown("### 🌐 Market Context")
@@ -2260,6 +2267,141 @@ with tab1:
             <div style="font-size:16px;font-weight:800;color:{tc}">{'🟢 OPEN' if is_open else '🔴 CLOSED'} {mkt_time}</div>
             <div style="font-size:10px;color:#9ca3af">Max hold: {hold_str[:20]}</div>
             </div>""", unsafe_allow_html=True)
+
+        # ── Full Market Intelligence Panel ────────────────────────────────────
+        if intel:
+            macro_score  = intel.get("macro_score", 0)
+            regime       = intel.get("market_regime", "NEUTRAL")
+            risk_level   = intel.get("risk_level", "MEDIUM")
+            summary      = intel.get("summary", "")
+            geo_alert    = intel.get("geo_alert")
+            policy_alert = intel.get("policy_alert")
+            eco_events   = intel.get("eco_events", [])
+            news_intel   = intel.get("news", {})
+            drivers      = intel.get("drivers", [])
+
+            regime_color = {"RISK_ON": "#26a69a", "RISK_OFF": "#ef5350", "NEUTRAL": "#f59e0b"}.get(regime, "#f59e0b")
+            risk_color   = {"LOW": "#26a69a", "MEDIUM": "#f59e0b", "HIGH": "#f97316", "EXTREME": "#ef5350"}.get(risk_level, "#f59e0b")
+
+            # Regime summary bar
+            score_bar_w = int((macro_score + 20) / 40 * 100)
+            st.markdown(f"""
+            <div style="background:#1a1d2e;border-radius:12px;padding:16px 20px;margin:8px 0">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+                <div>
+                  <span style="color:{regime_color};font-size:18px;font-weight:800">{regime.replace('_',' ')} MODE</span>
+                  <span style="background:{risk_color}33;color:{risk_color};font-size:11px;font-weight:700;
+                        padding:2px 8px;border-radius:10px;margin-left:10px;border:1px solid {risk_color}">
+                    {risk_level} RISK
+                  </span>
+                </div>
+                <div style="color:#9ca3af;font-size:12px">Macro Score: <b style="color:{regime_color}">{macro_score:+d}/20</b></div>
+              </div>
+              <div style="background:#0e1117;border-radius:6px;height:6px;margin-bottom:10px">
+                <div style="background:{regime_color};width:{score_bar_w}%;height:100%;border-radius:6px"></div>
+              </div>
+              <div style="color:#d1d5db;font-size:13px">📋 {summary}</div>
+            </div>""", unsafe_allow_html=True)
+
+            # Alerts
+            if geo_alert:
+                st.markdown(f'<div style="background:#2a0d0d;border:1px solid #ef5350;border-radius:8px;padding:10px 16px;margin:4px 0;font-size:13px;color:#ef5350">{geo_alert}</div>', unsafe_allow_html=True)
+            if policy_alert:
+                st.markdown(f'<div style="background:#1a1d0d;border:1px solid #f59e0b;border-radius:8px;padding:10px 16px;margin:4px 0;font-size:13px;color:#f59e0b">{policy_alert}</div>', unsafe_allow_html=True)
+            if eco_events:
+                ev_html = " &nbsp;|&nbsp; ".join(
+                    [f"<b style='color:{'#ef5350' if e['impact']=='High' else '#f59e0b'}'>{e['currency']}</b> {e['event']} @ {e['time']}"
+                     for e in eco_events[:5]])
+                st.markdown(f'<div style="background:#0d1a2e;border:1px solid #3b82f6;border-radius:8px;padding:10px 16px;margin:4px 0;font-size:12px;color:#d1d5db">📅 <b style="color:#3b82f6">TODAY\'S EVENTS:</b> {ev_html}</div>', unsafe_allow_html=True)
+
+            # Key market drivers (collapsible)
+            with st.expander("📊 Full Market Intelligence — Global Indices, Macro, News, Sectors", expanded=False):
+                d1, d2 = st.columns(2)
+                with d1:
+                    # Driver table
+                    st.markdown("**🌐 Key Market Drivers**")
+                    drv_html = ""
+                    for d in drivers:
+                        bc = "#26a69a" if d["bull"] is True else ("#ef5350" if d["bull"] is False else "#6b7280")
+                        drv_html += (f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
+                                     f'border-bottom:1px solid #1e2130;font-size:12px">'
+                                     f'<span style="color:#9ca3af">{d["factor"]}</span>'
+                                     f'<span style="color:{bc};font-weight:600">{d["signal"]}</span>'
+                                     f'</div>')
+                    st.markdown(f'<div style="background:#1a1d2e;border-radius:8px;padding:12px">{drv_html}</div>',
+                                unsafe_allow_html=True)
+
+                    # News intelligence
+                    st.markdown("**📰 News Intelligence**")
+                    if news_intel.get("top_bull"):
+                        for h in news_intel["top_bull"][:2]:
+                            st.markdown(f'<div style="font-size:11px;color:#26a69a;padding:2px 0">🟢 {h[:90]}</div>', unsafe_allow_html=True)
+                    if news_intel.get("top_bear"):
+                        for h in news_intel["top_bear"][:2]:
+                            st.markdown(f'<div style="font-size:11px;color:#ef5350;padding:2px 0">🔴 {h[:90]}</div>', unsafe_allow_html=True)
+                    if news_intel.get("earnings_headlines"):
+                        for h in news_intel["earnings_headlines"][:2]:
+                            st.markdown(f'<div style="font-size:11px;color:#f59e0b;padding:2px 0">📊 {h[:90]}</div>', unsafe_allow_html=True)
+
+                with d2:
+                    # Global indices table
+                    st.markdown("**🗺️ Global Indices**")
+                    gidx = intel.get("global_indices", {})
+                    gi_html = ""
+                    for gname, gq in gidx.items():
+                        pct  = gq.get("pct", 0)
+                        ltp  = gq.get("ltp", 0)
+                        clr  = "#26a69a" if pct > 0 else "#ef5350"
+                        gi_html += (f'<div style="display:flex;justify-content:space-between;padding:4px 0;'
+                                    f'border-bottom:1px solid #1e2130;font-size:12px">'
+                                    f'<span style="color:#9ca3af">{gname}</span>'
+                                    f'<span style="color:{clr};font-weight:600">{pct:+.2f}%</span>'
+                                    f'</div>')
+                    st.markdown(f'<div style="background:#1a1d2e;border-radius:8px;padding:12px">{gi_html}</div>',
+                                unsafe_allow_html=True)
+
+                    # Sector performance
+                    st.markdown("**🏭 NSE Sectors (Today)**")
+                    sec = intel.get("sectors", {})
+                    sec_html = ""
+                    for sname, sq in list(sec.items())[:8]:
+                        pct = sq.get("pct", 0)
+                        clr = "#26a69a" if pct > 0 else "#ef5350"
+                        bar_w = min(abs(pct) * 20, 100)
+                        sec_html += (f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                                     f'padding:4px 0;border-bottom:1px solid #1e2130;font-size:12px">'
+                                     f'<span style="color:#9ca3af;min-width:90px">{sname}</span>'
+                                     f'<div style="flex:1;margin:0 8px;background:#1e2130;border-radius:3px;height:4px">'
+                                     f'<div style="background:{clr};width:{bar_w}%;height:100%;border-radius:3px;'
+                                     f'{"margin-left:auto" if pct < 0 else ""}"></div></div>'
+                                     f'<span style="color:{clr};font-weight:700;min-width:50px;text-align:right">{pct:+.2f}%</span>'
+                                     f'</div>')
+                    st.markdown(f'<div style="background:#1a1d2e;border-radius:8px;padding:12px">{sec_html}</div>',
+                                unsafe_allow_html=True)
+
+                # Macro data row
+                st.markdown("**💱 Macro Snapshot**")
+                mac = intel.get("macro_data", {})
+                mac_items = [
+                    ("USD/INR",      mac.get("USD/INR",{})),
+                    ("Crude Oil",    mac.get("Crude Oil",{})),
+                    ("Gold",         mac.get("Gold",{})),
+                    ("US 10Y",       mac.get("US 10Y Yield",{})),
+                    ("US VIX",       mac.get("US VIX",{})),
+                    ("Dollar Index", mac.get("Dollar Index",{})),
+                ]
+                mac_cols = st.columns(6)
+                for col, (mname, mq) in zip(mac_cols, mac_items):
+                    pct = mq.get("pct", 0)
+                    ltp = mq.get("ltp", 0)
+                    clr = "#26a69a" if pct < 0 and mname in ("USD/INR","Crude Oil","US VIX","US 10Y","Dollar Index") else (
+                          "#26a69a" if pct > 0 else "#ef5350")
+                    with col:
+                        st.markdown(f"""<div style="background:#1a1d2e;border-radius:6px;padding:8px;text-align:center">
+                        <div style="color:#6b7280;font-size:10px">{mname}</div>
+                        <div style="color:{clr};font-size:14px;font-weight:700">{ltp:.2f}</div>
+                        <div style="color:{clr};font-size:11px">{pct:+.2f}%</div>
+                        </div>""", unsafe_allow_html=True)
 
         st.markdown("---")
 
