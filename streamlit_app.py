@@ -154,6 +154,10 @@ div[data-testid="stMetricValue"] { font-size: 1.5rem !important; font-weight: 70
 .alert-box { background:#1a1d2e; border:2px solid #3b82f6; border-radius:10px;
     padding:14px 18px; margin:8px 0; }
 .alert-triggered { border-color:#ef5350 !important; background:#2a0d0d !important; }
+/* Prevent white/blank flash during Streamlit rerun */
+[data-stale] { opacity: 0.85; transition: opacity 0.15s ease-in-out; }
+.stApp > header { display: none; }
+html { background-color: #0e1117 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1607,9 +1611,14 @@ with col_h4:
     if st.button("🔄 Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-# Auto-refresh meta tag during market hours (browser-level, non-blocking)
-if market_open:
-    st.markdown('<meta http-equiv="refresh" content="30">', unsafe_allow_html=True)
+# Smooth auto-refresh — uses Streamlit WebSocket rerun (no blank flash)
+# Market hours: every 30s | After hours: every 5 min (keeps data current)
+try:
+    from streamlit_autorefresh import st_autorefresh
+    _refresh_interval = 30_000 if market_open else 300_000   # ms
+    st_autorefresh(interval=_refresh_interval, key="live_refresh", debounce=False)
+except ImportError:
+    pass   # graceful fallback if package not yet installed
 
 st.divider()
 
