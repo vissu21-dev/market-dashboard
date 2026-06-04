@@ -9,6 +9,12 @@ API_SECRET     = os.getenv("UPSTOX_API_SECRET", "")
 REDIRECT_URI   = os.getenv("UPSTOX_REDIRECT_URI", "http://localhost:8501")
 ACCESS_TOKEN   = os.getenv("UPSTOX_ACCESS_TOKEN", "")
 
+# ── Zerodha credentials ────────────────────────────────────────────────────────
+# Get API key from: https://developers.zerodha.com → My Apps → Create App
+# Access token must be refreshed daily via OAuth login
+ZERODHA_API_KEY      = os.getenv("ZERODHA_API_KEY", "")
+ZERODHA_ACCESS_TOKEN = os.getenv("ZERODHA_ACCESS_TOKEN", "")
+
 # ── Upstox API base ────────────────────────────────────────────────────────────
 BASE_URL = "https://api.upstox.com/v2"
 

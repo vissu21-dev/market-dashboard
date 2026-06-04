@@ -15,10 +15,19 @@ import os
 import csv
 import sys
 
-# Upstox data fetcher (same folder)
+# Local modules (same folder)
 _dashboard_dir = os.path.dirname(os.path.abspath(__file__))
 if _dashboard_dir not in sys.path:
     sys.path.insert(0, _dashboard_dir)
+
+# Zerodha (primary data source)
+try:
+    import zerodha_fetcher as zd
+    _ZERODHA_AVAILABLE = zd.is_available()
+except Exception:
+    _ZERODHA_AVAILABLE = False
+
+# Upstox (secondary data source, fallback)
 try:
     import config as upstox_config
     import data_fetcher as upstox_df
@@ -430,14 +439,22 @@ def get_quote(ticker: str) -> dict:
 
 @st.cache_data(ttl=60)
 def get_candles(ticker: str, period: str = "5d", interval: str = "15m") -> pd.DataFrame:
-    """Upstox-first candles; falls back to Yahoo Finance."""
+    """Zerodha-first candles; Upstox second; Yahoo Finance fallback."""
+    today     = datetime.now(IST).date()
+    days      = _PERIOD_TO_DAYS.get(period, 5)
+    from_date = str(today - timedelta(days=days))
+    to_date   = str(today)
+
+    # 1. Zerodha (most accurate)
+    if _ZERODHA_AVAILABLE:
+        df = zd.get_candles(ticker, interval, from_date, to_date)
+        if not df.empty:
+            return df
+
+    # 2. Upstox fallback
     if _UPSTOX_AVAILABLE and ticker in _YF_TO_UPSTOX:
         upstox_key = _YF_TO_UPSTOX[ticker]
         upstox_int = _YF_INT_TO_UPSTOX.get(interval, "15minute")
-        days       = _PERIOD_TO_DAYS.get(period, 5)
-        today      = datetime.now(IST).date()
-        from_date  = str(today - timedelta(days=days))
-        to_date    = str(today)
         df = _upstox_candles(upstox_key, upstox_int, from_date, to_date)
         if not df.empty:
             return df
@@ -597,8 +614,12 @@ def compute_global_sentiment(global_quotes: dict) -> dict:
 
 @st.cache_data(ttl=300)
 def screen_nifty50() -> pd.DataFrame:
-    """Score all Nifty 50 stocks using RSI, EMA trend, MACD, volume, 52W position."""
+    """Score all Nifty 50 stocks using RSI, EMA trend, MACD, volume, 52W position.
+    LTP & change: Zerodha real-time (if available), else yfinance.
+    Historical indicators (RSI, MACD, EMA): yfinance batch download (efficient).
+    """
     tickers = list(NIFTY50_STOCKS.values())
+    # Fetch 6-month daily history for indicator calculations (yfinance batch)
     try:
         raw = yf.download(
             " ".join(tickers), period="6mo", interval="1d",
@@ -607,16 +628,28 @@ def screen_nifty50() -> pd.DataFrame:
     except Exception:
         return pd.DataFrame()
 
+    # Zerodha real-time quotes for all 50 stocks (1 batch API call)
+    zd_quotes = zd.get_stock_quotes() if _ZERODHA_AVAILABLE else {}
+
     results = []
     for name, ticker in NIFTY50_STOCKS.items():
         try:
             df = raw[ticker].dropna() if ticker in raw.columns.get_level_values(0) else pd.DataFrame()
             if df.empty or len(df) < 30:
                 continue
-            close  = df["Close"]
-            ltp    = float(close.iloc[-1])
-            prev   = float(close.iloc[-2])
-            pct    = (ltp - prev) / prev * 100
+            close = df["Close"]
+
+            # Use Zerodha real-time LTP & change if available
+            if name in zd_quotes and zd_quotes[name]["ltp"] > 0:
+                zq  = zd_quotes[name]
+                ltp = zq["ltp"]
+                pct = zq["pct"]
+                vol_today = zq["volume"]
+            else:
+                ltp = float(close.iloc[-1])
+                prev = float(close.iloc[-2])
+                pct = (ltp - prev) / prev * 100
+                vol_today = None
             high52 = float(close.rolling(252, min_periods=30).max().iloc[-1])
             low52  = float(close.rolling(252, min_periods=30).min().iloc[-1])
             ema20  = float(close.ewm(span=20, adjust=False).mean().iloc[-1])
@@ -631,11 +664,11 @@ def screen_nifty50() -> pd.DataFrame:
             macd_line = close.ewm(span=12).mean() - close.ewm(span=26).mean()
             macd_sig  = macd_line.ewm(span=9).mean()
             macd_bull = float(macd_line.iloc[-1]) > float(macd_sig.iloc[-1])
-            # Volume
+            # Volume ratio (Zerodha live vol preferred over yfinance historical)
             vol_ratio = 1.0
             if "Volume" in df.columns:
-                vol = float(df["Volume"].iloc[-1])
                 avg = float(df["Volume"].tail(20).mean())
+                vol = float(vol_today) if vol_today else float(df["Volume"].iloc[-1])
                 vol_ratio = vol / avg if avg > 0 else 1.0
             # Score (-10 to +10)
             score = 0
@@ -1505,30 +1538,33 @@ if market_open:
 
 st.divider()
 
-# ── Fetch all Indian index quotes (Upstox preferred, Yahoo fallback) ──────────
-_upstox_quotes = get_upstox_index_quotes()
-_is_live        = bool(_upstox_quotes)          # True = Upstox real-time, False = yfinance delayed
+# ── Fetch all Indian index quotes (Zerodha → Upstox → Yahoo fallback) ────────
+_fetch_time = datetime.now(IST).strftime("%H:%M:%S")
 _ticker_to_name = {v: k for k, v in TICKERS.items()}
 quotes = {}
-for name, ticker in TICKERS.items():
-    uq = _upstox_quotes.get(ticker)
-    quotes[name] = uq if uq else get_quote(ticker)
+
+if _ZERODHA_AVAILABLE:
+    _zdq = zd.get_index_quotes()           # {'^NSEI': {...}, '^BSESN': {...}, ...}
+    for name, ticker in TICKERS.items():
+        quotes[name] = _zdq.get(ticker) or get_quote(ticker)
+    _data_source = "🟢 Live data · Zerodha"
+else:
+    _upstox_quotes = get_upstox_index_quotes()
+    for name, ticker in TICKERS.items():
+        uq = _upstox_quotes.get(ticker)
+        quotes[name] = uq if uq else get_quote(ticker)
+    if _upstox_quotes:
+        _data_source = "🟡 Live data · Upstox"
+    else:
+        _data_source = "🔴 Delayed (15 min) · Yahoo Finance — add Zerodha credentials for live data"
 
 # ── Data source badge ─────────────────────────────────────────────────────────
-_fetch_time = datetime.now(IST).strftime("%H:%M:%S")
-if _is_live:
-    st.markdown(
-        f'<div style="font-size:11px;color:#26a69a;margin-bottom:4px">'
-        f'🟢 Live data · Upstox · as of {_fetch_time} IST</div>',
-        unsafe_allow_html=True,
-    )
-else:
-    st.markdown(
-        f'<div style="font-size:11px;color:#f59e0b;margin-bottom:4px">'
-        f'🟡 Delayed data (15 min) · Yahoo Finance · as of {_fetch_time} IST &nbsp;'
-        f'— Upstox token missing or expired</div>',
-        unsafe_allow_html=True,
-    )
+_badge_color = "#26a69a" if _ZERODHA_AVAILABLE else ("#f59e0b" if _UPSTOX_AVAILABLE else "#ef5350")
+st.markdown(
+    f'<div style="font-size:11px;color:{_badge_color};margin-bottom:4px">'
+    f'{_data_source} · as of {_fetch_time} IST</div>',
+    unsafe_allow_html=True,
+)
 
 # ── Row 1: Index cards ────────────────────────────────────────────────────────
 st.markdown('<div class="section-title">Market Overview</div>', unsafe_allow_html=True)
