@@ -557,25 +557,19 @@ def generate_recommendation(
     entry_low  = max(int(entry_mid * 0.95), 5)
     entry_high = int(entry_mid * 1.05)
 
-    # ── Targets & SL ─────────────────────────────────────────────────────────
-    prem_sl   = max(int(entry_mid * 0.70), 5)   # -30%
-    prem_t1   = int(entry_mid * 1.60)           # +60%
-    prem_t2   = int(entry_mid * 2.00)           # +100%
-    prem_t3   = int(entry_mid * 2.50)           # +150%
-
-    # Index-level SL and targets
+    # ── Index-level SL and targets (based on key technical levels) ───────────
     if direction == "CALL":
-        idx_sl = orb_low   if orb_low  else (piv_s1 if piv_s1 else ltp * 0.995)
-        idx_t1 = piv_r1    if piv_r1   else (orb_high * 1.01 if orb_high else ltp * 1.005)
+        idx_sl = orb_low   if orb_low  else (piv_s1 if piv_s1 else ltp * 0.994)
+        idx_t1 = piv_r1    if piv_r1   else (orb_high * 1.005 if orb_high else ltp * 1.005)
         idx_t2 = piv_r2    if piv_r2   else ltp * 1.010
         idx_t3 = piv_r3    if piv_r3   else ltp * 1.018
-        idx_sl_label = f"{idx_sl:,.0f} (ORB Low)" if orb_low else f"{idx_sl:,.0f} (S1)"
+        idx_sl_label = f"{idx_sl:,.0f} (ORB Low)" if orb_low  else f"{idx_sl:,.0f} (S1)"
         idx_t1_label = f"{idx_t1:,.0f} (Pivot R1)"
         idx_t2_label = f"{idx_t2:,.0f} (Pivot R2)"
         idx_t3_label = f"{idx_t3:,.0f} (Pivot R3)"
     else:
-        idx_sl = orb_high  if orb_high else (piv_r1 if piv_r1 else ltp * 1.005)
-        idx_t1 = piv_s1    if piv_s1   else (orb_low  * 0.99 if orb_low  else ltp * 0.995)
+        idx_sl = orb_high  if orb_high else (piv_r1 if piv_r1 else ltp * 1.006)
+        idx_t1 = piv_s1    if piv_s1   else (orb_low  * 0.995 if orb_low  else ltp * 0.995)
         idx_t2 = piv_s2    if piv_s2   else ltp * 0.990
         idx_t3 = piv_s3    if piv_s3   else ltp * 0.982
         idx_sl_label = f"{idx_sl:,.0f} (ORB High)" if orb_high else f"{idx_sl:,.0f} (R1)"
@@ -583,18 +577,77 @@ def generate_recommendation(
         idx_t2_label = f"{idx_t2:,.0f} (Pivot S2)"
         idx_t3_label = f"{idx_t3:,.0f} (Pivot S3)"
 
+    # ── Option premium targets derived from index levels using delta ──────────
+    #
+    # Method: option premium change ≈ delta × Δindex + 0.5 × gamma × Δindex²
+    #   - delta for ATM ≈ 0.50; OTM1 ≈ 0.35
+    #   - gamma ≈ delta / (spot × sigma × sqrt(T))
+    #   - theta (time decay) subtracted for realistic estimates
+    #
+    # This ensures premium targets are CONSISTENT with index targets
+    # rather than arbitrary % multiples.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    sigma  = max(vix_f, 8) / 100
+    T_days = max(5, 0.5)               # approximate days to expiry
+    T_yr   = T_days / 252
+
+    # Delta: ATM ≈ 0.50, OTM1 ≈ 0.35
+    delta  = 0.50 if status == "HIGH_CONVICTION" else 0.35
+    # Gamma: approx N(d1) / (S × sigma × sqrt(T))
+    gamma  = delta / max(ltp * sigma * np.sqrt(T_yr), 1)
+    # Theta per hour (approximate): premium decays ~entry_mid/T_days/6.5 per hr
+    theta_per_15m = max(entry_mid / max(T_days * 26, 1), 0)   # 26 × 15-min bars per day
+
+    def _prem_at_idx(idx_target: float, hrs_held: float = 1.0) -> int:
+        """Estimate option premium when index reaches idx_target after hrs_held hours."""
+        if idx_target == 0 or entry_mid == 0:
+            return 0
+        sign_mult = 1 if direction == "CALL" else -1
+        delta_move = sign_mult * (idx_target - ltp)
+        # First-order (delta) + second-order (gamma) adjustment
+        prem_change = delta * delta_move + 0.5 * gamma * delta_move ** 2
+        # Subtract theta decay for the holding period
+        decay = theta_per_15m * hrs_held * 4     # 4 bars per hour
+        estimated = entry_mid + prem_change - decay
+        return max(int(estimated), 5)
+
+    # Time estimates (rough): T1 in ~1h, T2 in ~2h, T3 in ~3h
+    prem_sl_idx  = _prem_at_idx(idx_sl, hrs_held=0.5)    # SL hit quickly
+    prem_t1      = _prem_at_idx(idx_t1, hrs_held=1.0)
+    prem_t2      = _prem_at_idx(idx_t2, hrs_held=2.0)
+    prem_t3      = _prem_at_idx(idx_t3, hrs_held=3.0)
+
+    # SL: worst case — index hits idx_sl; premium likely to fall ~30% at minimum
+    prem_sl = min(prem_sl_idx, max(int(entry_mid * 0.70), 5))
+
+    # Sanity: targets should be increasing, SL should be below entry
+    prem_t1 = max(prem_t1, entry_mid + 20)
+    prem_t2 = max(prem_t2, prem_t1 + 10)
+    prem_t3 = max(prem_t3, prem_t2 + 10)
+    prem_sl = min(prem_sl, entry_mid - 10)
+
+    # ── Calculate pct for display ─────────────────────────────────────────────
+    def _pct(target):
+        return round((target - entry_mid) / max(entry_mid, 1) * 100)
+
+    prem_sl_pct = _pct(prem_sl)     # negative
+    prem_t1_pct = _pct(prem_t1)     # positive
+    prem_t2_pct = _pct(prem_t2)     # positive
+    prem_t3_pct = _pct(prem_t3)     # positive
+
     # R:R (using T1)
     risk   = max(entry_mid - prem_sl, 1)
-    reward = max(prem_t1 - entry_mid, 1)
+    reward = max(prem_t1  - entry_mid, 1)
     rr     = round(reward / risk, 1)
 
     # ── Exit conditions ───────────────────────────────────────────────────────
     exits = []
-    exits.append(f"Book 50% quantity at T1 (₹{prem_t1}) — move SL to breakeven")
-    exits.append(f"Book 30% more at T2 (₹{prem_t2}) — trail remaining with 15-pt SL")
-    exits.append(f"Exit remaining at T3 (₹{prem_t3}) or 3:00 PM — whichever comes first")
-    exits.append(f"Exit ALL if {name} {('falls' if direction=='CALL' else 'rises')} below/above {idx_sl:,.0f} (index SL)")
-    exits.append(f"Exit if premium drops below ₹{prem_sl} (−30%)")
+    exits.append(f"Book 50% quantity at T1 (₹{prem_t1}, {prem_t1_pct:+d}%) — when index hits {idx_t1:,.0f} — move SL to breakeven")
+    exits.append(f"Book 30% more at T2 (₹{prem_t2}, {prem_t2_pct:+d}%) — when index hits {idx_t2:,.0f} — trail remaining")
+    exits.append(f"Exit remaining at T3 (₹{prem_t3}, {prem_t3_pct:+d}%) or 3:00 PM — whichever comes first")
+    exits.append(f"Exit ALL if {name} {'falls' if direction=='CALL' else 'rises'} to {idx_sl:,.0f} (index SL) — premium near ₹{prem_sl}")
+    exits.append(f"Exit if premium drops below ₹{prem_sl} ({prem_sl_pct:+d}% from entry)")
     if orb_high and orb_low:
         exits.append(f"Exit if price re-enters ORB range — breakout failure signal")
     exits.append(f"Exit if price {'crosses' if direction=='CALL' else 'crosses'} VWAP ({vwap:,.0f}) against your direction")
@@ -630,10 +683,14 @@ def generate_recommendation(
         "entry_prem_high":entry_high,
 
         # Premium targets
-        "prem_sl":   prem_sl,
-        "prem_t1":   prem_t1,
-        "prem_t2":   prem_t2,
-        "prem_t3":   prem_t3,
+        "prem_sl":     prem_sl,
+        "prem_sl_pct": prem_sl_pct,
+        "prem_t1":     prem_t1,
+        "prem_t1_pct": prem_t1_pct,
+        "prem_t2":     prem_t2,
+        "prem_t2_pct": prem_t2_pct,
+        "prem_t3":     prem_t3,
+        "prem_t3_pct": prem_t3_pct,
 
         # Index targets
         "idx_sl":        idx_sl,

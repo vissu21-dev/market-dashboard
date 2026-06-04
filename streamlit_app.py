@@ -2373,9 +2373,13 @@ with tab1:
                         e_hi     = rec.get("entry_prem_high", 0)
                         e_mid    = rec.get("entry_prem_mid",  0)
                         psl      = rec.get("prem_sl", 0)
+                        psl_pct  = rec.get("prem_sl_pct", -30)
                         pt1      = rec.get("prem_t1", 0)
+                        pt1_pct  = rec.get("prem_t1_pct", 60)
                         pt2      = rec.get("prem_t2", 0)
+                        pt2_pct  = rec.get("prem_t2_pct", 100)
                         pt3      = rec.get("prem_t3", 0)
+                        pt3_pct  = rec.get("prem_t3_pct", 150)
                         i_sl_lbl = rec.get("idx_sl_label", "")
                         i_t1_lbl = rec.get("idx_t1_label", "")
                         i_t2_lbl = rec.get("idx_t2_label", "")
@@ -2416,25 +2420,25 @@ with tab1:
                             </tr>
                             <tr style="color:#ef5350;border-top:1px solid #374151">
                               <td style="padding:5px 0;font-weight:700">🛑 Stop Loss</td>
-                              <td>₹{psl} <span style="color:#6b7280;font-size:10px">(−30%)</span></td>
+                              <td>₹{psl} <span style="color:#6b7280;font-size:10px">({psl_pct:+d}%)</span></td>
                               <td style="color:#9ca3af">{i_sl_lbl}</td>
                               <td style="color:#ef5350">−₹{int((e_mid-psl)*lot):,}</td>
                             </tr>
                             <tr style="color:#26a69a;border-top:1px solid #1e2130">
                               <td style="padding:5px 0;font-weight:700">🎯 Target 1</td>
-                              <td>₹{pt1} <span style="color:#6b7280;font-size:10px">(+60%)</span></td>
+                              <td>₹{pt1} <span style="color:#6b7280;font-size:10px">({pt1_pct:+d}%)</span></td>
                               <td style="color:#9ca3af">{i_t1_lbl}</td>
                               <td style="color:#26a69a">+₹{int((pt1-e_mid)*lot):,}</td>
                             </tr>
                             <tr style="color:#26a69a;border-top:1px solid #1e2130">
                               <td style="padding:5px 0;font-weight:700">🎯 Target 2</td>
-                              <td>₹{pt2} <span style="color:#6b7280;font-size:10px">(+100%)</span></td>
+                              <td>₹{pt2} <span style="color:#6b7280;font-size:10px">({pt2_pct:+d}%)</span></td>
                               <td style="color:#9ca3af">{i_t2_lbl}</td>
                               <td style="color:#26a69a">+₹{int((pt2-e_mid)*lot):,}</td>
                             </tr>
                             <tr style="color:#f59e0b;border-top:1px solid #1e2130">
                               <td style="padding:5px 0;font-weight:700">🏆 Target 3</td>
-                              <td>₹{pt3} <span style="color:#6b7280;font-size:10px">(+150%)</span></td>
+                              <td>₹{pt3} <span style="color:#6b7280;font-size:10px">({pt3_pct:+d}%)</span></td>
                               <td style="color:#9ca3af">{i_t3_lbl}</td>
                               <td style="color:#f59e0b">+₹{int((pt3-e_mid)*lot):,}</td>
                             </tr>
