@@ -41,6 +41,13 @@ try:
 except Exception:
     _MI_OK = False
 
+# AI Expert chatbot
+try:
+    import ai_expert
+    _AI_OK = True
+except Exception:
+    _AI_OK = False
+
 # Upstox (secondary data source, fallback)
 try:
     import config as upstox_config
@@ -1655,8 +1662,9 @@ for col, (name, q) in zip(idx_cols, quotes.items()):
 st.divider()
 
 # ── Charts + Signals ──────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
     "🎯 Trade Command",
+    "🤖 AI Expert",
     "🌅 Morning Checklist",
     "🕯️ Nifty 50",
     "🏦 Bank Nifty",
@@ -1671,7 +1679,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
 # ══════════════════════════════════════════════════════════════════════════════
 #  TAB 0 — Morning Checklist
 # ══════════════════════════════════════════════════════════════════════════════
-with tab2:
+with tab3:
     st.markdown("## 🌅 Morning Market Checklist")
     st.caption("Run this every morning before 9:15 AM to prepare your trading plan for the day.")
 
@@ -2693,8 +2701,125 @@ with tab1:
                 st.markdown("<br>", unsafe_allow_html=True)
 
 
-# ── TAB 2: Nifty ─────────────────────────────────────────────────────────────
-with tab3:
+# ── TAB 2: AI Expert ─────────────────────────────────────────────────────────
+with tab2:
+    st.markdown("## 🤖 AI Options Trading Expert")
+    st.caption("Powered by Claude AI · Analyzes live market data before every response · Acts as your personal derivatives strategist")
+
+    if not _AI_OK or not ai_expert.is_available():
+        st.warning("⚠️ **AI Expert not configured.** Add your `ANTHROPIC_API_KEY` to Streamlit secrets to enable this feature.")
+        st.code("""
+# In Streamlit Cloud → Settings → Secrets, add:
+ANTHROPIC_API_KEY = "sk-ant-..."
+
+# Get your key at: https://console.anthropic.com
+        """)
+    else:
+        # ── Build live market context ─────────────────────────────────────────
+        _ai_exp_info  = next_expiry_info()
+        _ai_n_chain   = get_live_chain("NSE_INDEX|Nifty 50",
+                                       _ai_exp_info["nifty"]["date_str"])
+        _ai_b_chain   = get_live_chain("NSE_INDEX|Nifty Bank",
+                                       _ai_exp_info["banknifty"]["date_str"])
+        _ai_n_df      = add_indicators(get_candles("^NSEI",    "5d", "15m"))
+        _ai_b_df      = add_indicators(get_candles("^NSEBANK", "5d", "15m"))
+        _ai_n_orb     = get_orb("^NSEI")
+        _ai_b_orb     = get_orb("^NSEBANK")
+        _ai_n_pivots  = {k: float(v) for k, v in get_pivots("^NSEI").items()}    if get_pivots("^NSEI")    else {}
+        _ai_b_pivots  = {k: float(v) for k, v in get_pivots("^NSEBANK").items()} if get_pivots("^NSEBANK") else {}
+        _ai_g_quotes  = {n: get_quote(t) for n, t in GLOBAL.items()}
+        _ai_fii       = intel.get("fii_dii",  {}) if "intel" in dir() else {}
+        _ai_breadth   = intel.get("breadth",  {}) if "intel" in dir() else {}
+        _ai_intel     = intel if "intel" in dir() else {}
+
+        _market_ctx = ai_expert.build_market_context(
+            quotes       = quotes,
+            nifty_df     = _ai_n_df,
+            bank_df      = _ai_b_df,
+            vix          = vix_i if "vix_i" in dir() else 15.0,
+            nifty_orb    = _ai_n_orb,
+            bank_orb     = _ai_b_orb,
+            nifty_pivots = _ai_n_pivots,
+            bank_pivots  = _ai_b_pivots,
+            nifty_chain  = _ai_n_chain,
+            bank_chain   = _ai_b_chain,
+            global_quotes= _ai_g_quotes,
+            fii_dii      = _ai_fii,
+            breadth      = _ai_breadth,
+            intel        = _ai_intel,
+            exp_info     = _ai_exp_info,
+        )
+
+        # ── Quick question buttons ────────────────────────────────────────────
+        st.markdown("**⚡ Quick Analysis**")
+        q_cols = st.columns(5)
+        for i, (label, _) in enumerate(ai_expert.QUICK_QUESTIONS[:5]):
+            with q_cols[i]:
+                if st.button(label, key=f"qq_{i}", use_container_width=True):
+                    st.session_state.setdefault("ai_messages", [])
+                    st.session_state["ai_pending"] = ai_expert.QUICK_QUESTIONS[i][1]
+
+        q_cols2 = st.columns(5)
+        for i, (label, _) in enumerate(ai_expert.QUICK_QUESTIONS[5:10]):
+            with q_cols2[i]:
+                if st.button(label, key=f"qq_{i+5}", use_container_width=True):
+                    st.session_state.setdefault("ai_messages", [])
+                    st.session_state["ai_pending"] = ai_expert.QUICK_QUESTIONS[i+5][1]
+
+        st.markdown("---")
+
+        # ── Chat history ──────────────────────────────────────────────────────
+        if "ai_messages" not in st.session_state:
+            st.session_state["ai_messages"] = []
+
+        # Display message history
+        for msg in st.session_state["ai_messages"]:
+            with st.chat_message(msg["role"],
+                                  avatar="🤖" if msg["role"] == "assistant" else "👤"):
+                st.markdown(msg["content"])
+
+        # ── Handle pending quick-question ─────────────────────────────────────
+        pending = st.session_state.pop("ai_pending", None)
+
+        # ── Chat input ────────────────────────────────────────────────────────
+        user_input = st.chat_input(
+            "Ask about NIFTY/BANKNIFTY options... e.g. 'Should I buy a Call right now?'"
+        ) or pending
+
+        if user_input:
+            # Show user message
+            with st.chat_message("user", avatar="👤"):
+                st.markdown(user_input)
+            st.session_state["ai_messages"].append({"role": "user", "content": user_input})
+
+            # Build API messages (last 10 turns to manage context)
+            api_msgs = [
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state["ai_messages"][-10:]
+            ]
+
+            # Stream AI response
+            with st.chat_message("assistant", avatar="🤖"):
+                response = st.write_stream(
+                    ai_expert.stream_response(api_msgs, _market_ctx)
+                )
+
+            st.session_state["ai_messages"].append(
+                {"role": "assistant", "content": response}
+            )
+
+        # ── Clear chat button ─────────────────────────────────────────────────
+        if st.session_state.get("ai_messages"):
+            if st.button("🗑️ Clear conversation", key="clear_ai"):
+                st.session_state["ai_messages"] = []
+                st.rerun()
+
+        # ── Market context preview (collapsible) ──────────────────────────────
+        with st.expander("🔍 View market data injected into AI context", expanded=False):
+            st.code(_market_ctx, language="")
+
+# ── TAB 3: Nifty ─────────────────────────────────────────────────────────────
+with tab4:
     tf_row1, tf_row2 = st.columns([1, 5])
     with tf_row1:
         nifty_tf = st.selectbox("Timeframe", ["5m", "15m", "1h"], index=1, key="tf_nifty")
@@ -2754,7 +2879,7 @@ with tab3:
                             f'<span style="font-size:13px">{val:,}</span></div>', unsafe_allow_html=True)
 
 # ── TAB 3: Bank Nifty ────────────────────────────────────────────────────────
-with tab4:
+with tab5:
     tf_row_b1, tf_row_b2 = st.columns([1, 5])
     with tf_row_b1:
         bnf_tf = st.selectbox("Timeframe", ["5m", "15m", "1h"], index=1, key="tf_banknifty")
@@ -2809,7 +2934,7 @@ with tab4:
                             f'<span style="font-size:13px">{val:,}</span></div>', unsafe_allow_html=True)
 
 # ── TAB 4: Global Cues ───────────────────────────────────────────────────────
-with tab5:
+with tab6:
     global_quotes = {name: get_quote(ticker) for name, ticker in GLOBAL.items()}
     gs = compute_global_sentiment(global_quotes)
 
@@ -2917,7 +3042,7 @@ with tab5:
     st.caption("⚠️ News sentiment uses keyword analysis — not financial advice. Verify before acting.")
 
 # ── TAB 5: Trade Plan ────────────────────────────────────────────────────────
-with tab6:
+with tab7:
     st.markdown('<div class="section-title">Today\'s Trade Plan</div>', unsafe_allow_html=True)
     nq  = quotes.get("Nifty 50", {})
     bnq = quotes.get("Bank Nifty", {})
@@ -3029,7 +3154,7 @@ def load_alerts() -> pd.DataFrame:
 def save_alerts(df: pd.DataFrame):
     df.to_csv(ALERTS_FILE, index=False)
 
-with tab7:
+with tab8:
     st.markdown("## 🔔 Price Alerts")
     st.caption("Set price levels — dashboard highlights when they are triggered on Refresh.")
 
@@ -3175,7 +3300,7 @@ def journal_stats(df: pd.DataFrame) -> dict:
             "avg_win": avg_win, "avg_loss": avg_loss,
             "best": best, "worst": worst, "expectancy": expectancy}
 
-with tab8:
+with tab9:
     st.markdown("## 📓 Trade Journal")
     st.caption("Log every trade — paper or real. Track your performance and improve over time.")
 
@@ -3424,7 +3549,7 @@ with tab8:
 # ══════════════════════════════════════════════════════════════════════════════
 #  TAB 9 — Stock Picks
 # ══════════════════════════════════════════════════════════════════════════════
-with tab9:
+with tab10:
     st.markdown("## 📊 Nifty 50 Stock Screener")
     st.caption("Scores all 50 Nifty stocks using EMA trend, RSI, MACD, and volume. Updates every 5 minutes. Use for swing/positional ideas — not intraday.")
 
@@ -3560,7 +3685,7 @@ with tab9:
 # ══════════════════════════════════════════════════════════════════════════════
 #  TAB 10 — Mutual Funds
 # ══════════════════════════════════════════════════════════════════════════════
-with tab10:
+with tab11:
     st.markdown("## 💰 Mutual Fund Recommender")
     st.caption("Answer 3 questions — the dashboard will suggest the best mutual funds for your profile.")
 
