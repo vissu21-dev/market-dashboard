@@ -87,12 +87,11 @@ header[data-testid="stHeader"]            { display: none !important; }
 .block-container { padding-top: 1rem !important; }
 """
 
-st.markdown(f"""
+st.markdown("""
 <style>
-body, .stApp {{ background-color: #0e1117; color: #e0e0e0; }}
-footer {{ visibility: hidden !important; }}
-#MainMenu {{ visibility: hidden !important; }}
-{_public_hide_css}
+body, .stApp { background-color: #0e1117; color: #e0e0e0; }
+footer { visibility: hidden !important; }
+#MainMenu { visibility: hidden !important; }
 .metric-card {
     background: #1a1d2e; border-radius: 10px; padding: 14px 18px;
     border-left: 4px solid #3b82f6; margin-bottom: 10px;
@@ -150,6 +149,18 @@ div[data-testid="stMetricValue"] { font-size: 1.5rem !important; font-weight: 70
 .alert-triggered { border-color:#ef5350 !important; background:#2a0d0d !important; }
 </style>
 """, unsafe_allow_html=True)
+
+# ── Conditionally hide toolbar for public users (owner sees full UI) ──────────
+if not _IS_OWNER:
+    st.markdown("""
+    <style>
+    header[data-testid="stHeader"]            { display: none !important; }
+    [data-testid="stToolbar"]                 { display: none !important; }
+    [data-testid="collapsedControl"]          { display: none !important; }
+    [data-testid="stSidebarCollapsedControl"] { display: none !important; }
+    .block-container { padding-top: 1rem !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ── Tickers ───────────────────────────────────────────────────────────────────
 TICKERS = {
