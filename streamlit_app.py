@@ -1611,14 +1611,15 @@ with col_h4:
     if st.button("🔄 Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-# Smooth auto-refresh — uses Streamlit WebSocket rerun (no blank flash)
-# Market hours: every 30s | After hours: every 5 min (keeps data current)
+# Smooth auto-refresh — paused when AI Expert is actively generating a response
+# Market hours: every 30s | After hours: every 5 min
 try:
     from streamlit_autorefresh import st_autorefresh
-    _refresh_interval = 30_000 if market_open else 300_000   # ms
-    st_autorefresh(interval=_refresh_interval, key="live_refresh", debounce=False)
+    if not st.session_state.get("_ai_busy", False):
+        _refresh_interval = 30_000 if market_open else 300_000
+        st_autorefresh(interval=_refresh_interval, key="live_refresh", debounce=False)
 except ImportError:
-    pass   # graceful fallback if package not yet installed
+    pass
 
 st.divider()
 
@@ -2781,8 +2782,15 @@ ANTHROPIC_API_KEY = "sk-ant-..."
         if "ai_messages" not in st.session_state:
             st.session_state["ai_messages"] = []
 
+        # ── Pause auto-refresh while AI is active to prevent interruptions ────
+        # If last message is from user (AI response was cut off by a refresh),
+        # mark it as needing a response so we re-trigger automatically.
+        _msgs         = st.session_state["ai_messages"]
+        _needs_retry  = bool(_msgs and _msgs[-1]["role"] == "user")
+        _ai_busy      = st.session_state.get("_ai_busy", False)
+
         # Display message history
-        for msg in st.session_state["ai_messages"]:
+        for msg in _msgs:
             with st.chat_message(msg["role"],
                                   avatar="🤖" if msg["role"] == "assistant" else "👤"):
                 st.markdown(msg["content"])
@@ -2795,33 +2803,65 @@ ANTHROPIC_API_KEY = "sk-ant-..."
             "Ask about NIFTY/BANKNIFTY options... e.g. 'Should I buy a Call right now?'"
         ) or pending
 
-        if user_input:
-            # Show user message
-            with st.chat_message("user", avatar="👤"):
-                st.markdown(user_input)
-            st.session_state["ai_messages"].append({"role": "user", "content": user_input})
+        # If auto-refresh cut off the previous response, retry with saved question
+        if not user_input and _needs_retry:
+            retry_q = _msgs[-1]["content"]
+            st.info(f"⟳ Auto-retrying interrupted response for: *\"{retry_q[:60]}\"*")
+            user_input = None   # will be handled in the retry block below
+            _do_retry  = True
+        else:
+            _do_retry = False
 
-            # Build API messages (last 10 turns to manage context)
+        def _run_ai(question: str):
+            """Show user bubble (if new), stream AI response, save both."""
+            # Only add user message if it's a NEW question (not a retry)
+            msgs_now = st.session_state["ai_messages"]
+            if not msgs_now or msgs_now[-1]["content"] != question or msgs_now[-1]["role"] != "user":
+                with st.chat_message("user", avatar="👤"):
+                    st.markdown(question)
+                st.session_state["ai_messages"].append({"role": "user", "content": question})
+
+            # Build API context (last 10 turns)
             api_msgs = [
                 {"role": m["role"], "content": m["content"]}
                 for m in st.session_state["ai_messages"][-10:]
             ]
 
-            # Stream AI response
-            with st.chat_message("assistant", avatar="🤖"):
-                response = st.write_stream(
-                    ai_expert.stream_response(api_msgs, _market_ctx)
-                )
+            # Mark busy so autorefresh is paused
+            st.session_state["_ai_busy"] = True
+            try:
+                with st.chat_message("assistant", avatar="🤖"):
+                    with st.spinner("🧠 Analyzing live market data..."):
+                        response = st.write_stream(
+                            ai_expert.stream_response(api_msgs, _market_ctx)
+                        )
+                if response:
+                    st.session_state["ai_messages"].append(
+                        {"role": "assistant", "content": response}
+                    )
+                else:
+                    st.session_state["ai_messages"].append(
+                        {"role": "assistant",
+                         "content": "⚠️ Empty response received. Please try again."}
+                    )
+            except Exception as e:
+                st.error(f"❌ AI error: {e}")
+            finally:
+                st.session_state["_ai_busy"] = False
 
-            st.session_state["ai_messages"].append(
-                {"role": "assistant", "content": response}
-            )
+        if user_input:
+            _run_ai(user_input)
+        elif _do_retry:
+            _run_ai(_msgs[-1]["content"])
 
         # ── Clear chat button ─────────────────────────────────────────────────
         if st.session_state.get("ai_messages"):
-            if st.button("🗑️ Clear conversation", key="clear_ai"):
-                st.session_state["ai_messages"] = []
-                st.rerun()
+            cc1, cc2 = st.columns([1, 5])
+            with cc1:
+                if st.button("🗑️ Clear conversation", key="clear_ai"):
+                    st.session_state["ai_messages"] = []
+                    st.session_state["_ai_busy"] = False
+                    st.rerun()
 
         # ── Market context preview (collapsible) ──────────────────────────────
         with st.expander("🔍 View market data injected into AI context", expanded=False):
