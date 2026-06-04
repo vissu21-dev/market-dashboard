@@ -62,6 +62,11 @@ IST = pytz.timezone("Asia/Kolkata")
 st.markdown("""
 <style>
 body, .stApp { background-color: #0e1117; color: #e0e0e0; }
+/* Hide Streamlit Cloud manage-app toolbar and footer branding */
+[data-testid="manage-app-button"] { display: none !important; }
+[data-testid="collapsedControl"]  { display: none !important; }
+footer { visibility: hidden !important; }
+#MainMenu { visibility: hidden !important; }
 .metric-card {
     background: #1a1d2e; border-radius: 10px; padding: 14px 18px;
     border-left: 4px solid #3b82f6; margin-bottom: 10px;
