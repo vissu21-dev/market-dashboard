@@ -1,5 +1,5 @@
-﻿"""
-India Stock Market Dashboard â€” powered by Yahoo Finance (yfinance)
+"""
+India Stock Market Dashboard — powered by Yahoo Finance (yfinance)
 Run: streamlit run streamlit_app.py
 Auto-refreshes every 30 seconds during market hours.
 """
@@ -58,16 +58,16 @@ except Exception:
 
 st.set_page_config(
     page_title="India Market Dashboard",
-    page_icon="ðŸ“ˆ",
+    page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 IST = pytz.timezone("Asia/Kolkata")
 
-# â”€â”€ Owner detection via secret URL key â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Owner detection via secret URL key ───────────────────────────────────────
 # Owner accesses: https://your-app.streamlit.app/?key=YOUR_OWNER_KEY
-# Public users access the normal URL â€” toolbar is hidden for them
+# Public users access the normal URL — toolbar is hidden for them
 _OWNER_KEY = os.getenv("OWNER_KEY", "vissu@dashboard2026")  # change in .env / Streamlit secrets
 
 def _check_owner() -> bool:
@@ -83,7 +83,7 @@ def _check_owner() -> bool:
 
 _IS_OWNER = _check_owner()
 
-# â”€â”€ Dark theme CSS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Dark theme CSS ────────────────────────────────────────────────────────────
 # Toolbar hidden for PUBLIC users; owner sees full Streamlit UI
 _public_hide_css = "" if _IS_OWNER else """
 /* Hide Streamlit toolbar icons and sidebar toggle for public users */
@@ -96,96 +96,69 @@ header[data-testid="stHeader"]            { display: none !important; }
 
 st.markdown("""
 <style>
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════════
    TRADINGVIEW-INSPIRED DESIGN SYSTEM
-   Primary bg: #131722 | Panel: #1e222d | Border: #2a2e39
-   Bull: #089981 | Bear: #f23645 | Blue: #2962ff | Neutral: #b2b5be
-   Font: Trebuchet MS / system stack
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-
-/* â”€â”€ Base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+   bg: #131722  panel: #1e222d  border: #2a2e39
+   bull: #089981  bear: #f23645  blue: #2962ff  neutral: #b2b5be
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 html, body, .stApp {
     background-color: #131722 !important;
     color: #d1d4dc !important;
-    font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', 'Inter',
+    font-family: -apple-system, BlinkMacSystemFont, "Trebuchet MS", "Inter",
                  Roboto, Ubuntu, sans-serif !important;
     font-size: 13px;
-    letter-spacing: 0.01em;
 }
 html { background-color: #131722 !important; }
 
-/* â”€â”€ Streamlit overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .stApp > header                         { display: none !important; }
 footer                                  { visibility: hidden !important; }
 #MainMenu                               { visibility: hidden !important; }
 .block-container                        { padding: 1rem 2rem 2rem !important; max-width: 100% !important; }
-[data-testid="stVerticalBlock"]         { gap: 0.4rem !important; }
-[data-testid="stHorizontalBlock"]       { gap: 0.5rem !important; }
 section[data-testid="stSidebar"]        { background: #1e222d !important; border-right: 1px solid #2a2e39; }
-[data-testid="stMarkdownContainer"] p   { margin: 0.2rem 0; }
 [data-stale]                            { opacity: 0.75; transition: opacity 0.2s ease; }
 
-/* â”€â”€ Tabs â€” TradingView underline style â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Tabs — TradingView underline style */
 [data-testid="stTabs"] > div:first-child {
     background: #131722 !important;
     border-bottom: 1px solid #2a2e39 !important;
-    padding: 0 !important;
-    gap: 0 !important;
+    padding: 0 !important; gap: 0 !important;
 }
 button[data-baseweb="tab"] {
-    background: transparent !important;
-    color: #787b86 !important;
-    border: none !important;
-    border-bottom: 2px solid transparent !important;
-    padding: 10px 16px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    border-radius: 0 !important;
+    background: transparent !important; color: #787b86 !important;
+    border: none !important; border-bottom: 2px solid transparent !important;
+    padding: 10px 16px !important; font-size: 13px !important;
+    font-weight: 500 !important; border-radius: 0 !important;
     transition: color 0.15s, border-color 0.15s !important;
 }
-button[data-baseweb="tab"]:hover {
-    color: #d1d4dc !important;
-    background: rgba(42,46,57,0.5) !important;
-}
+button[data-baseweb="tab"]:hover { color: #d1d4dc !important; background: rgba(42,46,57,0.5) !important; }
 button[aria-selected="true"][data-baseweb="tab"] {
-    color: #d1d4dc !important;
-    border-bottom: 2px solid #2962ff !important;
-    background: transparent !important;
-    font-weight: 600 !important;
+    color: #d1d4dc !important; border-bottom: 2px solid #2962ff !important;
+    background: transparent !important; font-weight: 600 !important;
 }
-[data-testid="stTabsContent"]           { padding: 1rem 0 !important; }
+[data-testid="stTabsContent"] { padding: 1rem 0 !important; }
 
-/* â”€â”€ Metric / Index cards â€” TradingView ticker row style â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Index / Metric cards */
 .metric-card {
-    background: #1e222d;
-    border: 1px solid #2a2e39;
-    border-radius: 6px;
-    padding: 12px 16px;
-    margin-bottom: 8px;
-    transition: border-color 0.15s, background 0.15s;
+    background: #1e222d; border: 1px solid #2a2e39;
+    border-radius: 6px; padding: 12px 16px; margin-bottom: 8px;
+    transition: border-color 0.15s;
 }
 .metric-card:hover { border-color: #363a45; background: #232732; }
 
-/* â”€â”€ Streamlit native metric widget â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 [data-testid="stMetric"] {
-    background: #1e222d !important;
-    border: 1px solid #2a2e39 !important;
-    border-radius: 6px !important;
-    padding: 12px 16px !important;
+    background: #1e222d !important; border: 1px solid #2a2e39 !important;
+    border-radius: 6px !important; padding: 12px 16px !important;
 }
-[data-testid="stMetric"]:hover      { border-color: #363a45 !important; }
-[data-testid="stMetricLabel"]       { color: #787b86 !important; font-size: 11px !important; text-transform: uppercase; letter-spacing: 0.08em; }
-[data-testid="stMetricValue"]       { color: #d1d4dc !important; font-size: 1.4rem !important; font-weight: 600 !important; font-variant-numeric: tabular-nums; }
-[data-testid="stMetricDelta"]       { font-size: 12px !important; font-weight: 500 !important; }
+[data-testid="stMetricLabel"] { color: #787b86 !important; font-size: 11px !important; text-transform: uppercase; letter-spacing: 0.08em; }
+[data-testid="stMetricValue"] { color: #d1d4dc !important; font-size: 1.4rem !important; font-weight: 600 !important; font-variant-numeric: tabular-nums; }
 
-/* â”€â”€ Color tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Color tokens */
 .bull    { color: #089981 !important; }
 .bear    { color: #f23645 !important; }
 .neutral { color: #b2b5be !important; }
 
-/* â”€â”€ Section titles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Section titles */
 .section-title {
     font-size: 11px; font-weight: 600; color: #787b86;
     text-transform: uppercase; letter-spacing: 0.1em;
@@ -193,193 +166,94 @@ button[aria-selected="true"][data-baseweb="tab"] {
     border-bottom: 1px solid #2a2e39;
 }
 
-/* â”€â”€ Pills / badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.pill {
-    display: inline-block; padding: 2px 8px;
-    border-radius: 4px; font-size: 11px; font-weight: 600; margin: 2px;
-}
+/* Pills */
+.pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin: 2px; }
 .pill-green  { background: rgba(8,153,129,0.15);  color: #089981; border: 1px solid rgba(8,153,129,0.3); }
 .pill-red    { background: rgba(242,54,69,0.15);   color: #f23645; border: 1px solid rgba(242,54,69,0.3); }
 .pill-yellow { background: rgba(255,160,0,0.15);   color: #ffa500; border: 1px solid rgba(255,160,0,0.3); }
-.pill-blue   { background: rgba(41,98,255,0.15);   color: #2962ff; border: 1px solid rgba(41,98,255,0.3); }
 
-/* â”€â”€ Signal boxes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.signal-box {
-    background: #1e222d; border: 1px solid #2a2e39;
-    border-radius: 4px; padding: 10px 14px; margin: 4px 0;
-}
-.signal-buy  { background: #089981; color: #fff; padding: 5px 14px; border-radius: 4px;
-               font-weight: 700; font-size: 12px; display: inline-block; margin: 3px 3px 3px 0; }
-.signal-exit { background: #f23645; color: #fff; padding: 5px 14px; border-radius: 4px;
-               font-weight: 700; font-size: 12px; display: inline-block; margin: 3px; }
-.signal-wait { background: #ffa500; color: #131722; padding: 5px 14px; border-radius: 4px;
-               font-weight: 700; font-size: 12px; display: inline-block; margin: 3px; }
+/* Signal boxes */
+.signal-box { background: #1e222d; border: 1px solid #2a2e39; border-radius: 4px; padding: 10px 14px; margin: 4px 0; }
+.signal-buy  { background: #089981; color: #fff; padding: 5px 14px; border-radius: 4px; font-weight: 700; font-size: 12px; display: inline-block; margin: 3px 3px 3px 0; }
+.signal-exit { background: #f23645; color: #fff; padding: 5px 14px; border-radius: 4px; font-weight: 700; font-size: 12px; display: inline-block; margin: 3px; }
+.signal-wait { background: #ffa500; color: #131722; padding: 5px 14px; border-radius: 4px; font-weight: 700; font-size: 12px; display: inline-block; margin: 3px; }
 
-/* â”€â”€ Trade cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.trade-card-call {
-    background: #1a2a23;
-    border: 1px solid #089981;
-    border-radius: 6px; padding: 18px 20px; margin: 6px 0;
-}
-.trade-card-put {
-    background: #2a1a1e;
-    border: 1px solid #f23645;
-    border-radius: 6px; padding: 18px 20px; margin: 6px 0;
-}
-.trade-header { font-size: 20px; font-weight: 700; letter-spacing: 0.02em; margin-bottom: 4px; }
+/* Trade cards */
+.trade-card-call { background: #1a2a23; border: 1px solid #089981; border-radius: 6px; padding: 18px 20px; margin: 6px 0; }
+.trade-card-put  { background: #2a1a1e; border: 1px solid #f23645; border-radius: 6px; padding: 18px 20px; margin: 6px 0; }
+.trade-header { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
 .trade-strike { font-size: 13px; color: #787b86; margin-bottom: 12px; }
 .trade-row    { display: flex; justify-content: space-between; margin: 5px 0; }
 .trade-label  { font-size: 11px; color: #4c525e; text-transform: uppercase; letter-spacing: 0.08em; }
 .trade-value  { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-/* â”€â”€ Confidence indicators â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .conf-high { color: #089981; font-weight: 700; }
 .conf-med  { color: #ffa500; font-weight: 700; }
 .conf-low  { color: #f23645; font-weight: 700; }
 
-/* â”€â”€ No-trade banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.no-trade-banner {
-    background: rgba(255,160,0,0.08); border: 1px solid #ffa500;
-    border-radius: 6px; padding: 16px; text-align: center;
-    font-size: 15px; font-weight: 600; color: #ffa500; margin: 16px 0;
-}
+.no-trade-banner { background: rgba(255,160,0,0.08); border: 1px solid #ffa500; border-radius: 6px; padding: 16px; text-align: center; font-size: 15px; font-weight: 600; color: #ffa500; margin: 16px 0; }
 
-/* â”€â”€ Checklist items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.checklist-item-ok   { background:#0d1f18; border-left:3px solid #089981;
-    border-radius:4px; padding:9px 14px; margin:4px 0; font-size:13px; }
-.checklist-item-warn { background:#1f1a0d; border-left:3px solid #ffa500;
-    border-radius:4px; padding:9px 14px; margin:4px 0; font-size:13px; }
-.checklist-item-bad  { background:#1f0d0f; border-left:3px solid #f23645;
-    border-radius:4px; padding:9px 14px; margin:4px 0; font-size:13px; }
+.checklist-item-ok   { background:#0d1f18; border-left:3px solid #089981; border-radius:4px; padding:9px 14px; margin:4px 0; font-size:13px; }
+.checklist-item-warn { background:#1f1a0d; border-left:3px solid #ffa500; border-radius:4px; padding:9px 14px; margin:4px 0; font-size:13px; }
+.checklist-item-bad  { background:#1f0d0f; border-left:3px solid #f23645; border-radius:4px; padding:9px 14px; margin:4px 0; font-size:13px; }
 
-/* â”€â”€ Alert boxes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.alert-box {
-    background: #1e222d; border: 1px solid #2962ff;
-    border-radius: 6px; padding: 12px 16px; margin: 6px 0;
-}
+.alert-box { background: #1e222d; border: 1px solid #2962ff; border-radius: 6px; padding: 12px 16px; margin: 6px 0; }
 .alert-triggered { border-color: #f23645 !important; background: #1f0d0f !important; }
 
-/* â”€â”€ Buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-[data-testid="baseButton-secondary"],
-button[kind="secondary"] {
-    background: #1e222d !important;
-    color: #d1d4dc !important;
-    border: 1px solid #2a2e39 !important;
-    border-radius: 4px !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-    transition: background 0.15s, border-color 0.15s !important;
+/* Buttons */
+[data-testid="baseButton-secondary"] {
+    background: #1e222d !important; color: #d1d4dc !important;
+    border: 1px solid #2a2e39 !important; border-radius: 4px !important;
+    font-size: 12px !important; font-weight: 500 !important;
 }
-[data-testid="baseButton-secondary"]:hover {
-    background: #2a2e39 !important;
-    border-color: #363a45 !important;
-}
-[data-testid="baseButton-primary"],
-button[kind="primary"] {
-    background: #2962ff !important;
-    color: #fff !important;
-    border: none !important;
-    border-radius: 4px !important;
+[data-testid="baseButton-secondary"]:hover { background: #2a2e39 !important; }
+[data-testid="baseButton-primary"] {
+    background: #2962ff !important; color: #fff !important;
+    border: none !important; border-radius: 4px !important;
     font-size: 12px !important; font-weight: 600 !important;
 }
 [data-testid="baseButton-primary"]:hover { background: #1e53e5 !important; }
 
-/* â”€â”€ Inputs & Selects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Inputs */
 [data-testid="stTextInput"] input,
 [data-testid="stNumberInput"] input,
-[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
 [data-testid="stTextArea"] textarea {
-    background: #1e222d !important;
-    color: #d1d4dc !important;
-    border: 1px solid #2a2e39 !important;
-    border-radius: 4px !important;
-    font-size: 13px !important;
+    background: #1e222d !important; color: #d1d4dc !important;
+    border: 1px solid #2a2e39 !important; border-radius: 4px !important;
 }
-[data-testid="stTextInput"] input:focus,
-[data-testid="stNumberInput"] input:focus {
-    border-color: #2962ff !important;
-    box-shadow: 0 0 0 1px #2962ff !important;
-}
+[data-testid="stTextInput"] input:focus { border-color: #2962ff !important; }
 
-/* â”€â”€ Chat input (AI Expert) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-[data-testid="stChatInput"] textarea {
-    background: #1e222d !important;
-    border: 1px solid #2a2e39 !important;
-    color: #d1d4dc !important; border-radius: 6px !important;
-}
-[data-testid="stChatInput"] textarea:focus { border-color: #2962ff !important; }
-[data-testid="stChatMessageContent"] {
-    background: #1e222d !important;
-    border: 1px solid #2a2e39 !important;
-    border-radius: 6px !important;
-    color: #d1d4dc !important;
-}
+/* Chat */
+[data-testid="stChatInput"] textarea { background: #1e222d !important; border: 1px solid #2a2e39 !important; color: #d1d4dc !important; border-radius: 6px !important; }
+[data-testid="stChatMessageContent"] { background: #1e222d !important; border: 1px solid #2a2e39 !important; border-radius: 6px !important; }
 
-/* â”€â”€ Expanders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-[data-testid="stExpander"] {
-    background: #1e222d !important;
-    border: 1px solid #2a2e39 !important;
-    border-radius: 6px !important;
-}
-[data-testid="stExpander"] summary {
-    color: #787b86 !important; font-size: 12px !important;
-    padding: 10px 14px !important;
-}
-[data-testid="stExpander"] summary:hover { color: #d1d4dc !important; }
+/* Expanders */
+[data-testid="stExpander"] { background: #1e222d !important; border: 1px solid #2a2e39 !important; border-radius: 6px !important; }
+[data-testid="stExpander"] summary { color: #787b86 !important; font-size: 12px !important; }
 
-/* â”€â”€ Dividers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Dividers */
 hr { border-color: #2a2e39 !important; margin: 16px 0 !important; }
 
-/* â”€â”€ Dataframe / Tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* DataFrames */
 [data-testid="stDataFrame"] { border: 1px solid #2a2e39 !important; border-radius: 6px !important; }
-[data-testid="stDataFrame"] th {
-    background: #1e222d !important; color: #787b86 !important;
-    font-size: 11px !important; text-transform: uppercase;
-    letter-spacing: 0.08em; border-bottom: 1px solid #2a2e39 !important;
-}
-[data-testid="stDataFrame"] td {
-    background: #131722 !important; color: #d1d4dc !important;
-    font-size: 12px !important; border-bottom: 1px solid #1e222d !important;
-    font-variant-numeric: tabular-nums;
-}
+[data-testid="stDataFrame"] th { background: #1e222d !important; color: #787b86 !important; font-size: 11px !important; text-transform: uppercase; }
+[data-testid="stDataFrame"] td { background: #131722 !important; color: #d1d4dc !important; font-size: 12px !important; }
 [data-testid="stDataFrame"] tr:hover td { background: #1e222d !important; }
 
-/* â”€â”€ Scrollbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Scrollbar */
 ::-webkit-scrollbar              { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track        { background: #131722; }
 ::-webkit-scrollbar-thumb        { background: #2a2e39; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover  { background: #363a45; }
 
-/* â”€â”€ Radio / Checkbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-[data-testid="stRadio"] label, [data-testid="stCheckbox"] label {
-    color: #d1d4dc !important; font-size: 13px !important;
-}
-
-/* â”€â”€ Info / Warning / Error boxes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-[data-testid="stAlert"] {
-    border-radius: 4px !important; border-left-width: 3px !important;
-    background: #1e222d !important; font-size: 13px !important;
-}
-
-/* â”€â”€ Spinner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-[data-testid="stSpinner"] { color: #2962ff !important; }
-
-/* â”€â”€ Caption / small text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-[data-testid="stCaptionContainer"], .stCaption {
-    color: #4c525e !important; font-size: 11px !important;
-}
-
-/* â”€â”€ Headings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Headings */
 h1 { font-size: 20px !important; font-weight: 700 !important; color: #d1d4dc !important; margin: 0 0 4px !important; }
 h2 { font-size: 16px !important; font-weight: 600 !important; color: #d1d4dc !important; }
 h3 { font-size: 14px !important; font-weight: 600 !important; color: #b2b5be !important; }
-
-/* â”€â”€ Number formatting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.tv-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 </style>
 """, unsafe_allow_html=True)
 
-# â”€â”€ Conditionally hide toolbar for public users (owner sees full UI) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Conditionally hide toolbar for public users (owner sees full UI) ──────────
 if not _IS_OWNER:
     st.markdown("""
     <style>
@@ -391,7 +265,7 @@ if not _IS_OWNER:
     </style>
     """, unsafe_allow_html=True)
 
-# â”€â”€ Tickers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Tickers ───────────────────────────────────────────────────────────────────
 TICKERS = {
     "Nifty 50":     "^NSEI",
     "Bank Nifty":   "^NSEBANK",
@@ -491,112 +365,112 @@ STOCK_SECTORS = {
 MUTUAL_FUNDS = [
     # Large Cap
     {"name": "Mirae Asset Large Cap Fund", "category": "Large Cap", "risk": "Moderate",
-     "ret_1y": 18.5, "ret_3y": 16.2, "ret_5y": 17.8, "aum": "â‚¹36,000 Cr",
+     "ret_1y": 18.5, "ret_3y": 16.2, "ret_5y": 17.8, "aum": "₹36,000 Cr",
      "min_sip": 1000, "stars": 5, "profiles": ["Moderate", "Aggressive"],
      "horizon": "3y+", "goal": ["Wealth Creation", "Retirement"],
      "why": "Consistent Nifty-beating returns, large AUM gives stability",
      "amfi_search": ["mirae asset large cap", "direct", "growth"]},
     {"name": "Axis Bluechip Fund", "category": "Large Cap", "risk": "Moderate",
-     "ret_1y": 16.2, "ret_3y": 14.8, "ret_5y": 16.5, "aum": "â‚¹28,000 Cr",
+     "ret_1y": 16.2, "ret_3y": 14.8, "ret_5y": 16.5, "aum": "₹28,000 Cr",
      "min_sip": 500, "stars": 4, "profiles": ["Conservative", "Moderate"],
      "horizon": "3y+", "goal": ["Wealth Creation", "Retirement"],
      "why": "Quality-focused portfolio, lower drawdown in bear markets",
      "amfi_search": ["axis bluechip", "direct", "growth"]},
     # Flexi Cap
     {"name": "Parag Parikh Flexi Cap Fund", "category": "Flexi Cap", "risk": "Moderate",
-     "ret_1y": 22.1, "ret_3y": 19.4, "ret_5y": 21.2, "aum": "â‚¹65,000 Cr",
+     "ret_1y": 22.1, "ret_3y": 19.4, "ret_5y": 21.2, "aum": "₹65,000 Cr",
      "min_sip": 1000, "stars": 5, "profiles": ["Moderate", "Aggressive"],
      "horizon": "5y+", "goal": ["Wealth Creation", "Retirement"],
      "why": "Globally diversified (US stocks included), Warren Buffett philosophy",
      "amfi_search": ["parag parikh flexi cap", "direct", "growth"]},
     {"name": "HDFC Flexi Cap Fund", "category": "Flexi Cap", "risk": "Moderate-High",
-     "ret_1y": 24.8, "ret_3y": 21.6, "ret_5y": 20.4, "aum": "â‚¹52,000 Cr",
+     "ret_1y": 24.8, "ret_3y": 21.6, "ret_5y": 20.4, "aum": "₹52,000 Cr",
      "min_sip": 100, "stars": 5, "profiles": ["Moderate", "Aggressive"],
      "horizon": "5y+", "goal": ["Wealth Creation"],
      "why": "Strong all-weather fund, moves between large/mid/small dynamically",
      "amfi_search": ["hdfc flexi cap", "direct", "growth"]},
     # Mid Cap
     {"name": "Nippon India Mid Cap Fund", "category": "Mid Cap", "risk": "High",
-     "ret_1y": 35.2, "ret_3y": 27.8, "ret_5y": 28.4, "aum": "â‚¹29,000 Cr",
+     "ret_1y": 35.2, "ret_3y": 27.8, "ret_5y": 28.4, "aum": "₹29,000 Cr",
      "min_sip": 100, "stars": 5, "profiles": ["Aggressive"],
      "horizon": "7y+", "goal": ["Wealth Creation"],
      "why": "Consistently top-performing mid-cap, ideal for long-term wealth",
      "amfi_search": ["nippon india mid cap", "direct", "growth"]},
     {"name": "HDFC Mid Cap Opportunities", "category": "Mid Cap", "risk": "High",
-     "ret_1y": 32.8, "ret_3y": 25.6, "ret_5y": 26.9, "aum": "â‚¹62,000 Cr",
+     "ret_1y": 32.8, "ret_3y": 25.6, "ret_5y": 26.9, "aum": "₹62,000 Cr",
      "min_sip": 100, "stars": 5, "profiles": ["Aggressive"],
      "horizon": "7y+", "goal": ["Wealth Creation"],
      "why": "India's largest mid-cap fund, proven 15-year track record",
      "amfi_search": ["hdfc mid-cap opportunities", "direct", "growth"]},
     # Small Cap
     {"name": "SBI Small Cap Fund", "category": "Small Cap", "risk": "Very High",
-     "ret_1y": 28.4, "ret_3y": 22.1, "ret_5y": 29.6, "aum": "â‚¹24,000 Cr",
+     "ret_1y": 28.4, "ret_3y": 22.1, "ret_5y": 29.6, "aum": "₹24,000 Cr",
      "min_sip": 500, "stars": 5, "profiles": ["Aggressive"],
      "horizon": "10y+", "goal": ["Wealth Creation"],
      "why": "Best small-cap fund for consistent long-term wealth creation",
      "amfi_search": ["sbi small cap", "direct", "growth"]},
     # Index Funds
     {"name": "UTI Nifty 50 Index Fund", "category": "Index Fund", "risk": "Moderate",
-     "ret_1y": 16.8, "ret_3y": 14.2, "ret_5y": 15.6, "aum": "â‚¹17,000 Cr",
+     "ret_1y": 16.8, "ret_3y": 14.2, "ret_5y": 15.6, "aum": "₹17,000 Cr",
      "min_sip": 500, "stars": 4, "profiles": ["Conservative", "Moderate"],
      "horizon": "3y+", "goal": ["Wealth Creation", "Retirement"],
      "why": "Lowest cost (0.1% expense ratio), tracks Nifty 50, no fund manager risk",
      "amfi_search": ["uti nifty 50 index", "direct", "growth"]},
     {"name": "Motilal Oswal Nifty Next 50 Index", "category": "Index Fund", "risk": "Moderate-High",
-     "ret_1y": 19.2, "ret_3y": 16.8, "ret_5y": 17.4, "aum": "â‚¹5,000 Cr",
+     "ret_1y": 19.2, "ret_3y": 16.8, "ret_5y": 17.4, "aum": "₹5,000 Cr",
      "min_sip": 500, "stars": 4, "profiles": ["Moderate", "Aggressive"],
      "horizon": "5y+", "goal": ["Wealth Creation"],
-     "why": "Next 50 Nifty companies â€” future blue chips at lower price",
+     "why": "Next 50 Nifty companies — future blue chips at lower price",
      "amfi_search": ["motilal oswal nifty next 50", "direct", "growth"]},
     # ELSS Tax Saving
     {"name": "Mirae Asset Tax Saver Fund", "category": "ELSS (Tax Saving)", "risk": "Moderate-High",
-     "ret_1y": 20.4, "ret_3y": 17.6, "ret_5y": 19.8, "aum": "â‚¹23,000 Cr",
+     "ret_1y": 20.4, "ret_3y": 17.6, "ret_5y": 19.8, "aum": "₹23,000 Cr",
      "min_sip": 500, "stars": 5, "profiles": ["Moderate", "Aggressive"],
      "horizon": "3y+ lock-in", "goal": ["Tax Saving", "Wealth Creation"],
-     "why": "Best ELSS fund. Saves up to â‚¹46,800 tax under Section 80C",
+     "why": "Best ELSS fund. Saves up to ₹46,800 tax under Section 80C",
      "amfi_search": ["mirae asset tax saver", "direct", "growth"]},
     {"name": "Quant ELSS Tax Saver Fund", "category": "ELSS (Tax Saving)", "risk": "High",
-     "ret_1y": 28.6, "ret_3y": 24.2, "ret_5y": 28.1, "aum": "â‚¹9,000 Cr",
+     "ret_1y": 28.6, "ret_3y": 24.2, "ret_5y": 28.1, "aum": "₹9,000 Cr",
      "min_sip": 500, "stars": 5, "profiles": ["Aggressive"],
      "horizon": "3y+ lock-in", "goal": ["Tax Saving", "Wealth Creation"],
      "why": "Highest-return ELSS in last 5 years, quantitative investing approach",
      "amfi_search": ["quant elss", "direct", "growth"]},
     # Hybrid
     {"name": "HDFC Balanced Advantage Fund", "category": "Hybrid / BAF", "risk": "Moderate",
-     "ret_1y": 18.2, "ret_3y": 15.8, "ret_5y": 16.4, "aum": "â‚¹86,000 Cr",
+     "ret_1y": 18.2, "ret_3y": 15.8, "ret_5y": 16.4, "aum": "₹86,000 Cr",
      "min_sip": 100, "stars": 4, "profiles": ["Conservative", "Moderate"],
      "horizon": "3y+", "goal": ["Wealth Creation", "Retirement", "Monthly Income"],
      "why": "Auto-balances equity/debt ratio based on market valuation",
      "amfi_search": ["hdfc balanced advantage", "direct", "growth"]},
     {"name": "SBI Equity Hybrid Fund", "category": "Hybrid / BAF", "risk": "Moderate",
-     "ret_1y": 17.6, "ret_3y": 14.9, "ret_5y": 15.8, "aum": "â‚¹62,000 Cr",
+     "ret_1y": 17.6, "ret_3y": 14.9, "ret_5y": 15.8, "aum": "₹62,000 Cr",
      "min_sip": 1000, "stars": 4, "profiles": ["Conservative", "Moderate"],
      "horizon": "3y+", "goal": ["Retirement", "Monthly Income"],
      "why": "Stable 75:25 equity-debt mix, good for first-time investors",
      "amfi_search": ["sbi equity hybrid", "direct", "growth"]},
     # Debt
     {"name": "HDFC Short Term Debt Fund", "category": "Short Duration Debt", "risk": "Low",
-     "ret_1y": 7.8, "ret_3y": 6.9, "ret_5y": 7.2, "aum": "â‚¹12,000 Cr",
+     "ret_1y": 7.8, "ret_3y": 6.9, "ret_5y": 7.2, "aum": "₹12,000 Cr",
      "min_sip": 100, "stars": 4, "profiles": ["Conservative"],
      "horizon": "1-3y", "goal": ["Emergency Fund", "Short-term Savings"],
      "why": "More tax-efficient than FD for 3+ year holding, stable returns",
      "amfi_search": ["hdfc short term debt", "direct", "growth"]},
     {"name": "Nippon India Liquid Fund", "category": "Liquid Fund", "risk": "Very Low",
-     "ret_1y": 7.2, "ret_3y": 6.4, "ret_5y": 6.1, "aum": "â‚¹28,000 Cr",
+     "ret_1y": 7.2, "ret_3y": 6.4, "ret_5y": 6.1, "aum": "₹28,000 Cr",
      "min_sip": 100, "stars": 4, "profiles": ["Conservative"],
      "horizon": "< 1y", "goal": ["Emergency Fund", "Parking Money"],
      "why": "Better than savings account, instant redemption, very safe",
      "amfi_search": ["nippon india liquid", "direct", "growth"]},
     # International
     {"name": "Motilal Oswal Nasdaq 100 FOF", "category": "International", "risk": "High",
-     "ret_1y": 24.6, "ret_3y": 12.4, "ret_5y": 22.8, "aum": "â‚¹4,000 Cr",
+     "ret_1y": 24.6, "ret_3y": 12.4, "ret_5y": 22.8, "aum": "₹4,000 Cr",
      "min_sip": 500, "stars": 4, "profiles": ["Aggressive"],
      "horizon": "5y+", "goal": ["Wealth Creation"],
      "why": "Invest in Apple, Microsoft, Google via Indian rupees. USD hedge benefit",
      "amfi_search": ["motilal oswal nasdaq 100", "direct", "growth"]},
 ]
 
-# â”€â”€ Ticker â†” Upstox instrument key mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Ticker ↔ Upstox instrument key mapping ────────────────────────────────────
 _YF_TO_UPSTOX = {
     "^NSEI":      "NSE_INDEX|Nifty 50",
     "^NSEBANK":   "NSE_INDEX|Nifty Bank",
@@ -677,7 +551,7 @@ def _upstox_candles(upstox_key: str, upstox_interval: str,
         return pd.DataFrame()
 
 
-# â”€â”€ Data helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Data helpers ──────────────────────────────────────────────────────────────
 @st.cache_data(ttl=15)
 def get_quote(ticker: str) -> dict:
     """Upstox-first quote; falls back to Yahoo Finance for global tickers."""
@@ -771,7 +645,7 @@ def get_candles(ticker: str, period: str = "5d", interval: str = "15m") -> pd.Da
 def fetch_amfi_navs() -> dict:
     """
     Fetch all mutual fund NAVs from AMFI (official, free, updates daily).
-    Returns dict keyed by lowercase scheme name â†’ {nav, date, code}.
+    Returns dict keyed by lowercase scheme name → {nav, date, code}.
     """
     try:
         url = "https://www.amfiindia.com/spages/NAVAll.txt"
@@ -896,11 +770,11 @@ def compute_global_sentiment(global_quotes: dict) -> dict:
             factors.append(("US 10Y Yield", f"{tnx_ltp:.2f}%", "neutral"))
 
     score = max(-10, min(10, score))
-    if score >= 4:     label, color = "Strong Global Tailwind ðŸŒ¬ï¸", "#089981"
-    elif score >= 2:   label, color = "Mild Positive Cues ðŸŸ¢",      "#089981"
-    elif score >= -1:  label, color = "Mixed / Neutral ðŸŸ¡",          "#ffa500"
-    elif score >= -3:  label, color = "Mild Headwinds ðŸŸ ",           "#f97316"
-    else:              label, color = "Strong Headwinds â›”",          "#f23645"
+    if score >= 4:     label, color = "Strong Global Tailwind 🌬️", "#089981"
+    elif score >= 2:   label, color = "Mild Positive Cues 🟢",      "#089981"
+    elif score >= -1:  label, color = "Mixed / Neutral 🟡",          "#ffa500"
+    elif score >= -3:  label, color = "Mild Headwinds 🟠",           "#f97316"
+    else:              label, color = "Strong Headwinds ⛔",          "#f23645"
 
     return {"score": score, "label": label, "color": color, "factors": factors}
 
@@ -985,7 +859,7 @@ def screen_nifty50() -> pd.DataFrame:
             elif 35 < rsi <= 50:
                 score -= 1; reasons.append(f"RSI weak ({rsi:.0f})")
             elif rsi <= 35:
-                score += 1; reasons.append(f"RSI oversold â€” reversal watch ({rsi:.0f})")
+                score += 1; reasons.append(f"RSI oversold — reversal watch ({rsi:.0f})")
             if macd_bull:
                 score += 2; reasons.append("MACD bullish")
             else:
@@ -997,9 +871,9 @@ def screen_nifty50() -> pd.DataFrame:
             from52h = (ltp - high52) / high52 * 100
             from52l = (ltp - low52)  / low52  * 100
             if from52h > -5:
-                score += 1; reasons.append("Near 52-week high â€” momentum")
+                score += 1; reasons.append("Near 52-week high — momentum")
             elif from52l < 15:
-                score -= 1; reasons.append("Near 52-week low â€” weak")
+                score -= 1; reasons.append("Near 52-week low — weak")
             results.append({
                 "Stock":      name,
                 "Sector":     STOCK_SECTORS.get(ticker, "Other"),
@@ -1036,7 +910,7 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df["macd"]   = c.ewm(span=12, adjust=False).mean() - c.ewm(span=26, adjust=False).mean()
     df["macd_s"] = df["macd"].ewm(span=9, adjust=False).mean()
     df["macd_h"] = df["macd"] - df["macd_s"]
-    # VWAP â€” use volume if available; fall back to price-only typical-price average
+    # VWAP — use volume if available; fall back to price-only typical-price average
     if "volume" in df.columns and df["volume"].sum() > 0:
         tp = (df["high"] + df["low"] + df["close"]) / 3
         vol = df["volume"].replace(0, np.nan)
@@ -1141,7 +1015,7 @@ def next_expiry_info() -> dict:
     }
 
 
-# Upstox key â†’ yfinance ticker mapping for batch index quotes
+# Upstox key → yfinance ticker mapping for batch index quotes
 _UPSTOX_INDEX_KEYS = {
     "^NSEI":    "NSE_INDEX|Nifty 50",
     "^NSEBANK": "NSE_INDEX|Nifty Bank",
@@ -1226,7 +1100,7 @@ def get_live_chain(instrument_key: str, expiry_date: str) -> dict:
 
 @st.cache_data(ttl=60)
 def get_orb(ticker: str) -> dict:
-    """Opening Range = first 15 minutes (9:15â€“9:30). Upstox-first."""
+    """Opening Range = first 15 minutes (9:15–9:30). Upstox-first."""
     try:
         if _UPSTOX_AVAILABLE and ticker in _YF_TO_UPSTOX:
             today   = datetime.now(IST).date()
@@ -1299,9 +1173,9 @@ def get_pivots(ticker: str) -> dict:
 
 
 def trend_label(pct: float) -> tuple:
-    if pct > 0.3:   return "Bullish â–²", "bull"
-    if pct < -0.3:  return "Bearish â–¼", "bear"
-    return "Sideways â†”", "neutral"
+    if pct > 0.3:   return "Bullish ▲", "bull"
+    if pct < -0.3:  return "Bearish ▼", "bear"
+    return "Sideways ↔", "neutral"
 
 
 def signal_summary(df: pd.DataFrame, ltp: float) -> dict:
@@ -1311,9 +1185,9 @@ def signal_summary(df: pd.DataFrame, ltp: float) -> dict:
     signals = {}
     rsi = last.get("rsi", np.nan)
     if pd.notna(rsi):
-        if rsi < 30:   signals["RSI"] = (f"{rsi:.0f} â€” Oversold", "green")
-        elif rsi > 70: signals["RSI"] = (f"{rsi:.0f} â€” Overbought", "red")
-        else:          signals["RSI"] = (f"{rsi:.0f} â€” Neutral", "yellow")
+        if rsi < 30:   signals["RSI"] = (f"{rsi:.0f} — Oversold", "green")
+        elif rsi > 70: signals["RSI"] = (f"{rsi:.0f} — Overbought", "red")
+        else:          signals["RSI"] = (f"{rsi:.0f} — Neutral", "yellow")
     macd = last.get("macd", np.nan)
     ms   = last.get("macd_s", np.nan)
     if pd.notna(macd) and pd.notna(ms):
@@ -1325,7 +1199,7 @@ def signal_summary(df: pd.DataFrame, ltp: float) -> dict:
     e9  = last.get("ema9",  np.nan)
     e21 = last.get("ema21", np.nan)
     if pd.notna(e9) and pd.notna(e21):
-        signals["EMA"] = ("EMA9 > EMA21 â€” Uptrend", "green") if e9 > e21 else ("EMA9 < EMA21 â€” Downtrend", "red")
+        signals["EMA"] = ("EMA9 > EMA21 — Uptrend", "green") if e9 > e21 else ("EMA9 < EMA21 — Downtrend", "red")
     return signals
 
 
@@ -1360,7 +1234,7 @@ def option_bias(df: pd.DataFrame, ltp: float, vix: float) -> dict:
     elif score <= -2:
         bias = "PE (Put Buying)" if not high_vix else "PE with caution (High VIX)"
     else:
-        bias = "Neutral â€” avoid directional trade"
+        bias = "Neutral — avoid directional trade"
     return {"bias": bias, "confidence": conf, "score": score, "reasons": reasons}
 
 
@@ -1377,7 +1251,7 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
     Returns actionable dict with index-level SL/targets, not just premium %.
     """
     if df.empty or len(df) < 20 or ltp == 0:
-        return {"no_trade": True, "reason": "Insufficient data â€” market may not be open yet."}
+        return {"no_trade": True, "reason": "Insufficient data — market may not be open yet."}
 
     last    = df.iloc[-1]
     prev_c  = df.iloc[-2] if len(df) > 2 else last
@@ -1411,32 +1285,32 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
     bear_score = 0
     confirmations = []
 
-    # â”€â”€ ORB (primary signal â€” highest weight) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── ORB (primary signal — highest weight) ────────────────────────────────
     orb_bias = 0  # +1 bull, -1 bear, 0 inside
     if orb_high and orb_low:
         if ltp > orb_high:
             bull_score += 3; orb_bias = 1
-            confirmations.append(f"ORB BREAKOUT UP â€” price above {orb_high:,.0f}")
+            confirmations.append(f"ORB BREAKOUT UP — price above {orb_high:,.0f}")
         elif ltp < orb_low:
             bear_score += 3; orb_bias = -1
-            confirmations.append(f"ORB BREAKDOWN â€” price below {orb_low:,.0f}")
+            confirmations.append(f"ORB BREAKDOWN — price below {orb_low:,.0f}")
         else:
-            confirmations.append(f"Inside ORB ({orb_low:,.0f}â€“{orb_high:,.0f}) â€” wait for breakout")
+            confirmations.append(f"Inside ORB ({orb_low:,.0f}–{orb_high:,.0f}) — wait for breakout")
 
-    # â”€â”€ Pivot vs price â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Pivot vs price ────────────────────────────────────────────────────────
     if piv_p:
         if ltp > piv_p:
-            bull_score += 1; confirmations.append(f"Above Pivot P ({piv_p:,.0f}) â€” bullish bias")
+            bull_score += 1; confirmations.append(f"Above Pivot P ({piv_p:,.0f}) — bullish bias")
         else:
-            bear_score += 1; confirmations.append(f"Below Pivot P ({piv_p:,.0f}) â€” bearish bias")
+            bear_score += 1; confirmations.append(f"Below Pivot P ({piv_p:,.0f}) — bearish bias")
 
-    # â”€â”€ VWAP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── VWAP ─────────────────────────────────────────────────────────────────
     if ltp > vwap * 1.001:
         bull_score += 2; confirmations.append(f"Price above VWAP ({vwap:,.0f})")
     elif ltp < vwap * 0.999:
         bear_score += 2; confirmations.append(f"Price below VWAP ({vwap:,.0f})")
 
-    # â”€â”€ EMA stack â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── EMA stack ─────────────────────────────────────────────────────────────
     if ema9 > ema21 > ema50:
         bull_score += 2; confirmations.append("EMA stack bullish (9>21>50)")
     elif ema9 < ema21 < ema50:
@@ -1446,13 +1320,13 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
     else:
         bear_score += 1; confirmations.append("EMA9 < EMA21")
 
-    # â”€â”€ Supertrend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Supertrend ────────────────────────────────────────────────────────────
     if st_dir == 1:
         bull_score += 2; confirmations.append("Supertrend BULLISH")
     elif st_dir == -1:
         bear_score += 2; confirmations.append("Supertrend BEARISH")
 
-    # â”€â”€ MACD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── MACD ─────────────────────────────────────────────────────────────────
     if macd > macd_s and macd > 0:
         bull_score += 2; confirmations.append("MACD above zero + bullish cross")
     elif macd > macd_s:
@@ -1462,17 +1336,17 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
     elif macd < macd_s:
         bear_score += 1; confirmations.append("MACD bearish cross (above zero)")
 
-    # â”€â”€ RSI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── RSI ───────────────────────────────────────────────────────────────────
     if 55 < rsi < 70:
         bull_score += 1; confirmations.append(f"RSI bullish zone ({rsi:.0f})")
     elif 30 < rsi < 45:
         bear_score += 1; confirmations.append(f"RSI bearish zone ({rsi:.0f})")
     elif rsi >= 70:
-        confirmations.append(f"RSI overbought ({rsi:.0f}) â€” use tighter SL on CE")
+        confirmations.append(f"RSI overbought ({rsi:.0f}) — use tighter SL on CE")
     elif rsi <= 30:
-        confirmations.append(f"RSI oversold ({rsi:.0f}) â€” use tighter SL on PE")
+        confirmations.append(f"RSI oversold ({rsi:.0f}) — use tighter SL on PE")
 
-    # â”€â”€ Volume surge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Volume surge ─────────────────────────────────────────────────────────
     if vol > avg_vol * 1.5:
         prev_close_val = float(prev_c.get("close", ltp) or ltp)
         if ltp > prev_close_val:
@@ -1480,24 +1354,24 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
         else:
             bear_score += 1; confirmations.append("Volume surge with price down")
 
-    # â”€â”€ OBV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── OBV ───────────────────────────────────────────────────────────────────
     if obv > obv_ema:
-        bull_score += 1; confirmations.append("OBV rising â€” buying interest")
+        bull_score += 1; confirmations.append("OBV rising — buying interest")
     elif obv < obv_ema:
-        bear_score += 1; confirmations.append("OBV falling â€” selling pressure")
+        bear_score += 1; confirmations.append("OBV falling — selling pressure")
 
     net = bull_score - bear_score
     vix_f = float(vix) if vix else 15
 
-    # â”€â”€ No-trade conditions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── No-trade conditions ───────────────────────────────────────────────────
     if vix_f > 28:
         return {"no_trade": True,
-                "reason": f"VIX too high ({vix_f:.1f}) â€” extreme volatility, avoid buying options."}
+                "reason": f"VIX too high ({vix_f:.1f}) — extreme volatility, avoid buying options."}
     if orb_bias == 0 and orb_high and orb_low:
         # Inside ORB = no confirmed breakout
         return {
             "no_trade": True,
-            "reason": (f"Price inside ORB ({orb_low:,.0f}â€“{orb_high:,.0f}). "
+            "reason": (f"Price inside ORB ({orb_low:,.0f}–{orb_high:,.0f}). "
                        f"Wait for breakout above {orb_high:,.0f} (BUY CE) "
                        f"or below {orb_low:,.0f} (BUY PE) on 5-min candle close."),
             "orb_high": orb_high, "orb_low": orb_low,
@@ -1506,27 +1380,27 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
         }
     if abs(net) < 2:
         return {"no_trade": True,
-                "reason": "Indicators mixed â€” no clear edge. Wait for alignment before entering."}
+                "reason": "Indicators mixed — no clear edge. Wait for alignment before entering."}
 
-    # â”€â”€ Trade direction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Trade direction ───────────────────────────────────────────────────────
     direction = "CE" if net > 0 else "PE"
     atm       = nearest_strike(ltp, step)
 
-    # â”€â”€ Premium estimate (range) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Premium estimate (range) ──────────────────────────────────────────────
     exp_info    = next_expiry_info()
     days_left   = exp_info["nifty"]["days"]  if "Bank" not in name else exp_info["banknifty"]["days"]
     expiry_date = exp_info["nifty"]["date"]  if "Bank" not in name else exp_info["banknifty"]["date"]
     days_safe   = max(float(days_left), 0.5)
     vix_ann     = max(vix_f, 8) / 100
-    # BS ATM approx: P = 0.4 Ã— S Ã— Ïƒ Ã— âˆš(T/252)
-    # Nifty actual IV â‰ˆ VIX Ã— 0.77; BNF actual IV â‰ˆ VIX Ã— 1.00
-    # Combined constant: Nifty = 0.4Ã—0.77 = 0.308; BNF = 0.4Ã—1.00 = 0.40
+    # BS ATM approx: P = 0.4 × S × σ × √(T/252)
+    # Nifty actual IV ≈ VIX × 0.77; BNF actual IV ≈ VIX × 1.00
+    # Combined constant: Nifty = 0.4×0.77 = 0.308; BNF = 0.4×1.00 = 0.40
     bs_factor   = 0.40 if "Bank" in name else 0.308
     base_mid    = ltp * vix_ann * np.sqrt(days_safe / 252) * bs_factor
     base_lo   = round(base_mid * 0.75, 0)
     base_hi   = round(base_mid * 1.35, 0)
 
-    # â”€â”€ Index-level SL / targets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Index-level SL / targets ──────────────────────────────────────────────
     if direction == "CE":
         # SL = ORB low (or VWAP if ORB not available), Target = R1 / R2
         idx_sl  = orb_low  if orb_low  else round(ltp - step * 2)
@@ -1548,19 +1422,19 @@ def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
         entry_cond = (f"Enter after {'ORB low (' + str(int(orb_low)) + ')' if orb_low else 'support'} "
                       f"breaks on 5-min candle close with volume")
 
-    # â”€â”€ Confidence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Confidence ────────────────────────────────────────────────────────────
     dom_score = max(bull_score, bear_score)
     if dom_score >= 8:   conf_label, conf_color = "HIGH", "#089981"
     elif dom_score >= 5: conf_label, conf_color = "MEDIUM", "#ffa500"
     else:                conf_label, conf_color = "LOW", "#f23645"
 
-    # â”€â”€ VIX advisory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── VIX advisory ─────────────────────────────────────────────────────────
     if vix_f >= 20:
-        vix_advice = f"VIX {vix_f:.1f} â€” high IV. Use ATM (not OTM), keep lot size small."
+        vix_advice = f"VIX {vix_f:.1f} — high IV. Use ATM (not OTM), keep lot size small."
     elif vix_f >= 15:
-        vix_advice = f"VIX {vix_f:.1f} â€” elevated. OTM1 is fine; avoid deep OTM."
+        vix_advice = f"VIX {vix_f:.1f} — elevated. OTM1 is fine; avoid deep OTM."
     else:
-        vix_advice = f"VIX {vix_f:.1f} â€” normal. All strikes tradeable."
+        vix_advice = f"VIX {vix_f:.1f} — normal. All strikes tradeable."
 
     return {
         "no_trade":      False,
@@ -1597,9 +1471,9 @@ def render_trade_card(setup: dict, side: str):
     is_call = side == "call"
     card_cls = "trade-card-call" if is_call else "trade-card-put"
     color    = "#089981" if is_call else "#f23645"
-    label    = "ðŸ“ˆ CALL (CE)" if is_call else "ðŸ“‰ PUT (PE)"
+    label    = "📈 CALL (CE)" if is_call else "📉 PUT (PE)"
     preferred = setup["net_score"] > 0 if is_call else setup["net_score"] < 0
-    badge     = ' <span style="background:#ffa500;color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">â˜… PREFERRED</span>' if preferred else ""
+    badge     = ' <span style="background:#ffa500;color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">★ PREFERRED</span>' if preferred else ""
 
     st.markdown(f"""
     <div class="{card_cls}">
@@ -1608,13 +1482,13 @@ def render_trade_card(setup: dict, side: str):
 
       <div class="trade-row">
         <div><div class="trade-label">Entry Price</div>
-             <div class="trade-value" style="color:{color}">â‚¹{t['entry']}</div></div>
+             <div class="trade-value" style="color:{color}">₹{t['entry']}</div></div>
         <div><div class="trade-label">Stop-Loss</div>
-             <div class="trade-value" style="color:#f23645">â‚¹{t['sl']}</div></div>
+             <div class="trade-value" style="color:#f23645">₹{t['sl']}</div></div>
         <div><div class="trade-label">Target 1</div>
-             <div class="trade-value" style="color:#089981">â‚¹{t['tgt1']}</div></div>
+             <div class="trade-value" style="color:#089981">₹{t['tgt1']}</div></div>
         <div><div class="trade-label">Target 2</div>
-             <div class="trade-value" style="color:#089981">â‚¹{t['tgt2']}</div></div>
+             <div class="trade-value" style="color:#089981">₹{t['tgt2']}</div></div>
         <div><div class="trade-label">Risk:Reward</div>
              <div class="trade-value">1:{t['rr']}</div></div>
       </div>
@@ -1625,8 +1499,8 @@ def render_trade_card(setup: dict, side: str):
           {t['conf_icon']} Confidence: {t['conf']} ({t['score']}/8)
         </span>
       </div>
-      <div style="margin-top:8px;font-size:12px;color:#b2b5be">
-        ðŸ• Exit: {t['exit_time']}
+      <div style="margin-top:8px;font-size:12px;color:#9ca3af">
+        🕐 Exit: {t['exit_time']}
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1634,7 +1508,7 @@ def render_trade_card(setup: dict, side: str):
 
 def candlestick_fig(df: pd.DataFrame, title: str,
                     pivots: dict = None, orb: dict = None) -> go.Figure:
-    BG = "#131722"; GRID = "#2a2e39"
+    BG = "#0e1117"; GRID = "#1e2130"
     fig = make_subplots(rows=3, cols=1, shared_xaxes=True,
                         row_heights=[0.6, 0.2, 0.2], vertical_spacing=0.03,
                         subplot_titles=[title, "Volume", "RSI"])
@@ -1644,7 +1518,7 @@ def candlestick_fig(df: pd.DataFrame, title: str,
         increasing_line_color="#089981", decreasing_line_color="#f23645",
         name="Price", showlegend=False,
     ), row=1, col=1)
-    for col, color, name in [("ema9","#ffa500","EMA9"), ("ema21","#2962ff","EMA21"), ("vwap","#a855f7","VWAP")]:
+    for col, color, name in [("ema9","#ffa500","EMA9"), ("ema21","#3b82f6","EMA21"), ("vwap","#a855f7","VWAP")]:
         if col in df.columns:
             fig.add_trace(go.Scatter(x=df["timestamp"], y=df[col],
                 line=dict(color=color, width=1.2), name=name), row=1, col=1)
@@ -1674,9 +1548,9 @@ def candlestick_fig(df: pd.DataFrame, title: str,
                         "S1": "#089981", "S2": "#089981", "S3": "#089981"}
         for level, val in pivots.items():
             fig.add_hline(y=val,
-                line=dict(color=pivot_colors.get(level, "#b2b5be"), width=1, dash="dot"),
+                line=dict(color=pivot_colors.get(level, "#9ca3af"), width=1, dash="dot"),
                 annotation_text=f" {level}:{val:,.0f}",
-                annotation_font=dict(size=9, color=pivot_colors.get(level, "#b2b5be")),
+                annotation_font=dict(size=9, color=pivot_colors.get(level, "#9ca3af")),
                 annotation_position="right", row=1, col=1)
     # Opening Range lines
     if orb and orb.get("high") and orb.get("low"):
@@ -1713,15 +1587,15 @@ def candlestick_fig(df: pd.DataFrame, title: str,
     return fig
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════════════════════
 #  MAIN APP
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════════════════════
 now_ist = datetime.now(IST)
 market_open = is_market_open()
 
-# â”€â”€ SIDEBAR: Upstox Token Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── SIDEBAR: Upstox Token Manager ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## ðŸ”‘ Upstox Token")
+    st.markdown("## 🔑 Upstox Token")
 
     # Auto-capture auth code from redirect URL (?code=XXX)
     _qp = st.query_params
@@ -1734,16 +1608,16 @@ with st.sidebar:
     # Token status
     if _UPSTOX_AVAILABLE:
         _tok_preview = upstox_config.ACCESS_TOKEN[:12] + "..." if upstox_config.ACCESS_TOKEN else ""
-        st.success(f"âœ… Token active  `{_tok_preview}`")
+        st.success(f"✅ Token active  `{_tok_preview}`")
         st.caption("Expires at midnight IST. Refresh each morning.")
     else:
-        st.error("âŒ No token â€” using Yahoo Finance fallback")
+        st.error("❌ No token — using Yahoo Finance fallback")
 
     st.markdown("---")
     st.markdown("**Refresh token (daily)**")
 
-    # Step 1 â€” generate auth URL
-    if st.button("Step 1 â€” Open Upstox Login", use_container_width=True):
+    # Step 1 — generate auth URL
+    if st.button("Step 1 — Open Upstox Login", use_container_width=True):
         if _UPSTOX_AVAILABLE or True:
             try:
                 _auth_url = upstox_auth.get_auth_url()
@@ -1754,17 +1628,17 @@ with st.sidebar:
     if st.session_state.get("_auth_url"):
         st.markdown(
             f'<a href="{st.session_state["_auth_url"]}" target="_blank" '
-            f'style="display:block;background:#2962ff;color:#fff;text-align:center;'
+            f'style="display:block;background:#3b82f6;color:#fff;text-align:center;'
             f'padding:8px;border-radius:6px;text-decoration:none;font-weight:700">'
-            f'ðŸ‘‰ Login to Upstox</a>', unsafe_allow_html=True)
+            f'👉 Login to Upstox</a>', unsafe_allow_html=True)
         st.caption("After login you'll be redirected back here automatically.")
 
-    # Step 2 â€” paste or auto-filled code
+    # Step 2 — paste or auto-filled code
     _default_code = st.session_state.get("_pending_code", "")
-    _code_input = st.text_input("Step 2 â€” Paste auth code", value=_default_code,
+    _code_input = st.text_input("Step 2 — Paste auth code", value=_default_code,
                                 placeholder="Paste code from redirect URL")
 
-    if st.button("Get New Token âœ…", use_container_width=True, type="primary"):
+    if st.button("Get New Token ✅", use_container_width=True, type="primary"):
         _code = _code_input.strip()
         if not _code:
             st.warning("Paste the auth code first.")
@@ -1795,11 +1669,11 @@ with st.sidebar:
                         st.session_state["_pending_code"] = ""
                         st.session_state["_auth_url"] = ""
                         st.cache_data.clear()
-                        st.success("âœ… Token saved! Dashboard refreshing...")
+                        st.success("✅ Token saved! Dashboard refreshing...")
                         st.query_params.clear()
                         st.rerun()
                     else:
-                        st.error("No token in response â€” code may be expired. Try again.")
+                        st.error("No token in response — code may be expired. Try again.")
                 except Exception as _ex:
                     st.error(f"Error: {_ex}")
 
@@ -1809,27 +1683,27 @@ with st.sidebar:
 # Header
 col_h1, col_h2, col_h3, col_h4 = st.columns([3, 1, 1, 1])
 with col_h1:
-    st.markdown("## ðŸ“ˆ India Market Dashboard")
+    st.markdown("## 📈 India Market Dashboard")
     st.caption(f"Last updated: {now_ist.strftime('%d %b %Y  %H:%M:%S IST')}  |  Data: Yahoo Finance (live via fast_info)")
 with col_h2:
     status_color = "#089981" if market_open else "#f23645"
-    st.markdown(f'<div style="margin-top:20px"><span style="color:{status_color}; font-size:16px; font-weight:700;">â— Market {"OPEN" if market_open else "CLOSED"}</span></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="margin-top:20px"><span style="color:{status_color}; font-size:16px; font-weight:700;">● Market {"OPEN" if market_open else "CLOSED"}</span></div>', unsafe_allow_html=True)
 with col_h3:
     exp = next_expiry_info()
     n_exp = exp["nifty"]
     b_exp = exp["banknifty"]
-    n_warn = "ðŸ”´" if n_exp["days"] <= 1 else ("ðŸŸ¡" if n_exp["days"] <= 2 else "ðŸŸ¢")
-    b_warn = "ðŸ”´" if b_exp["days"] <= 1 else ("ðŸŸ¡" if b_exp["days"] <= 2 else "ðŸŸ¢")
+    n_warn = "🔴" if n_exp["days"] <= 1 else ("🟡" if n_exp["days"] <= 2 else "🟢")
+    b_warn = "🔴" if b_exp["days"] <= 1 else ("🟡" if b_exp["days"] <= 2 else "🟢")
     st.markdown(f"""
-    <div style="margin-top:14px;font-size:11px;color:#b2b5be;line-height:1.8">
+    <div style="margin-top:14px;font-size:11px;color:#9ca3af;line-height:1.8">
     {n_warn} <b>Nifty expiry:</b> {n_exp['date']} ({n_exp['days']}d)<br>
     {b_warn} <b>BNF expiry:</b> {b_exp['date']} ({b_exp['days']}d)
     </div>""", unsafe_allow_html=True)
 with col_h4:
-    if st.button("ðŸ”„ Refresh", use_container_width=True):
+    if st.button("🔄 Refresh", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
-# Smooth auto-refresh â€” paused when AI Expert is actively generating a response
+# Smooth auto-refresh — paused when AI Expert is actively generating a response
 # Market hours: every 30s | After hours: every 5 min
 try:
     from streamlit_autorefresh import st_autorefresh
@@ -1841,7 +1715,7 @@ except ImportError:
 
 st.divider()
 
-# â”€â”€ Fetch all Indian index quotes (Zerodha â†’ Upstox â†’ Yahoo fallback) â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Fetch all Indian index quotes (Zerodha → Upstox → Yahoo fallback) ────────
 _fetch_time = datetime.now(IST).strftime("%H:%M:%S")
 _ticker_to_name = {v: k for k, v in TICKERS.items()}
 quotes = {}
@@ -1850,68 +1724,68 @@ if _ZERODHA_AVAILABLE:
     _zdq = zd.get_index_quotes()           # {'^NSEI': {...}, '^BSESN': {...}, ...}
     for name, ticker in TICKERS.items():
         quotes[name] = _zdq.get(ticker) or get_quote(ticker)
-    _data_source = "ðŸŸ¢ Live data Â· Zerodha"
+    _data_source = "🟢 Live data · Zerodha"
 else:
     _upstox_quotes = get_upstox_index_quotes()
     for name, ticker in TICKERS.items():
         uq = _upstox_quotes.get(ticker)
         quotes[name] = uq if uq else get_quote(ticker)
     if _upstox_quotes:
-        _data_source = "ðŸŸ¡ Live data Â· Upstox"
+        _data_source = "🟡 Live data · Upstox"
     else:
-        _data_source = "ðŸ”´ Delayed (15 min) Â· Yahoo Finance â€” add UPSTOX_ACCESS_TOKEN to Streamlit secrets for live data"
+        _data_source = "🔴 Delayed (15 min) · Yahoo Finance — add UPSTOX_ACCESS_TOKEN to Streamlit secrets for live data"
 
-# â”€â”€ Data source badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Data source badge ─────────────────────────────────────────────────────────
 _badge_color = "#089981" if _ZERODHA_AVAILABLE else ("#ffa500" if _UPSTOX_AVAILABLE else "#f23645")
 st.markdown(
     f'<div style="font-size:11px;color:{_badge_color};margin-bottom:4px">'
-    f'{_data_source} Â· as of {_fetch_time} IST</div>',
+    f'{_data_source} · as of {_fetch_time} IST</div>',
     unsafe_allow_html=True,
 )
 
-# â”€â”€ Row 1: Index cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Row 1: Index cards ────────────────────────────────────────────────────────
 st.markdown('<div class="section-title">Market Overview</div>', unsafe_allow_html=True)
 idx_cols = st.columns([1, 1, 1, 1, 1, 1.5])   # 5 tiles + right spacer
 for col, (name, q) in zip(idx_cols, quotes.items()):
     with col:
         if q:
-            arrow = "â–²" if q["chg"] >= 0 else "â–¼"
+            arrow = "▲" if q["chg"] >= 0 else "▼"
             cls   = "bull" if q["chg"] >= 0 else "bear"
             st.markdown(f"""
             <div class="metric-card">
-              <div style="font-size:11px;color:#b2b5be;text-transform:uppercase;letter-spacing:1px">{name}</div>
+              <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">{name}</div>
               <div style="font-size:22px;font-weight:700" class="{cls}">{q['ltp']:,.2f}</div>
               <div style="font-size:13px" class="{cls}">{arrow} {abs(q['chg']):,.2f} ({q['pct']:+.2f}%)</div>
-              <div style="font-size:11px;color:#787b86;margin-top:4px">H:{q['high']:,.0f} L:{q['low']:,.0f}</div>
+              <div style="font-size:11px;color:#6b7280;margin-top:4px">H:{q['high']:,.0f} L:{q['low']:,.0f}</div>
             </div>""", unsafe_allow_html=True)
         else:
-            st.metric(name, "Loadingâ€¦")
+            st.metric(name, "Loading…")
 
 st.divider()
 
-# â”€â”€ Charts + Signals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Charts + Signals ──────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
-    "ðŸŽ¯ Trade Command",
-    "ðŸ¤– AI Expert",
-    "ðŸŒ… Morning Checklist",
-    "ðŸ•¯ï¸ Nifty 50",
-    "ðŸ¦ Bank Nifty",
-    "ðŸŒ Global Cues",
-    "ðŸ“‹ Trade Plan",
-    "ðŸ”” Price Alerts",
-    "ðŸ““ Trade Journal",
-    "ðŸ“Š Stock Picks",
-    "ðŸ’° Mutual Funds",
+    "🎯 Trade Command",
+    "🤖 AI Expert",
+    "🌅 Morning Checklist",
+    "🕯️ Nifty 50",
+    "🏦 Bank Nifty",
+    "🌍 Global Cues",
+    "📋 Trade Plan",
+    "🔔 Price Alerts",
+    "📓 Trade Journal",
+    "📊 Stock Picks",
+    "💰 Mutual Funds",
 ])
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  TAB 0 â€” Morning Checklist
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 0 — Morning Checklist
+# ══════════════════════════════════════════════════════════════════════════════
 with tab3:
-    st.markdown("## ðŸŒ… Morning Market Checklist")
+    st.markdown("## 🌅 Morning Market Checklist")
     st.caption("Run this every morning before 9:15 AM to prepare your trading plan for the day.")
 
-    # â”€â”€ Fetch all data upfront â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Fetch all data upfront ────────────────────────────────────────────────
     nq_m       = quotes.get("Nifty 50",   {})
     bnq_m      = quotes.get("Bank Nifty", {})
     vix_m      = quotes.get("India VIX",  {}).get("ltp", 0)
@@ -1932,47 +1806,47 @@ with tab3:
     ltp_m    = nq_m.get("ltp", 0)
     st_dir_m = last_m.get("supertrend_dir", 0) if not nifty_df_m.empty else 0
 
-    # â”€â”€ Helper: card item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Helper: card item ─────────────────────────────────────────────────────
     def ci(label, value, status, msg):
-        colors = {"ok": ("#0d2618","#089981","âœ…"), "warn": ("#2a1f0d","#ffa500","âš ï¸"), "bad": ("#2a0d0d","#f23645","âŒ")}
+        colors = {"ok": ("#0d2618","#089981","✅"), "warn": ("#2a1f0d","#ffa500","⚠️"), "bad": ("#2a0d0d","#f23645","❌")}
         bg, border, icon = colors.get(status, colors["warn"])
         st.markdown(
             f'<div style="background:{bg};border-left:4px solid {border};border-radius:8px;'
             f'padding:10px 12px;margin:4px 0">'
             f'<div style="color:{border};font-weight:700;font-size:14px">{icon} {label}</div>'
             f'<div style="color:#e0e0e0;font-weight:700;font-size:16px;margin:3px 0">{value}</div>'
-            f'<div style="color:#b2b5be;font-size:12px">{msg}</div></div>',
+            f'<div style="color:#9ca3af;font-size:12px">{msg}</div></div>',
             unsafe_allow_html=True,
         )
 
     def sec_title(n, title):
-        st.markdown(f'<div style="font-size:13px;font-weight:800;color:#b2b5be;'
+        st.markdown(f'<div style="font-size:13px;font-weight:800;color:#9ca3af;'
                     f'text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">{n} {title}</div>',
                     unsafe_allow_html=True)
 
-    # â”€â”€ 6 columns â€” widths proportional to content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── 6 columns — widths proportional to content ────────────────────────────
     mc1, mc2, mc3, mc4, mc5, mc6 = st.columns([1, 1.2, 1.6, 1.6, 1.5, 1.4])
 
     # 1. Volatility
     with mc1:
-        sec_title("1ï¸âƒ£", "VOLATILITY")
+        sec_title("1️⃣", "VOLATILITY")
         if vix_m:
             if vix_m < 14:
-                ci("India VIX", f"{vix_m:.2f}", "ok", "Low â€” good for trades")
+                ci("India VIX", f"{vix_m:.2f}", "ok", "Low — good for trades")
             elif vix_m < 18:
-                ci("India VIX", f"{vix_m:.2f}", "warn", "Moderate â€” normal size")
+                ci("India VIX", f"{vix_m:.2f}", "warn", "Moderate — normal size")
             else:
-                ci("India VIX", f"{vix_m:.2f}", "bad", "High â€” reduce size 50%")
+                ci("India VIX", f"{vix_m:.2f}", "bad", "High — reduce size 50%")
 
     # 2. Gap Analysis
     with mc2:
-        sec_title("2ï¸âƒ£", "GAP")
+        sec_title("2️⃣", "GAP")
         if abs(nifty_pct) < 0.3:
-            ci("Nifty", f"{nifty_pct:+.2f}%", "ok", "Flat â€” wait for 9:30 AM")
+            ci("Nifty", f"{nifty_pct:+.2f}%", "ok", "Flat — wait for 9:30 AM")
         elif nifty_pct > 0.3:
-            ci("Nifty", f"{nifty_pct:+.2f}%", "warn", "Gap up â€” continuation?")
+            ci("Nifty", f"{nifty_pct:+.2f}%", "warn", "Gap up — continuation?")
         else:
-            ci("Nifty", f"{nifty_pct:+.2f}%", "warn", "Gap down â€” bounce?")
+            ci("Nifty", f"{nifty_pct:+.2f}%", "warn", "Gap down — bounce?")
         bpct = bnq_m.get("pct", 0)
         ci("BankNifty", f"{bpct:+.2f}%",
            "ok" if abs(bpct) < 0.3 else ("warn" if bpct > 0 else "bad"),
@@ -1980,50 +1854,50 @@ with tab3:
 
     # 3. Global Cues
     with mc3:
-        sec_title("3ï¸âƒ£", "GLOBAL CUES")
+        sec_title("3️⃣", "GLOBAL CUES")
         ci("S&P 500", f"{sp_pct:+.2f}%",
            "ok" if sp_pct > 0.3 else ("bad" if sp_pct < -0.3 else "warn"),
-           "US positive â€” bull bias" if sp_pct > 0.3 else ("US negative â€” caution" if sp_pct < -0.3 else "US flat â€” neutral"))
+           "US positive — bull bias" if sp_pct > 0.3 else ("US negative — caution" if sp_pct < -0.3 else "US flat — neutral"))
         ci("Crude Oil", f"{crude_pct:+.2f}%",
            "bad" if crude_pct > 1.5 else ("ok" if crude_pct < -1.0 else "warn"),
-           "Spike â€” negative India" if crude_pct > 1.5 else ("Down â€” positive India" if crude_pct < -1.0 else "Stable â€” neutral"))
-        ci("USD/INR", f"â‚¹{usdinr_ltp:.2f}",
+           "Spike — negative India" if crude_pct > 1.5 else ("Down — positive India" if crude_pct < -1.0 else "Stable — neutral"))
+        ci("USD/INR", f"₹{usdinr_ltp:.2f}",
            "bad" if usdinr_ltp > 85 else ("ok" if usdinr_ltp < 83.5 else "warn"),
-           "Rupee weak â€” FII sell" if usdinr_ltp > 85 else ("Rupee strong â€” FII buy" if usdinr_ltp < 83.5 else "Rupee stable"))
+           "Rupee weak — FII sell" if usdinr_ltp > 85 else ("Rupee strong — FII buy" if usdinr_ltp < 83.5 else "Rupee stable"))
 
     # 4. Trend Direction
     with mc4:
-        sec_title("4ï¸âƒ£", "TREND")
+        sec_title("4️⃣", "TREND")
         if not nifty_df_m.empty:
             ci("EMA Stack",
-               "EMA9 > EMA21 â–²" if ema9_m > ema21_m else "EMA9 < EMA21 â–¼",
+               "EMA9 > EMA21 ▲" if ema9_m > ema21_m else "EMA9 < EMA21 ▼",
                "ok" if ema9_m > ema21_m else "bad",
-               "Bullish â€” prefer CE" if ema9_m > ema21_m else "Bearish â€” prefer PE")
+               "Bullish — prefer CE" if ema9_m > ema21_m else "Bearish — prefer PE")
             if ltp_m and vwap_m:
                 ci("VWAP",
                    f"{'Above' if ltp_m > vwap_m else 'Below'} {vwap_m:,.0f}",
                    "ok" if ltp_m > vwap_m else "bad",
-                   "Price above VWAP â€” bullish" if ltp_m > vwap_m else "Price below VWAP â€” bearish")
+                   "Price above VWAP — bullish" if ltp_m > vwap_m else "Price below VWAP — bearish")
             ci("Supertrend",
-               "Bullish ðŸŸ¢" if st_dir_m == 1 else ("Bearish ðŸ”´" if st_dir_m == -1 else "N/A"),
+               "Bullish 🟢" if st_dir_m == 1 else ("Bearish 🔴" if st_dir_m == -1 else "N/A"),
                "ok" if st_dir_m == 1 else ("bad" if st_dir_m == -1 else "warn"),
                "Uptrend confirmed" if st_dir_m == 1 else ("Downtrend confirmed" if st_dir_m == -1 else "Calculating..."))
 
     # 5. Global Intelligence
     with mc5:
-        sec_title("5ï¸âƒ£", "GLOBAL INTEL")
+        sec_title("5️⃣", "GLOBAL INTEL")
         gs_status = "ok" if gs_m["score"] >= 2 else ("bad" if gs_m["score"] <= -2 else "warn")
         gs_bg = "#0d2618" if gs_status == "ok" else ("#2a0d0d" if gs_status == "bad" else "#2a1f0d")
         factors_html = "".join([
-            f'<div style="color:{"#089981" if f[2]=="bull" else ("#f23645" if f[2]=="bear" else "#787b86")};font-size:12px">'
-            f'{"â–²" if f[2]=="bull" else ("â–¼" if f[2]=="bear" else "â€”")} {f[0]}: {f[1]}</div>'
+            f'<div style="color:{"#089981" if f[2]=="bull" else ("#f23645" if f[2]=="bear" else "#6b7280")};font-size:12px">'
+            f'{"▲" if f[2]=="bull" else ("▼" if f[2]=="bear" else "—")} {f[0]}: {f[1]}</div>'
             for f in gs_m["factors"][:6]
         ])
         st.markdown(
             f'<div style="background:{gs_bg};border-left:4px solid {gs_m["color"]};'
             f'border-radius:8px;padding:12px;margin:4px 0">'
             f'<div style="font-size:28px;font-weight:900;color:{gs_m["color"]};line-height:1">'
-            f'{gs_m["score"]:+d}<span style="font-size:13px;color:#b2b5be"> /10</span></div>'
+            f'{gs_m["score"]:+d}<span style="font-size:13px;color:#9ca3af"> /10</span></div>'
             f'<div style="font-size:14px;font-weight:700;color:{gs_m["color"]};margin:4px 0">{gs_m["label"]}</div>'
             f'{factors_html}</div>',
             unsafe_allow_html=True,
@@ -2031,7 +1905,7 @@ with tab3:
 
     # 6. Trading Decision
     with mc6:
-        sec_title("6ï¸âƒ£", "DECISION")
+        sec_title("6️⃣", "DECISION")
         bull_checks = 0
         bear_checks = 0
         if vix_m and vix_m < 18:              bull_checks += 1
@@ -2046,19 +1920,19 @@ with tab3:
         bear_checks = max(7 - bull_checks, bear_checks)
 
         if vix_m and vix_m > 20:
-            verdict, vc = "â›” NO TRADE",  "#f23645"
+            verdict, vc = "⛔ NO TRADE",  "#f23645"
             advice = "VIX > 20\nSit out today."
         elif gs_m["score"] <= -4:
-            verdict, vc = "â›” NO TRADE",  "#f23645"
+            verdict, vc = "⛔ NO TRADE",  "#f23645"
             advice = "Strong global\nheadwinds."
         elif bull_checks >= 4:
-            verdict, vc = "ðŸŸ¢ BULLISH",   "#089981"
+            verdict, vc = "🟢 BULLISH",   "#089981"
             advice = f"{bull_checks}/7 bullish\nBuy CE near VWAP\nTrail SL on ST"
         elif bear_checks >= 4:
-            verdict, vc = "ðŸ”´ BEARISH",   "#f23645"
+            verdict, vc = "🔴 BEARISH",   "#f23645"
             advice = f"{bear_checks}/7 bearish\nBuy PE near VWAP\nTrail SL on ST"
         else:
-            verdict, vc = "ðŸŸ¡ NEUTRAL",   "#ffa500"
+            verdict, vc = "🟡 NEUTRAL",   "#ffa500"
             advice = f"{bull_checks}B / {bear_checks}Be out of 7\nWait for breakout\nafter 10 AM"
 
         vd_bg = "#0d2618" if vc == "#089981" else ("#2a0d0d" if vc == "#f23645" else "#2a1f0d")
@@ -2066,33 +1940,33 @@ with tab3:
             f'<div style="background:{vd_bg};border-left:4px solid {vc};border-radius:8px;'
             f'padding:14px 12px;margin:4px 0;text-align:center">'
             f'<div style="font-size:20px;font-weight:900;color:{vc}">{verdict}</div>'
-            f'<div style="font-size:13px;color:#b2b5be;margin-top:8px;white-space:pre-line;line-height:1.8">{advice}</div>'
+            f'<div style="font-size:13px;color:#9ca3af;margin-top:8px;white-space:pre-line;line-height:1.8">{advice}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
 
     st.divider()
-    st.markdown("### â° Intraday Time Guide")
+    st.markdown("### ⏰ Intraday Time Guide")
     time_data = {
-        "Time": ["9:15â€“9:30 AM", "9:30â€“10:00 AM", "10:00 AMâ€“1:00 PM", "1:00â€“2:00 PM", "2:00â€“3:00 PM", "3:00â€“3:15 PM"],
+        "Time": ["9:15–9:30 AM", "9:30–10:00 AM", "10:00 AM–1:00 PM", "1:00–2:00 PM", "2:00–3:00 PM", "3:00–3:15 PM"],
         "Action": [
-            "ðŸš« Do NOT trade â€” opening volatility",
-            "ðŸ‘€ Observe â€” let range form, check VWAP side",
-            "âœ… Best time â€” high probability setups, trend confirmed",
-            "âš ï¸ Lunch hours â€” low volume, avoid new entries",
-            "âœ… Good time â€” institutional activity picks up",
-            "ðŸš« Exit all positions â€” do NOT hold into close",
+            "🚫 Do NOT trade — opening volatility",
+            "👀 Observe — let range form, check VWAP side",
+            "✅ Best time — high probability setups, trend confirmed",
+            "⚠️ Lunch hours — low volume, avoid new entries",
+            "✅ Good time — institutional activity picks up",
+            "🚫 Exit all positions — do NOT hold into close",
         ]
     }
     st.dataframe(pd.DataFrame(time_data), use_container_width=True, hide_index=True)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  TAB 1 â€” Intraday Signals
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 1 — Intraday Signals
+# ══════════════════════════════════════════════════════════════════════════════
 with tab1:
-    st.markdown("## ðŸŽ¯ Intraday Trade Command Center")
-    st.caption("Professional options trading signals â€” acts as your intraday mentor. Refresh for latest data.")
+    st.markdown("## 🎯 Intraday Trade Command Center")
+    st.caption("Professional options trading signals — acts as your intraday mentor. Refresh for latest data.")
 
     # Load data if not already loaded
     intra_nifty_df = get_candles("^NSEI",    period="5d", interval="15m")
@@ -2106,35 +1980,35 @@ with tab1:
     n_ltp  = nq_i.get("ltp",  0)
     bn_ltp = bnq_i.get("ltp", 0)
 
-    # â”€â”€ Market condition banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Market condition banner ───────────────────────────────────────────────
     ic1, ic2, ic3, _ = st.columns([1, 1, 1, 2])
     with ic1:
         vix_color = "#f23645" if vix_i > 18 else "#089981"
         st.markdown(f'<div class="metric-card" style="border-left-color:{vix_color}">'
                     f'<div class="trade-label">India VIX</div>'
                     f'<div style="font-size:24px;font-weight:800;color:{vix_color}">{vix_i:.2f}</div>'
-                    f'<div style="font-size:12px;color:#b2b5be">{"âš ï¸ High â€” reduce size" if vix_i > 18 else "âœ… Normal range"}</div>'
+                    f'<div style="font-size:12px;color:#9ca3af">{"⚠️ High — reduce size" if vix_i > 18 else "✅ Normal range"}</div>'
                     f'</div>', unsafe_allow_html=True)
     with ic2:
         n_color = "#089981" if nq_i.get("chg",0)>=0 else "#f23645"
         st.markdown(f'<div class="metric-card" style="border-left-color:{n_color}">'
                     f'<div class="trade-label">Nifty 50</div>'
                     f'<div style="font-size:24px;font-weight:800;color:{n_color}">{n_ltp:,.2f}</div>'
-                    f'<div style="font-size:12px;color:#b2b5be">{nq_i.get("pct",0):+.2f}% today</div>'
+                    f'<div style="font-size:12px;color:#9ca3af">{nq_i.get("pct",0):+.2f}% today</div>'
                     f'</div>', unsafe_allow_html=True)
     with ic3:
         b_color = "#089981" if bnq_i.get("chg",0)>=0 else "#f23645"
         st.markdown(f'<div class="metric-card" style="border-left-color:{b_color}">'
                     f'<div class="trade-label">Bank Nifty</div>'
                     f'<div style="font-size:24px;font-weight:800;color:{b_color}">{bn_ltp:,.2f}</div>'
-                    f'<div style="font-size:12px;color:#b2b5be">{bnq_i.get("pct",0):+.2f}% today</div>'
+                    f'<div style="font-size:12px;color:#9ca3af">{bnq_i.get("pct",0):+.2f}% today</div>'
                     f'</div>', unsafe_allow_html=True)
 
     st.divider()
 
-    # â”€â”€ Opening Range Breakout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    st.markdown("### ðŸ“ Opening Range Breakout (ORB)")
-    st.caption("First 15-min High & Low (9:15â€“9:30 AM) â€” the most watched intraday levels")
+    # ── Opening Range Breakout ────────────────────────────────────────────────
+    st.markdown("### 📐 Opening Range Breakout (ORB)")
+    st.caption("First 15-min High & Low (9:15–9:30 AM) — the most watched intraday levels")
     orb_n  = get_orb("^NSEI")
     orb_bn = get_orb("^NSEBANK")
 
@@ -2149,17 +2023,17 @@ with tab1:
                 orb_l = orb_data["low"]
                 orb_r = orb_data["range"]
                 if ltp_orb > orb_h:
-                    orb_signal = "ðŸŸ¢ BREAKOUT â€” CE bias"
+                    orb_signal = "🟢 BREAKOUT — CE bias"
                     orb_cls    = "#089981"
                 elif ltp_orb < orb_l:
-                    orb_signal = "ðŸ”´ BREAKDOWN â€” PE bias"
+                    orb_signal = "🔴 BREAKDOWN — PE bias"
                     orb_cls    = "#f23645"
                 else:
-                    orb_signal = "ðŸŸ¡ Inside range â€” wait"
+                    orb_signal = "🟡 Inside range — wait"
                     orb_cls    = "#ffa500"
                 st.markdown(f"""
                 <div class="metric-card" style="border-left-color:{orb_cls}">
-                  <div style="font-size:12px;color:#b2b5be;margin-bottom:6px"><b>{name_orb} ORB</b></div>
+                  <div style="font-size:12px;color:#9ca3af;margin-bottom:6px"><b>{name_orb} ORB</b></div>
                   <div style="display:flex;justify-content:space-between;margin-bottom:6px">
                     <div><div class="trade-label">ORB High</div>
                          <div style="color:#f23645;font-weight:700;font-size:15px">{orb_h:,.2f}</div></div>
@@ -2171,9 +2045,9 @@ with tab1:
                          <div style="font-weight:700;font-size:15px">{ltp_orb:,.2f}</div></div>
                   </div>
                   <div style="color:{orb_cls};font-weight:700;font-size:14px">{orb_signal}</div>
-                  <div style="color:#b2b5be;font-size:11px;margin-top:4px">
-                    Strategy: Buy breakout above ORB High â†’ CE | Breakdown below ORB Low â†’ PE<br>
-                    SL: Re-entry inside the range | Target: 1.5Ã— â€“ 2Ã— the range size
+                  <div style="color:#9ca3af;font-size:11px;margin-top:4px">
+                    Strategy: Buy breakout above ORB High → CE | Breakdown below ORB Low → PE<br>
+                    SL: Re-entry inside the range | Target: 1.5× – 2× the range size
                   </div>
                 </div>""", unsafe_allow_html=True)
             else:
@@ -2181,39 +2055,39 @@ with tab1:
 
     st.divider()
 
-    # â”€â”€ Index selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Index selector ────────────────────────────────────────────────────────
     sel_index = st.radio("Select Index for Signals", ["Nifty 50", "Bank Nifty", "Both"],
                           horizontal=True)
 
-    # Budget input â€” used inside show_intraday_signals below
+    # Budget input — used inside show_intraday_signals below
     bgt_col, _ = st.columns([1, 3])
     with bgt_col:
         user_budget = st.number_input(
-            "ðŸ’° My budget per lot (â‚¹)", min_value=500, max_value=500000,
+            "💰 My budget per lot (₹)", min_value=500, max_value=500000,
             value=10000, step=500, key="intra_budget",
             help="Dashboard will highlight strikes you can afford with this budget",
         )
 
-    # â”€â”€ Also fetch pivots for signal engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Also fetch pivots for signal engine ──────────────────────────────────
     nifty_pivots_i = get_pivots("^NSEI")
     bank_pivots_i  = get_pivots("^NSEBANK")
 
     def _level_chip(label, val, color):
         return (f'<div style="background:#1e222d;border:1px solid {color};border-radius:6px;'
                 f'padding:6px 10px;text-align:center;min-width:80px">'
-                f'<div style="color:#787b86;font-size:10px;font-weight:700">{label}</div>'
+                f'<div style="color:#6b7280;font-size:10px;font-weight:700">{label}</div>'
                 f'<div style="color:{color};font-size:14px;font-weight:800">{val}</div></div>')
 
     def show_intraday_signals(df, ltp, vix, name, step, orb=None, pivots=None):
         setup = intraday_option_setup(df, ltp, vix, name, step, orb, pivots)
         direction  = setup.get("direction", "CE")
         dir_color  = "#089981" if direction == "CE" else "#f23645"
-        dir_emoji  = "ðŸ“ˆ" if direction == "CE" else "ðŸ“‰"
+        dir_emoji  = "📈" if direction == "CE" else "📉"
         atm        = setup.get("atm", nearest_strike(ltp, step))
         vix_f      = float(vix) if vix else 15
         lot_sz     = 75 if "Bank" not in name else 30
         days_left   = setup.get("days_left", 3)
-        expiry_date = setup.get("expiry_date", "â€”")
+        expiry_date = setup.get("expiry_date", "—")
 
         # Live option chain from Upstox (falls back to {} if token missing)
         exp_info_live = next_expiry_info()
@@ -2225,9 +2099,9 @@ with tab1:
             _expstr = exp_info_live["nifty"]["date_str"]
         live_chain = get_live_chain(_ikey, _expstr)
 
-        st.markdown(f"### {name} â€” Trade Setup")
+        st.markdown(f"### {name} — Trade Setup")
 
-        # â”€â”€ KEY LEVELS ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── KEY LEVELS ROW ────────────────────────────────────────────────────
         st.markdown("**Key Levels**")
         kl_html = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">'
         if orb and orb.get("high"):
@@ -2242,27 +2116,27 @@ with tab1:
             if pivots.get("R2"): kl_html += _level_chip("R2", f"{pivots['R2']:,}", "#f23645")
             if pivots.get("S1"): kl_html += _level_chip("S1", f"{pivots['S1']:,}", "#089981")
             if pivots.get("S2"): kl_html += _level_chip("S2", f"{pivots['S2']:,}", "#089981")
-        kl_html += _level_chip("ATM", f"{atm:,}", "#b2b5be")
+        kl_html += _level_chip("ATM", f"{atm:,}", "#9ca3af")
         kl_html += '</div>'
         st.markdown(kl_html, unsafe_allow_html=True)
 
-        # â”€â”€ NO TRADE / WAIT BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── NO TRADE / WAIT BANNER ────────────────────────────────────────────
         if setup.get("no_trade"):
             reason = setup["reason"]
             st.markdown(
                 f'<div style="background:#2a1f0d;border-left:4px solid #ffa500;border-radius:8px;'
                 f'padding:14px 16px;margin:8px 0">'
-                f'<div style="color:#ffa500;font-weight:800;font-size:16px">â³ WAIT â€” No Trade Yet</div>'
+                f'<div style="color:#ffa500;font-weight:800;font-size:16px">⏳ WAIT — No Trade Yet</div>'
                 f'<div style="color:#e0e0e0;font-size:13px;margin-top:6px">{reason}</div></div>',
                 unsafe_allow_html=True)
             # Show confirmations even in wait state
             if setup.get("confirmations"):
                 with st.expander("Current indicator readings", expanded=False):
                     for c in setup["confirmations"]:
-                        st.markdown(f"â€¢ {c}")
+                        st.markdown(f"• {c}")
             return
 
-        # â”€â”€ MAIN SIGNAL BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── MAIN SIGNAL BANNER ────────────────────────────────────────────────
         bg_color = "#0d2618" if direction == "CE" else "#2a0d0d"
         st.markdown(
             f'<div style="background:{bg_color};border:2px solid {dir_color};border-radius:10px;'
@@ -2270,28 +2144,28 @@ with tab1:
             f'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">'
             f'<div>'
             f'<div style="color:{dir_color};font-size:22px;font-weight:900">'
-            f'{dir_emoji} BUY {direction} â€” {setup["conf_label"]} CONFIDENCE</div>'
+            f'{dir_emoji} BUY {direction} — {setup["conf_label"]} CONFIDENCE</div>'
             f'<div style="color:#e0e0e0;font-size:13px;margin-top:4px">{setup["entry_cond"]}</div>'
             f'</div>'
             f'<div style="text-align:right">'
-            f'<div style="color:#b2b5be;font-size:11px">VWAP</div>'
+            f'<div style="color:#9ca3af;font-size:11px">VWAP</div>'
             f'<div style="color:#a78bfa;font-weight:700;font-size:15px">{vwap_val:,.0f}</div>'
             f'</div></div>'
-            f'<div style="color:#b2b5be;font-size:12px;margin-top:8px">'
+            f'<div style="color:#9ca3af;font-size:12px;margin-top:8px">'
             f'{setup.get("vix_advice","")}</div>'
             f'</div>', unsafe_allow_html=True)
 
-        # â”€â”€ SIGNAL CONFIRMATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── SIGNAL CONFIRMATIONS ──────────────────────────────────────────────
         with st.expander(f"Signal factors (Bull {setup['bull_score']} | Bear {setup['bear_score']})",
                          expanded=False):
             for c in setup["confirmations"]:
-                icon = "ðŸŸ¢" if any(w in c for w in ["bullish","above","BREAKOUT","rising","buying"]) else \
-                       ("ðŸ”´" if any(w in c for w in ["bearish","below","BREAKDOWN","falling","selling"]) else "ðŸŸ¡")
+                icon = "🟢" if any(w in c for w in ["bullish","above","BREAKOUT","rising","buying"]) else \
+                       ("🔴" if any(w in c for w in ["bearish","below","BREAKDOWN","falling","selling"]) else "🟡")
                 st.markdown(f"{icon} {c}")
 
         st.markdown("---")
 
-        # â”€â”€ INDEX-LEVEL SL / TARGETS (primary reference) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── INDEX-LEVEL SL / TARGETS (primary reference) ──────────────────────
         sl_lbl = setup["idx_sl_label"]
         t1_lbl = setup["idx_t1_label"]
         t2_lbl = setup["idx_t2_label"]
@@ -2310,18 +2184,18 @@ with tab1:
                 st.markdown(
                     f'<div style="background:#1e222d;border-left:3px solid {color};border-radius:6px;'
                     f'padding:10px 12px">'
-                    f'<div style="color:#787b86;font-size:11px">{label}</div>'
+                    f'<div style="color:#6b7280;font-size:11px">{label}</div>'
                     f'<div style="color:{color};font-weight:800;font-size:15px">{val}</div>'
-                    f'<div style="color:#787b86;font-size:10px">{note}</div></div>',
+                    f'<div style="color:#6b7280;font-size:10px">{note}</div></div>',
                     unsafe_allow_html=True)
 
         st.markdown(
-            f'<div style="color:#b2b5be;font-size:12px;margin:6px 0 14px">'
+            f'<div style="color:#9ca3af;font-size:12px;margin:6px 0 14px">'
             f'Index needs to move <b style="color:{dir_color}">{idx_move_t1:,.0f} pts</b> to T1 '
-            f'vs <b style="color:#f23645">{idx_move_sl:,.0f} pts</b> risk â€” '
+            f'vs <b style="color:#f23645">{idx_move_sl:,.0f} pts</b> risk — '
             f'<b>R:R = 1:{rr_idx}</b></div>', unsafe_allow_html=True)
 
-        # â”€â”€ STRIKE LADDER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── STRIKE LADDER ─────────────────────────────────────────────────────
         st.markdown("#### Strike Selection")
         st.caption("Premiums are estimates based on VIX + days to expiry. CHECK ACTUAL PRICE ON YOUR BROKER before entering.")
 
@@ -2329,19 +2203,19 @@ with tab1:
         vix_ann    = max(vix_f, 8) / 100
         bs_factor  = 0.40 if "Bank" in name else 0.308
         base_mid   = ltp * vix_ann * np.sqrt(days_safe / 252) * bs_factor
-        # Show Â±20% range to acknowledge real-world bid-ask spread
+        # Show ±20% range to acknowledge real-world bid-ask spread
         def prem_range(mult):
             mid = base_mid * mult
-            return f"~{max(int(mid*0.80),5)}â€“{int(mid*1.20)}"
+            return f"~{max(int(mid*0.80),5)}–{int(mid*1.20)}"
 
         # OTM multipliers calibrated from live market data:
         # Nifty 23650 CE ATM=104 | 23350 PE (6-step OTM)=24.65 (ratio 0.24)
         # Extrapolated for 1/2/3 steps: ~0.72 / 0.45 / 0.27
         OTM_LEVELS = [
             ("ATM",      0, 1.00, "Best for strong breakouts. Highest premium, highest delta."),
-            ("OTM 1",    1, 0.72, "Recommended â€” good delta, manageable cost. Needs ~1 step move."),
+            ("OTM 1",    1, 0.72, "Recommended — good delta, manageable cost. Needs ~1 step move."),
             ("OTM 2",    2, 0.45, "Lower cost. Needs ~2x the index move to profit."),
-            ("Deep OTM", 3, 0.27, "High risk. Needs a large sustained move â€” avoid near expiry."),
+            ("Deep OTM", 3, 0.27, "High risk. Needs a large sustained move — avoid near expiry."),
         ]
 
         # Recommended direction gets full opacity; opposite is dimmed
@@ -2350,7 +2224,7 @@ with tab1:
                                 -1 if direction=="CE" else +1)]:
             is_rec = (opt_dir == direction)
             oc     = "#089981" if opt_dir == "CE" else "#f23645"
-            hdr    = f'{"â˜… RECOMMENDED" if is_rec else "OPPOSITE SIDE"}  {opt_dir}'
+            hdr    = f'{"★ RECOMMENDED" if is_rec else "OPPOSITE SIDE"}  {opt_dir}'
             st.markdown(
                 f'<div style="color:{oc};font-weight:700;font-size:14px;'
                 f'margin:14px 0 4px;opacity:{"1" if is_rec else "0.4"}">{hdr}</div>',
@@ -2363,7 +2237,7 @@ with tab1:
                 live_ltp    = chain_row.get("ce" if opt_dir == "CE" else "pe", 0)
                 live_iv     = chain_row.get("ce_iv" if opt_dir == "CE" else "pe_iv", 0)
                 if live_ltp and live_ltp > 0:
-                    pr          = f"â‚¹{live_ltp:.0f}"
+                    pr          = f"₹{live_ltp:.0f}"
                     prem_source = "LIVE"
                     mid_prem    = live_ltp
                 else:
@@ -2375,13 +2249,13 @@ with tab1:
                 affordable  = cost_lo <= user_budget
                 max_lots    = int(user_budget // max(cost_lo, 1))
                 # premium SL = -30%, T1 = +60%, T2 = +120%
-                prem_sl_pct = "âˆ’30%"
+                prem_sl_pct = "−30%"
                 prem_t1_pct = "+60%"
                 prem_t2_pct = "+120%"
                 idx_pts_needed = offset * step * 1.0  # rough: each OTM step needs ~step pts more
 
                 row_bg     = f"rgba({'38,166,154' if opt_dir=='CE' else '239,83,80'},0.07)" if is_rec and affordable else "rgba(255,255,255,0.02)"
-                row_border = oc if (is_rec and affordable) else "#2a2e39"
+                row_border = oc if (is_rec and affordable) else "#374151"
                 op         = "1" if is_rec else "0.4"
                 rec_badge  = ' <span style="background:#ffa500;color:#000;padding:1px 6px;border-radius:4px;font-size:10px">REC</span>' if is_rec and label == "OTM 1" else ""
 
@@ -2390,55 +2264,55 @@ with tab1:
                             padding:10px 14px;margin:4px 0;opacity:{op}">
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
                     <div>
-                      <span style="color:{oc};font-weight:800;font-size:16px">{strike} {opt_dir}</span>{rec_badge}<span style="color:#787b86;font-size:11px;margin-left:8px">{label}</span>
+                      <span style="color:{oc};font-weight:800;font-size:16px">{strike} {opt_dir}</span>{rec_badge}<span style="color:#6b7280;font-size:11px;margin-left:8px">{label}</span>
                     </div>
-                    <div style="background:#2a2e39;border-radius:6px;padding:3px 10px;font-size:12px">
-                      ðŸ“… <span style="color:#b2b5be">Expiry:</span> <span style="color:#e0e0e0;font-weight:700">{expiry_date}</span> <span style="color:#787b86">({days_left}d)</span>
+                    <div style="background:#1e2130;border-radius:6px;padding:3px 10px;font-size:12px">
+                      📅 <span style="color:#9ca3af">Expiry:</span> <span style="color:#e0e0e0;font-weight:700">{expiry_date}</span> <span style="color:#6b7280">({days_left}d)</span>
                     </div>
                   </div>
                   <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
-                    <div><div style="color:#787b86">{'Premium ðŸŸ¢ LIVE' if prem_source=='LIVE' else 'Premium ðŸŸ¡ EST'}</div>
+                    <div><div style="color:#6b7280">{'Premium 🟢 LIVE' if prem_source=='LIVE' else 'Premium 🟡 EST'}</div>
                          <div style="color:{oc};font-weight:700">{pr}</div>
-                         {'<div style="color:#787b86;font-size:10px">IV: '+f"{live_iv:.1f}%</div>" if live_iv else ''}</div>
-                    <div><div style="color:#787b86">1-lot cost</div>
-                         <div style="font-weight:700">â‚¹{cost_lo:,}â€“{cost_hi:,}</div></div>
-                    <div><div style="color:#787b86">Max lots</div>
-                         <div style="color:{'#089981' if affordable else '#787b86'};font-weight:800;font-size:14px">{max_lots if affordable else 'â€”'}</div></div>
-                    <div><div style="color:#787b86">Prem SL / T1 / T2</div>
+                         {'<div style="color:#6b7280;font-size:10px">IV: '+f"{live_iv:.1f}%</div>" if live_iv else ''}</div>
+                    <div><div style="color:#6b7280">1-lot cost</div>
+                         <div style="font-weight:700">₹{cost_lo:,}–{cost_hi:,}</div></div>
+                    <div><div style="color:#6b7280">Max lots</div>
+                         <div style="color:{'#089981' if affordable else '#6b7280'};font-weight:800;font-size:14px">{max_lots if affordable else '—'}</div></div>
+                    <div><div style="color:#6b7280">Prem SL / T1 / T2</div>
                          <div style="font-weight:700"><span style="color:#f23645">{prem_sl_pct}</span> &nbsp;
                          <span style="color:#089981">{prem_t1_pct}</span> &nbsp;
                          <span style="color:#089981">{prem_t2_pct}</span></div></div>
-                    <div><div style="color:#787b86">Index SL</div>
+                    <div><div style="color:#6b7280">Index SL</div>
                          <div style="color:#f23645;font-weight:700">{setup['idx_sl_label']}</div></div>
-                    <div><div style="color:#787b86">Index T1</div>
+                    <div><div style="color:#6b7280">Index T1</div>
                          <div style="color:#089981;font-weight:700">{setup['idx_t1_label']}</div></div>
                   </div>
-                  <div style="color:#787b86;font-size:11px;margin-top:6px">ðŸ’¡ {note}</div>
+                  <div style="color:#6b7280;font-size:11px;margin-top:6px">💡 {note}</div>
                 </div>""", unsafe_allow_html=True)
 
-        live_label = "ðŸŸ¢ LIVE from Upstox" if live_chain else "ðŸŸ¡ Estimated (add token for live)"
+        live_label = "🟢 LIVE from Upstox" if live_chain else "🟡 Estimated (add token for live)"
         st.caption(f"Lot sizes: Nifty=75 | BankNifty=30 | Expiry in {days_left} day(s) | Premiums: {live_label}")
 
-        # â”€â”€ RISK RULES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── RISK RULES ────────────────────────────────────────────────────────
         st.markdown("""
         <div style="background:#1e222d;border-left:4px solid #ffa500;border-radius:8px;
                     padding:12px 16px;margin-top:12px;font-size:13px">
         <b style="color:#ffa500">Risk Rules (Non-negotiable)</b><br>
-        <span style="color:#b2b5be">
-        â€¢ Risk only 1â€“2% of capital per trade &nbsp;|&nbsp;
-        â€¢ Exit at premium SL (âˆ’30%) without hesitation &nbsp;|&nbsp;
-        â€¢ Exit if index crosses your SL level â€” do NOT average down &nbsp;|&nbsp;
-        â€¢ Book 50% at T1, trail rest for T2 &nbsp;|&nbsp;
-        â€¢ No new entries after 1:30 PM &nbsp;|&nbsp;
-        â€¢ Exit ALL positions by 3:00 PM
+        <span style="color:#9ca3af">
+        • Risk only 1–2% of capital per trade &nbsp;|&nbsp;
+        • Exit at premium SL (−30%) without hesitation &nbsp;|&nbsp;
+        • Exit if index crosses your SL level — do NOT average down &nbsp;|&nbsp;
+        • Book 50% at T1, trail rest for T2 &nbsp;|&nbsp;
+        • No new entries after 1:30 PM &nbsp;|&nbsp;
+        • Exit ALL positions by 3:00 PM
         </span></div>""", unsafe_allow_html=True)
 
     nifty_pivs_for_signal = {k: float(v) for k, v in nifty_pivots_i.items()} if nifty_pivots_i else {}
     bank_pivs_for_signal  = {k: float(v) for k, v in bank_pivots_i.items()}  if bank_pivots_i  else {}
 
-    # â”€â”€ OLD signals (kept for existing users, shown below new section) â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── OLD signals (kept for existing users, shown below new section) ────────
     st.divider()
-    st.markdown("#### ðŸ“Š Technical Signals (Legacy View)")
+    st.markdown("#### 📊 Technical Signals (Legacy View)")
     with st.expander("Show detailed technical signals", expanded=False):
         if sel_index == "Nifty 50":
             show_intraday_signals(intra_nifty_df, n_ltp, vix_i, "Nifty 50",   50,  orb_n,  nifty_pivs_for_signal)
@@ -2449,16 +2323,16 @@ with tab1:
             st.divider()
             show_intraday_signals(intra_bank_df,  bn_ltp, vix_i, "Bank Nifty", 100, orb_bn, bank_pivs_for_signal)
 
-    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    # ═══════════════════════════════════════════════════════════════════════════
     # NEW: PROFESSIONAL TRADE COMMAND CENTER
-    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    # ═══════════════════════════════════════════════════════════════════════════
     if not _TRADE_ENGINE_OK:
         st.warning("Trade engine not loaded. Check trade_engine.py.")
     else:
         st.markdown("---")
-        st.markdown("## ðŸŽ¯ Professional Trade Recommendations")
+        st.markdown("## 🎯 Professional Trade Recommendations")
 
-        # â”€â”€ Full market intelligence (cached 5 min) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Full market intelligence (cached 5 min) ───────────────────────────
         @st.cache_data(ttl=300)
         def _get_market_intel(vix_val, nifty_pct_val):
             if _MI_OK:
@@ -2475,21 +2349,21 @@ with tab1:
             if gq:
                 global_quotes_tc[gname] = gq
         g_sentiment  = compute_global_sentiment(global_quotes_tc)
-        g_score      = intel.get("macro_score", g_sentiment.get("score", 0)) // 2  # scale -20â†’-10
+        g_score      = intel.get("macro_score", g_sentiment.get("score", 0)) // 2  # scale -20→-10
         fii_dii_data = intel.get("fii_dii",  te.fetch_fii_dii() if not intel else {})
         breadth_data = intel.get("breadth",  te.fetch_market_breadth() if not intel else {})
 
-        # â”€â”€ Market Context Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        st.markdown("### ðŸŒ Market Context")
+        # ── Market Context Banner ─────────────────────────────────────────────
+        st.markdown("### 🌐 Market Context")
         mc1, mc2, mc3, mc4, mc5 = st.columns(5)
 
         with mc1:
             g_color = "#089981" if g_score >= 2 else ("#f23645" if g_score <= -2 else "#ffa500")
-            g_arrow = "ðŸŸ¢" if g_score >= 2 else ("ðŸ”´" if g_score <= -2 else "ðŸŸ¡")
+            g_arrow = "🟢" if g_score >= 2 else ("🔴" if g_score <= -2 else "🟡")
             st.markdown(f"""<div class="metric-card" style="border-left-color:{g_color}">
             <div class="trade-label">Global Cues</div>
-            <div style="font-size:18px;font-weight:800;color:{g_color}">{g_arrow} {g_sentiment.get('label','â€”')[:20]}</div>
-            <div style="font-size:11px;color:#b2b5be">Score: {g_score:+d}/10</div>
+            <div style="font-size:18px;font-weight:800;color:{g_color}">{g_arrow} {g_sentiment.get('label','—')[:20]}</div>
+            <div style="font-size:11px;color:#9ca3af">Score: {g_score:+d}/10</div>
             </div>""", unsafe_allow_html=True)
 
         with mc2:
@@ -2497,7 +2371,7 @@ with tab1:
             st.markdown(f"""<div class="metric-card" style="border-left-color:{vcolor}">
             <div class="trade-label">India VIX</div>
             <div style="font-size:22px;font-weight:800;color:{vcolor}">{vix_i:.2f}</div>
-            <div style="font-size:11px;color:#b2b5be">{"âš ï¸ High" if vix_i>20 else ("âš ï¸ Watch" if vix_i>16 else "âœ… Normal")}</div>
+            <div style="font-size:11px;color:#9ca3af">{"⚠️ High" if vix_i>20 else ("⚠️ Watch" if vix_i>16 else "✅ Normal")}</div>
             </div>""", unsafe_allow_html=True)
 
         with mc3:
@@ -2507,15 +2381,15 @@ with tab1:
                 fc = "#089981" if fii_n > 0 else "#f23645"
                 dc = "#089981" if dii_n > 0 else "#f23645"
                 st.markdown(f"""<div class="metric-card">
-                <div class="trade-label">FII / DII (â‚¹Cr)</div>
+                <div class="trade-label">FII / DII (₹Cr)</div>
                 <div style="font-size:14px;font-weight:700;color:{fc}">FII: {fii_n:+,.0f}</div>
                 <div style="font-size:14px;font-weight:700;color:{dc}">DII: {dii_n:+,.0f}</div>
                 </div>""", unsafe_allow_html=True)
             else:
                 st.markdown("""<div class="metric-card">
                 <div class="trade-label">FII / DII</div>
-                <div style="font-size:13px;color:#787b86">Data unavailable</div>
-                <div style="font-size:11px;color:#787b86">NSE updates after 4 PM</div>
+                <div style="font-size:13px;color:#6b7280">Data unavailable</div>
+                <div style="font-size:11px;color:#6b7280">NSE updates after 4 PM</div>
                 </div>""", unsafe_allow_html=True)
 
         with mc4:
@@ -2524,13 +2398,13 @@ with tab1:
                      "#f23645" if breadth_data.get("bias") == "bearish" else "#ffa500")
                 st.markdown(f"""<div class="metric-card" style="border-left-color:{bc}">
                 <div class="trade-label">Market Breadth</div>
-                <div style="font-size:13px;font-weight:700;color:{bc}">{breadth_data.get('label','â€”')}</div>
-                <div style="font-size:11px;color:#b2b5be">A/D Ratio: {breadth_data.get('ratio',0):.1f}</div>
+                <div style="font-size:13px;font-weight:700;color:{bc}">{breadth_data.get('label','—')}</div>
+                <div style="font-size:11px;color:#9ca3af">A/D Ratio: {breadth_data.get('ratio',0):.1f}</div>
                 </div>""", unsafe_allow_html=True)
             else:
                 st.markdown("""<div class="metric-card">
                 <div class="trade-label">Market Breadth</div>
-                <div style="font-size:13px;color:#787b86">Unavailable</div>
+                <div style="font-size:13px;color:#6b7280">Unavailable</div>
                 </div>""", unsafe_allow_html=True)
 
         with mc5:
@@ -2539,14 +2413,14 @@ with tab1:
             is_open  = is_market_open()
             mins_e   = te._market_minutes_elapsed()
             hold_str = te._max_hold_till(mins_e)
-            tc = "#089981" if is_open else "#787b86"
+            tc = "#089981" if is_open else "#6b7280"
             st.markdown(f"""<div class="metric-card" style="border-left-color:{tc}">
             <div class="trade-label">Session</div>
-            <div style="font-size:16px;font-weight:800;color:{tc}">{'ðŸŸ¢ OPEN' if is_open else 'ðŸ”´ CLOSED'} {mkt_time}</div>
-            <div style="font-size:10px;color:#b2b5be">Max hold: {hold_str[:20]}</div>
+            <div style="font-size:16px;font-weight:800;color:{tc}">{'🟢 OPEN' if is_open else '🔴 CLOSED'} {mkt_time}</div>
+            <div style="font-size:10px;color:#9ca3af">Max hold: {hold_str[:20]}</div>
             </div>""", unsafe_allow_html=True)
 
-        # â”€â”€ Full Market Intelligence Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Full Market Intelligence Panel ────────────────────────────────────
         if intel:
             macro_score  = intel.get("macro_score", 0)
             regime       = intel.get("market_regime", "NEUTRAL")
@@ -2573,57 +2447,57 @@ with tab1:
                     {risk_level} RISK
                   </span>
                 </div>
-                <div style="color:#b2b5be;font-size:12px">Macro Score: <b style="color:{regime_color}">{macro_score:+d}/20</b></div>
+                <div style="color:#9ca3af;font-size:12px">Macro Score: <b style="color:{regime_color}">{macro_score:+d}/20</b></div>
               </div>
               <div style="background:#131722;border-radius:6px;height:6px;margin-bottom:10px">
                 <div style="background:{regime_color};width:{score_bar_w}%;height:100%;border-radius:6px"></div>
               </div>
-              <div style="color:#d1d5db;font-size:13px">ðŸ“‹ {summary}</div>
+              <div style="color:#d1d5db;font-size:13px">📋 {summary}</div>
             </div>""", unsafe_allow_html=True)
 
             # Alerts
             if geo_alert:
-                st.markdown(f'<div style="background:#2a0d0d;border:1px solid #f23645;border-radius:8px;padding:10px 16px;margin:4px 0;font-size:13px;color:#f23645">{geo_alert}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="background:#1f0d0f;border:1px solid #f23645;border-radius:8px;padding:10px 16px;margin:4px 0;font-size:13px;color:#f23645">{geo_alert}</div>', unsafe_allow_html=True)
             if policy_alert:
                 st.markdown(f'<div style="background:#1a1d0d;border:1px solid #ffa500;border-radius:8px;padding:10px 16px;margin:4px 0;font-size:13px;color:#ffa500">{policy_alert}</div>', unsafe_allow_html=True)
             if eco_events:
                 ev_html = " &nbsp;|&nbsp; ".join(
                     [f"<b style='color:{'#f23645' if e['impact']=='High' else '#ffa500'}'>{e['currency']}</b> {e['event']} @ {e['time']}"
                      for e in eco_events[:5]])
-                st.markdown(f'<div style="background:#0d1a2e;border:1px solid #2962ff;border-radius:8px;padding:10px 16px;margin:4px 0;font-size:12px;color:#d1d5db">ðŸ“… <b style="color:#2962ff">TODAY\'S EVENTS:</b> {ev_html}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="background:#0d1a2e;border:1px solid #3b82f6;border-radius:8px;padding:10px 16px;margin:4px 0;font-size:12px;color:#d1d5db">📅 <b style="color:#2962ff">TODAY\'S EVENTS:</b> {ev_html}</div>', unsafe_allow_html=True)
 
             # Key market drivers (collapsible)
-            with st.expander("ðŸ“Š Full Market Intelligence â€” Global Indices, Macro, News, Sectors", expanded=False):
+            with st.expander("📊 Full Market Intelligence — Global Indices, Macro, News, Sectors", expanded=False):
                 d1, d2 = st.columns(2)
                 with d1:
                     # Driver table
-                    st.markdown("**ðŸŒ Key Market Drivers**")
+                    st.markdown("**🌐 Key Market Drivers**")
                     drv_html = ""
                     for d in drivers:
-                        bc = "#089981" if d["bull"] is True else ("#f23645" if d["bull"] is False else "#787b86")
+                        bc = "#089981" if d["bull"] is True else ("#f23645" if d["bull"] is False else "#6b7280")
                         drv_html += (f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
-                                     f'border-bottom:1px solid #2a2e39;font-size:12px">'
-                                     f'<span style="color:#b2b5be">{d["factor"]}</span>'
+                                     f'border-bottom:1px solid #1e2130;font-size:12px">'
+                                     f'<span style="color:#9ca3af">{d["factor"]}</span>'
                                      f'<span style="color:{bc};font-weight:600">{d["signal"]}</span>'
                                      f'</div>')
                     st.markdown(f'<div style="background:#1e222d;border-radius:8px;padding:12px">{drv_html}</div>',
                                 unsafe_allow_html=True)
 
                     # News intelligence
-                    st.markdown("**ðŸ“° News Intelligence**")
+                    st.markdown("**📰 News Intelligence**")
                     if news_intel.get("top_bull"):
                         for h in news_intel["top_bull"][:2]:
-                            st.markdown(f'<div style="font-size:11px;color:#089981;padding:2px 0">ðŸŸ¢ {h[:90]}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div style="font-size:11px;color:#089981;padding:2px 0">🟢 {h[:90]}</div>', unsafe_allow_html=True)
                     if news_intel.get("top_bear"):
                         for h in news_intel["top_bear"][:2]:
-                            st.markdown(f'<div style="font-size:11px;color:#f23645;padding:2px 0">ðŸ”´ {h[:90]}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div style="font-size:11px;color:#f23645;padding:2px 0">🔴 {h[:90]}</div>', unsafe_allow_html=True)
                     if news_intel.get("earnings_headlines"):
                         for h in news_intel["earnings_headlines"][:2]:
-                            st.markdown(f'<div style="font-size:11px;color:#ffa500;padding:2px 0">ðŸ“Š {h[:90]}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div style="font-size:11px;color:#ffa500;padding:2px 0">📊 {h[:90]}</div>', unsafe_allow_html=True)
 
                 with d2:
                     # Global indices table
-                    st.markdown("**ðŸ—ºï¸ Global Indices**")
+                    st.markdown("**🗺️ Global Indices**")
                     gidx = intel.get("global_indices", {})
                     gi_html = ""
                     for gname, gq in gidx.items():
@@ -2631,15 +2505,15 @@ with tab1:
                         ltp  = gq.get("ltp", 0)
                         clr  = "#089981" if pct > 0 else "#f23645"
                         gi_html += (f'<div style="display:flex;justify-content:space-between;padding:4px 0;'
-                                    f'border-bottom:1px solid #2a2e39;font-size:12px">'
-                                    f'<span style="color:#b2b5be">{gname}</span>'
+                                    f'border-bottom:1px solid #1e2130;font-size:12px">'
+                                    f'<span style="color:#9ca3af">{gname}</span>'
                                     f'<span style="color:{clr};font-weight:600">{pct:+.2f}%</span>'
                                     f'</div>')
                     st.markdown(f'<div style="background:#1e222d;border-radius:8px;padding:12px">{gi_html}</div>',
                                 unsafe_allow_html=True)
 
                     # Sector performance
-                    st.markdown("**ðŸ­ NSE Sectors (Today)**")
+                    st.markdown("**🏭 NSE Sectors (Today)**")
                     sec = intel.get("sectors", {})
                     sec_html = ""
                     for sname, sq in list(sec.items())[:8]:
@@ -2647,9 +2521,9 @@ with tab1:
                         clr = "#089981" if pct > 0 else "#f23645"
                         bar_w = min(abs(pct) * 20, 100)
                         sec_html += (f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                                     f'padding:4px 0;border-bottom:1px solid #2a2e39;font-size:12px">'
-                                     f'<span style="color:#b2b5be;min-width:90px">{sname}</span>'
-                                     f'<div style="flex:1;margin:0 8px;background:#2a2e39;border-radius:3px;height:4px">'
+                                     f'padding:4px 0;border-bottom:1px solid #1e2130;font-size:12px">'
+                                     f'<span style="color:#9ca3af;min-width:90px">{sname}</span>'
+                                     f'<div style="flex:1;margin:0 8px;background:#1e2130;border-radius:3px;height:4px">'
                                      f'<div style="background:{clr};width:{bar_w}%;height:100%;border-radius:3px;'
                                      f'{"margin-left:auto" if pct < 0 else ""}"></div></div>'
                                      f'<span style="color:{clr};font-weight:700;min-width:50px;text-align:right">{pct:+.2f}%</span>'
@@ -2658,7 +2532,7 @@ with tab1:
                                 unsafe_allow_html=True)
 
                 # Macro data row
-                st.markdown("**ðŸ’± Macro Snapshot**")
+                st.markdown("**💱 Macro Snapshot**")
                 mac = intel.get("macro_data", {})
                 mac_items = [
                     ("USD/INR",      mac.get("USD/INR",{})),
@@ -2676,14 +2550,14 @@ with tab1:
                           "#089981" if pct > 0 else "#f23645")
                     with col:
                         st.markdown(f"""<div style="background:#1e222d;border-radius:6px;padding:8px;text-align:center">
-                        <div style="color:#787b86;font-size:10px">{mname}</div>
+                        <div style="color:#6b7280;font-size:10px">{mname}</div>
                         <div style="color:{clr};font-size:14px;font-weight:700">{ltp:.2f}</div>
                         <div style="color:{clr};font-size:11px">{pct:+.2f}%</div>
                         </div>""", unsafe_allow_html=True)
 
         st.markdown("---")
 
-        # â”€â”€ Per-index recommendation cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Per-index recommendation cards ────────────────────────────────────
         exp_info_tc = next_expiry_info()
 
         INDICES_TC = [
@@ -2724,19 +2598,19 @@ with tab1:
                 breadth=breadth_data,
             )
 
-            # â”€â”€ Status color & badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            # ── Status color & badge ──────────────────────────────────────────
             status = rec.get("status", "AVOID")
             direction = rec.get("direction", "")
             conf = rec.get("confidence", 0)
 
             STATUS_META = {
-                "HIGH_CONVICTION": ("#089981", "ðŸ”¥ HIGH CONVICTION"),
-                "MODERATE":        ("#ffa500", "âœ… MODERATE CONVICTION"),
-                "WATCHLIST":       ("#2962ff", "ðŸ‘€ WATCHLIST"),
-                "AVOID":           ("#f23645", "ðŸš« AVOID â€” STAY OUT"),
+                "HIGH_CONVICTION": ("#089981", "🔥 HIGH CONVICTION"),
+                "MODERATE":        ("#ffa500", "✅ MODERATE CONVICTION"),
+                "WATCHLIST":       ("#3b82f6", "👀 WATCHLIST"),
+                "AVOID":           ("#f23645", "🚫 AVOID — STAY OUT"),
             }
-            s_color, s_label = STATUS_META.get(status, ("#787b86", "â€”"))
-            dir_emoji = "ðŸ“ˆ" if direction == "CALL" else ("ðŸ“‰" if direction == "PUT" else "")
+            s_color, s_label = STATUS_META.get(status, ("#6b7280", "—"))
+            dir_emoji = "📈" if direction == "CALL" else ("📉" if direction == "PUT" else "")
             dir_color = "#089981" if direction == "CALL" else "#f23645"
 
             with st.container():
@@ -2753,7 +2627,7 @@ with tab1:
                     </div>
                     <div style="text-align:right">
                       <div style="font-size:22px;font-weight:900;color:{s_color}">{conf:.0f}%</div>
-                      <div style="font-size:11px;color:#b2b5be">Confidence</div>
+                      <div style="font-size:11px;color:#9ca3af">Confidence</div>
                     </div>
                   </div>
                   {'<div style="margin-top:8px;background:#1e222d;border-radius:6px;height:8px;overflow:hidden"><div style="background:'+s_color+';width:'+str(conf)+'%;height:100%;border-radius:6px"></div></div>' if status != 'AVOID' else ''}
@@ -2761,22 +2635,22 @@ with tab1:
 
                 if status == "AVOID":
                     st.markdown(f"""
-                    <div style="background:#2a0d0d;border:1px solid #f23645;border-radius:8px;
+                    <div style="background:#1f0d0f;border:1px solid #f23645;border-radius:8px;
                     padding:16px 20px;margin:4px 0 16px">
                       <div style="font-size:14px;font-weight:700;color:#f23645;margin-bottom:6px">
-                        â›” Why to stay out:
+                        ⛔ Why to stay out:
                       </div>
-                      <div style="font-size:13px;color:#d1d5db">{rec.get('reason','â€”')}</div>
+                      <div style="font-size:13px;color:#d1d5db">{rec.get('reason','—')}</div>
                     </div>""", unsafe_allow_html=True)
 
                 elif status == "WATCHLIST":
                     st.markdown(f"""
-                    <div style="background:#0d1a2e;border:1px solid #2962ff;border-radius:8px;
+                    <div style="background:#0d1a2e;border:1px solid #3b82f6;border-radius:8px;
                     padding:16px 20px;margin:4px 0 16px">
                       <div style="font-size:14px;font-weight:700;color:#2962ff;margin-bottom:6px">
-                        ðŸ‘€ Monitor â€” conditions not fully met yet:
+                        👀 Monitor — conditions not fully met yet:
                       </div>
-                      <div style="font-size:13px;color:#d1d5db">{rec.get('avoid_note',rec.get('reason','â€”'))}</div>
+                      <div style="font-size:13px;color:#d1d5db">{rec.get('avoid_note',rec.get('reason','—'))}</div>
                     </div>""", unsafe_allow_html=True)
 
                 else:
@@ -2805,7 +2679,7 @@ with tab1:
                         i_t2_lbl = rec.get("idx_t2_label", "")
                         i_t3_lbl = rec.get("idx_t3_label", "")
                         rr       = rec.get("rr_ratio", 0)
-                        mh       = rec.get("max_hold", "â€”")
+                        mh       = rec.get("max_hold", "—")
                         ei_lo    = rec.get("entry_idx_low", 0)
                         ei_hi    = rec.get("entry_idx_high", 0)
                         lot      = rec.get("lot_size", 75)
@@ -2818,60 +2692,60 @@ with tab1:
                               <span style="color:{dir_color};font-size:22px;font-weight:900">
                                 {strike:,} {direction}
                               </span>
-                              <span style="color:#b2b5be;font-size:12px;margin-left:8px">{sl_lbl}</span>
+                              <span style="color:#9ca3af;font-size:12px;margin-left:8px">{sl_lbl}</span>
                             </div>
                             <div style="background:#131722;border-radius:6px;padding:4px 12px;font-size:12px">
-                              ðŸ“… {exp_lbl}
+                              📅 {exp_lbl}
                             </div>
                           </div>
                           <div style="background:#131722;border-radius:8px;padding:10px 14px;margin-bottom:10px">
-                            <div style="color:#b2b5be;font-size:11px;margin-bottom:4px">ENTRY ZONE</div>
+                            <div style="color:#9ca3af;font-size:11px;margin-bottom:4px">ENTRY ZONE</div>
                             <div style="color:#e0e0e0;font-size:16px;font-weight:700">
-                              Premium: â‚¹{e_lo}â€“â‚¹{e_hi}
-                              &nbsp;<span style="color:#b2b5be;font-size:12px">(live: ~â‚¹{e_mid:.0f})</span>
+                              Premium: ₹{e_lo}–₹{e_hi}
+                              &nbsp;<span style="color:#9ca3af;font-size:12px">(live: ~₹{e_mid:.0f})</span>
                             </div>
-                            <div style="color:#787b86;font-size:11px;margin-top:2px">
-                              Index entry zone: {ei_lo:,} â€“ {ei_hi:,}
+                            <div style="color:#6b7280;font-size:11px;margin-top:2px">
+                              Index entry zone: {ei_lo:,} – {ei_hi:,}
                             </div>
                           </div>
                           <table style="width:100%;border-collapse:collapse;font-size:13px">
-                            <tr style="color:#b2b5be;font-size:10px;text-transform:uppercase">
+                            <tr style="color:#9ca3af;font-size:10px;text-transform:uppercase">
                               <td>Level</td><td>Premium</td><td>Index Level</td><td>P&L / lot</td>
                             </tr>
-                            <tr style="color:#f23645;border-top:1px solid #2a2e39">
-                              <td style="padding:5px 0;font-weight:700">ðŸ›‘ Stop Loss</td>
-                              <td>â‚¹{psl} <span style="color:#787b86;font-size:10px">({psl_pct:+d}%)</span></td>
-                              <td style="color:#b2b5be">{i_sl_lbl}</td>
-                              <td style="color:#f23645">âˆ’â‚¹{int((e_mid-psl)*lot):,}</td>
+                            <tr style="color:#f23645;border-top:1px solid #374151">
+                              <td style="padding:5px 0;font-weight:700">🛑 Stop Loss</td>
+                              <td>₹{psl} <span style="color:#6b7280;font-size:10px">({psl_pct:+d}%)</span></td>
+                              <td style="color:#9ca3af">{i_sl_lbl}</td>
+                              <td style="color:#f23645">−₹{int((e_mid-psl)*lot):,}</td>
                             </tr>
-                            <tr style="color:#089981;border-top:1px solid #2a2e39">
-                              <td style="padding:5px 0;font-weight:700">ðŸŽ¯ Target 1</td>
-                              <td>â‚¹{pt1} <span style="color:#787b86;font-size:10px">({pt1_pct:+d}%)</span></td>
-                              <td style="color:#b2b5be">{i_t1_lbl}</td>
-                              <td style="color:#089981">+â‚¹{int((pt1-e_mid)*lot):,}</td>
+                            <tr style="color:#089981;border-top:1px solid #1e2130">
+                              <td style="padding:5px 0;font-weight:700">🎯 Target 1</td>
+                              <td>₹{pt1} <span style="color:#6b7280;font-size:10px">({pt1_pct:+d}%)</span></td>
+                              <td style="color:#9ca3af">{i_t1_lbl}</td>
+                              <td style="color:#089981">+₹{int((pt1-e_mid)*lot):,}</td>
                             </tr>
-                            <tr style="color:#089981;border-top:1px solid #2a2e39">
-                              <td style="padding:5px 0;font-weight:700">ðŸŽ¯ Target 2</td>
-                              <td>â‚¹{pt2} <span style="color:#787b86;font-size:10px">({pt2_pct:+d}%)</span></td>
-                              <td style="color:#b2b5be">{i_t2_lbl}</td>
-                              <td style="color:#089981">+â‚¹{int((pt2-e_mid)*lot):,}</td>
+                            <tr style="color:#089981;border-top:1px solid #1e2130">
+                              <td style="padding:5px 0;font-weight:700">🎯 Target 2</td>
+                              <td>₹{pt2} <span style="color:#6b7280;font-size:10px">({pt2_pct:+d}%)</span></td>
+                              <td style="color:#9ca3af">{i_t2_lbl}</td>
+                              <td style="color:#089981">+₹{int((pt2-e_mid)*lot):,}</td>
                             </tr>
-                            <tr style="color:#ffa500;border-top:1px solid #2a2e39">
-                              <td style="padding:5px 0;font-weight:700">ðŸ† Target 3</td>
-                              <td>â‚¹{pt3} <span style="color:#787b86;font-size:10px">({pt3_pct:+d}%)</span></td>
-                              <td style="color:#b2b5be">{i_t3_lbl}</td>
-                              <td style="color:#ffa500">+â‚¹{int((pt3-e_mid)*lot):,}</td>
+                            <tr style="color:#ffa500;border-top:1px solid #1e2130">
+                              <td style="padding:5px 0;font-weight:700">🏆 Target 3</td>
+                              <td>₹{pt3} <span style="color:#6b7280;font-size:10px">({pt3_pct:+d}%)</span></td>
+                              <td style="color:#9ca3af">{i_t3_lbl}</td>
+                              <td style="color:#ffa500">+₹{int((pt3-e_mid)*lot):,}</td>
                             </tr>
                           </table>
                           <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap">
                             <div style="background:#131722;border-radius:6px;padding:6px 14px;font-size:12px">
-                              âš–ï¸ R:R = <b style="color:#ffa500">1:{rr}</b>
+                              ⚖️ R:R = <b style="color:#ffa500">1:{rr}</b>
                             </div>
                             <div style="background:#131722;border-radius:6px;padding:6px 14px;font-size:12px">
-                              â±ï¸ Hold till: <b style="color:#b2b5be">{mh}</b>
+                              ⏱️ Hold till: <b style="color:#9ca3af">{mh}</b>
                             </div>
                             <div style="background:#131722;border-radius:6px;padding:6px 14px;font-size:12px">
-                              ðŸ“¦ Lot: <b>{lot} units</b>
+                              📦 Lot: <b>{lot} units</b>
                             </div>
                           </div>
                         </div>""", unsafe_allow_html=True)
@@ -2881,13 +2755,13 @@ with tab1:
                         reasons = rec.get("reasons", [])
                         st.markdown(f"""
                         <div style="background:#1e222d;border-radius:10px;padding:14px;
-                             border:1px solid #2a2e39;height:100%">
+                             border:1px solid #374151;height:100%">
                           <div style="color:#ffa500;font-weight:700;font-size:13px;margin-bottom:10px">
-                            ðŸ§  ANALYSIS
+                            🧠 ANALYSIS
                           </div>
-                          {''.join([f'<div style="font-size:12px;padding:3px 0;border-bottom:1px solid #2a2e39;color:#d1d5db">{r}</div>' for r in reasons[:10]])}
-                          <div style="color:#787b86;font-size:11px;margin-top:8px">
-                            VIX: {rec.get('vix_note','â€”')}
+                          {''.join([f'<div style="font-size:12px;padding:3px 0;border-bottom:1px solid #1e2130;color:#d1d5db">{r}</div>' for r in reasons[:10]])}
+                          <div style="color:#6b7280;font-size:11px;margin-top:8px">
+                            VIX: {rec.get('vix_note','—')}
                           </div>
                         </div>""", unsafe_allow_html=True)
 
@@ -2895,14 +2769,14 @@ with tab1:
                     exits = rec.get("exits", [])
                     exit_html = "".join([
                         f'<div style="font-size:12px;padding:5px 8px;border-left:3px solid '
-                        f'{"#f23645" if "Exit" in e or "â°" in e else "#2a2e39"};margin:3px 0;'
+                        f'{"#f23645" if "Exit" in e or "⏰" in e else "#374151"};margin:3px 0;'
                         f'color:#d1d5db;background:#1e222d;border-radius:0 6px 6px 0">{e}</div>'
                         for e in exits
                     ])
                     st.markdown(f"""
                     <div style="margin:8px 0 4px">
                       <div style="color:#f23645;font-weight:700;font-size:13px;margin-bottom:6px">
-                        âŒ EXIT CONDITIONS (follow strictly)
+                        ❌ EXIT CONDITIONS (follow strictly)
                       </div>
                       {exit_html}
                     </div>""", unsafe_allow_html=True)
@@ -2914,14 +2788,14 @@ with tab1:
                         st.markdown(f"""
                         <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0">
                           <div style="background:#1e222d;border-radius:6px;padding:6px 12px;font-size:12px">
-                            ðŸ“Š PCR: <b style="color:{'#089981' if pcr_d['bias']=='bullish' else '#f23645'}">{pcr_d['pcr']:.2f}</b>
-                            <span style="color:#787b86"> ({pcr_d['label'][:25]})</span>
+                            📊 PCR: <b style="color:{'#089981' if pcr_d['bias']=='bullish' else '#f23645'}">{pcr_d['pcr']:.2f}</b>
+                            <span style="color:#6b7280"> ({pcr_d['label'][:25]})</span>
                           </div>
                           <div style="background:#1e222d;border-radius:6px;padding:6px 12px;font-size:12px">
-                            ðŸ‹ï¸ Max Pain: <b style="color:#ffa500">{rec.get('max_pain',0):,}</b>
+                            🏋️ Max Pain: <b style="color:#ffa500">{rec.get('max_pain',0):,}</b>
                           </div>
                           <div style="background:#1e222d;border-radius:6px;padding:6px 12px;font-size:12px">
-                            ðŸ§± CE Wall: <b style="color:#f23645">{rec.get('ce_wall',0):,}</b>
+                            🧱 CE Wall: <b style="color:#f23645">{rec.get('ce_wall',0):,}</b>
                             &nbsp;|&nbsp; PE Wall: <b style="color:#089981">{rec.get('pe_wall',0):,}</b>
                           </div>
                         </div>""", unsafe_allow_html=True)
@@ -2929,21 +2803,21 @@ with tab1:
                 st.markdown("<br>", unsafe_allow_html=True)
 
 
-# â”€â”€ TAB 2: AI Expert â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── TAB 2: AI Expert ─────────────────────────────────────────────────────────
 with tab2:
-    st.markdown("## ðŸ¤– AI Options Trading Expert")
-    st.caption("Powered by Claude AI Â· Analyzes live market data before every response Â· Acts as your personal derivatives strategist")
+    st.markdown("## 🤖 AI Options Trading Expert")
+    st.caption("Powered by Claude AI · Analyzes live market data before every response · Acts as your personal derivatives strategist")
 
     if not _AI_OK or not ai_expert.is_available():
-        st.warning("âš ï¸ **AI Expert not configured.** Add your `ANTHROPIC_API_KEY` to Streamlit secrets to enable this feature.")
+        st.warning("⚠️ **AI Expert not configured.** Add your `ANTHROPIC_API_KEY` to Streamlit secrets to enable this feature.")
         st.code("""
-# In Streamlit Cloud â†’ Settings â†’ Secrets, add:
+# In Streamlit Cloud → Settings → Secrets, add:
 ANTHROPIC_API_KEY = "sk-ant-..."
 
 # Get your key at: https://console.anthropic.com
         """)
     else:
-        # â”€â”€ Build live market context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Build live market context ─────────────────────────────────────────
         _ai_exp_info  = next_expiry_info()
         _ai_n_chain   = get_live_chain("NSE_INDEX|Nifty 50",
                                        _ai_exp_info["nifty"]["date_str"])
@@ -2978,8 +2852,8 @@ ANTHROPIC_API_KEY = "sk-ant-..."
             exp_info     = _ai_exp_info,
         )
 
-        # â”€â”€ Quick question buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        st.markdown("**âš¡ Quick Analysis**")
+        # ── Quick question buttons ────────────────────────────────────────────
+        st.markdown("**⚡ Quick Analysis**")
         q_cols = st.columns(5)
         for i, (label, _) in enumerate(ai_expert.QUICK_QUESTIONS[:5]):
             with q_cols[i]:
@@ -2996,11 +2870,11 @@ ANTHROPIC_API_KEY = "sk-ant-..."
 
         st.markdown("---")
 
-        # â”€â”€ Chat history â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Chat history ──────────────────────────────────────────────────────
         if "ai_messages" not in st.session_state:
             st.session_state["ai_messages"] = []
 
-        # â”€â”€ Pause auto-refresh while AI is active to prevent interruptions â”€â”€â”€â”€
+        # ── Pause auto-refresh while AI is active to prevent interruptions ────
         # If last message is from user (AI response was cut off by a refresh),
         # mark it as needing a response so we re-trigger automatically.
         _msgs         = st.session_state["ai_messages"]
@@ -3010,13 +2884,13 @@ ANTHROPIC_API_KEY = "sk-ant-..."
         # Display message history
         for msg in _msgs:
             with st.chat_message(msg["role"],
-                                  avatar="ðŸ¤–" if msg["role"] == "assistant" else "ðŸ‘¤"):
+                                  avatar="🤖" if msg["role"] == "assistant" else "👤"):
                 st.markdown(msg["content"])
 
-        # â”€â”€ Handle pending quick-question â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Handle pending quick-question ─────────────────────────────────────
         pending = st.session_state.pop("ai_pending", None)
 
-        # â”€â”€ Chat input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Chat input ────────────────────────────────────────────────────────
         user_input = st.chat_input(
             "Ask about NIFTY/BANKNIFTY options... e.g. 'Should I buy a Call right now?'"
         ) or pending
@@ -3024,7 +2898,7 @@ ANTHROPIC_API_KEY = "sk-ant-..."
         # If auto-refresh cut off the previous response, retry with saved question
         if not user_input and _needs_retry:
             retry_q = _msgs[-1]["content"]
-            st.info(f"âŸ³ Auto-retrying interrupted response for: *\"{retry_q[:60]}\"*")
+            st.info(f"⟳ Auto-retrying interrupted response for: *\"{retry_q[:60]}\"*")
             user_input = None   # will be handled in the retry block below
             _do_retry  = True
         else:
@@ -3035,7 +2909,7 @@ ANTHROPIC_API_KEY = "sk-ant-..."
             # Only add user message if it's a NEW question (not a retry)
             msgs_now = st.session_state["ai_messages"]
             if not msgs_now or msgs_now[-1]["content"] != question or msgs_now[-1]["role"] != "user":
-                with st.chat_message("user", avatar="ðŸ‘¤"):
+                with st.chat_message("user", avatar="👤"):
                     st.markdown(question)
                 st.session_state["ai_messages"].append({"role": "user", "content": question})
 
@@ -3048,8 +2922,8 @@ ANTHROPIC_API_KEY = "sk-ant-..."
             # Mark busy so autorefresh is paused
             st.session_state["_ai_busy"] = True
             try:
-                with st.chat_message("assistant", avatar="ðŸ¤–"):
-                    with st.spinner("ðŸ§  Analyzing live market data..."):
+                with st.chat_message("assistant", avatar="🤖"):
+                    with st.spinner("🧠 Analyzing live market data..."):
                         response = st.write_stream(
                             ai_expert.stream_response(api_msgs, _market_ctx)
                         )
@@ -3060,10 +2934,10 @@ ANTHROPIC_API_KEY = "sk-ant-..."
                 else:
                     st.session_state["ai_messages"].append(
                         {"role": "assistant",
-                         "content": "âš ï¸ Empty response received. Please try again."}
+                         "content": "⚠️ Empty response received. Please try again."}
                     )
             except Exception as e:
-                st.error(f"âŒ AI error: {e}")
+                st.error(f"❌ AI error: {e}")
             finally:
                 st.session_state["_ai_busy"] = False
 
@@ -3072,20 +2946,20 @@ ANTHROPIC_API_KEY = "sk-ant-..."
         elif _do_retry:
             _run_ai(_msgs[-1]["content"])
 
-        # â”€â”€ Clear chat button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Clear chat button ─────────────────────────────────────────────────
         if st.session_state.get("ai_messages"):
             cc1, cc2 = st.columns([1, 5])
             with cc1:
-                if st.button("ðŸ—‘ï¸ Clear conversation", key="clear_ai"):
+                if st.button("🗑️ Clear conversation", key="clear_ai"):
                     st.session_state["ai_messages"] = []
                     st.session_state["_ai_busy"] = False
                     st.rerun()
 
-        # â”€â”€ Market context preview (collapsible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        with st.expander("ðŸ” View market data injected into AI context", expanded=False):
+        # ── Market context preview (collapsible) ──────────────────────────────
+        with st.expander("🔍 View market data injected into AI context", expanded=False):
             st.code(_market_ctx, language="")
 
-# â”€â”€ TAB 3: Nifty â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── TAB 3: Nifty ─────────────────────────────────────────────────────────────
 with tab4:
     tf_row1, tf_row2 = st.columns([1, 5])
     with tf_row1:
@@ -3099,7 +2973,7 @@ with tab4:
         nifty_orb  = get_orb("^NSEI") if nifty_tf in ("1m", "5m", "15m") else None
         if not nifty_df.empty:
             st.plotly_chart(
-                candlestick_fig(nifty_df, f"Nifty 50 â€” {nifty_tf}",
+                candlestick_fig(nifty_df, f"Nifty 50 — {nifty_tf}",
                                 pivots=nifty_pivs, orb=nifty_orb),
                 use_container_width=True)
         else:
@@ -3125,7 +2999,7 @@ with tab4:
         if bias.get("reasons"):
             st.markdown("**Reasons:**")
             for r in bias["reasons"]:
-                st.markdown(f"â€¢ {r}")
+                st.markdown(f"• {r}")
 
         st.markdown('<div class="section-title" style="margin-top:20px">Support & Resistance</div>', unsafe_allow_html=True)
         if not nifty_df.empty and ltp:
@@ -3133,9 +3007,9 @@ with tab4:
             resistance = float(recent["high"].max())
             support    = float(recent["low"].min())
             vwap_val   = float(nifty_df["vwap"].iloc[-1]) if "vwap" in nifty_df.columns else 0
-            st.markdown(f"ðŸ”´ **Resistance:** {resistance:,.0f}")
-            st.markdown(f"ðŸŸ¢ **Support:** {support:,.0f}")
-            if vwap_val: st.markdown(f"ðŸŸ£ **VWAP:** {vwap_val:,.0f}")
+            st.markdown(f"🔴 **Resistance:** {resistance:,.0f}")
+            st.markdown(f"🟢 **Support:** {support:,.0f}")
+            if vwap_val: st.markdown(f"🟣 **VWAP:** {vwap_val:,.0f}")
 
         if nifty_pivs:
             st.markdown('<div class="section-title" style="margin-top:16px">Pivot Points</div>', unsafe_allow_html=True)
@@ -3145,7 +3019,7 @@ with tab4:
                             f'<span style="color:{color};font-weight:700;font-size:13px">{level}</span>'
                             f'<span style="font-size:13px">{val:,}</span></div>', unsafe_allow_html=True)
 
-# â”€â”€ TAB 3: Bank Nifty â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── TAB 3: Bank Nifty ────────────────────────────────────────────────────────
 with tab5:
     tf_row_b1, tf_row_b2 = st.columns([1, 5])
     with tf_row_b1:
@@ -3159,7 +3033,7 @@ with tab5:
         bnf_orb  = get_orb("^NSEBANK") if bnf_tf in ("1m", "5m", "15m") else None
         if not bnf_df.empty:
             st.plotly_chart(
-                candlestick_fig(bnf_df, f"Bank Nifty â€” {bnf_tf}",
+                candlestick_fig(bnf_df, f"Bank Nifty — {bnf_tf}",
                                 pivots=bnf_pivs, orb=bnf_orb),
                 use_container_width=True)
         else:
@@ -3182,15 +3056,15 @@ with tab5:
         if bn_bias.get("reasons"):
             st.markdown("**Reasons:**")
             for r in bn_bias["reasons"]:
-                st.markdown(f"â€¢ {r}")
+                st.markdown(f"• {r}")
 
         st.markdown('<div class="section-title" style="margin-top:20px">Support & Resistance</div>', unsafe_allow_html=True)
         if not bnf_df.empty and bnltp:
             recent_bn = bnf_df.tail(40)
-            st.markdown(f"ðŸ”´ **Resistance:** {float(recent_bn['high'].max()):,.0f}")
-            st.markdown(f"ðŸŸ¢ **Support:** {float(recent_bn['low'].min()):,.0f}")
+            st.markdown(f"🔴 **Resistance:** {float(recent_bn['high'].max()):,.0f}")
+            st.markdown(f"🟢 **Support:** {float(recent_bn['low'].min()):,.0f}")
             if "vwap" in bnf_df.columns:
-                st.markdown(f"ðŸŸ£ **VWAP:** {float(bnf_df['vwap'].iloc[-1]):,.0f}")
+                st.markdown(f"🟣 **VWAP:** {float(bnf_df['vwap'].iloc[-1]):,.0f}")
 
         if bnf_pivs:
             st.markdown('<div class="section-title" style="margin-top:16px">Pivot Points</div>', unsafe_allow_html=True)
@@ -3200,47 +3074,47 @@ with tab5:
                             f'<span style="color:{color};font-weight:700;font-size:13px">{level}</span>'
                             f'<span style="font-size:13px">{val:,}</span></div>', unsafe_allow_html=True)
 
-# â”€â”€ TAB 4: Global Cues â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── TAB 4: Global Cues ───────────────────────────────────────────────────────
 with tab6:
     global_quotes = {name: get_quote(ticker) for name, ticker in GLOBAL.items()}
     gs = compute_global_sentiment(global_quotes)
 
-    # â”€â”€ Composite Sentiment Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Composite Sentiment Banner ────────────────────────────────────────────
     st.markdown(f"""
     <div style="background:rgba(0,0,0,0.3);border:2px solid {gs['color']};border-radius:14px;
                 padding:16px 24px;margin-bottom:16px;display:flex;align-items:center;gap:24px">
       <div>
-        <div style="font-size:12px;color:#b2b5be;text-transform:uppercase;letter-spacing:1px">
+        <div style="font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">
           Global Sentiment for India</div>
         <div style="font-size:22px;font-weight:800;color:{gs['color']}">{gs['label']}</div>
       </div>
-      <div style="text-align:center;border-left:1px solid #2a2e39;padding-left:24px">
-        <div style="font-size:11px;color:#b2b5be">Score</div>
+      <div style="text-align:center;border-left:1px solid #374151;padding-left:24px">
+        <div style="font-size:11px;color:#9ca3af">Score</div>
         <div style="font-size:36px;font-weight:900;color:{gs['color']}">{gs['score']:+d}</div>
-        <div style="font-size:10px;color:#787b86">out of Â±10</div>
+        <div style="font-size:10px;color:#6b7280">out of ±10</div>
       </div>
-      <div style="font-size:12px;color:#b2b5be;flex:1">
-        {'  Â·  '.join([f"<span style='color:{'#089981' if f[2]=='bull' else ('#f23645' if f[2]=='bear' else '#b2b5be')}'>{f[0]}: {f[1]}</span>" for f in gs['factors']])}
+      <div style="font-size:12px;color:#9ca3af;flex:1">
+        {'  ·  '.join([f"<span style='color:{'#089981' if f[2]=='bull' else ('#f23645' if f[2]=='bear' else '#9ca3af')}'>{f[0]}: {f[1]}</span>" for f in gs['factors']])}
       </div>
     </div>""", unsafe_allow_html=True)
 
-    # â”€â”€ Global index grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Global index grid ─────────────────────────────────────────────────────
     st.markdown('<div class="section-title">Global Markets</div>', unsafe_allow_html=True)
     g1, g2 = st.columns(2)
     for i, (name, q) in enumerate(global_quotes.items()):
         col = g1 if i % 2 == 0 else g2
         with col:
             if q:
-                arrow = "â–²" if q["chg"] >= 0 else "â–¼"
+                arrow = "▲" if q["chg"] >= 0 else "▼"
                 cls   = "bull" if q["chg"] >= 0 else "bear"
                 st.markdown(f"""
                 <div class="metric-card" style="border-left-color:{'#089981' if q['chg']>=0 else '#f23645'}">
-                  <div style="font-size:11px;color:#b2b5be">{name}</div>
+                  <div style="font-size:11px;color:#9ca3af">{name}</div>
                   <div style="font-size:18px;font-weight:700" class="{cls}">{q['ltp']:,.2f}</div>
                   <div style="font-size:12px" class="{cls}">{arrow} {abs(q['chg']):,.2f} ({q['pct']:+.2f}%)</div>
                 </div>""", unsafe_allow_html=True)
 
-    # â”€â”€ Macro Impact Matrix â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Macro Impact Matrix ───────────────────────────────────────────────────
     st.markdown('<div class="section-title" style="margin-top:16px">Macro Impact on India</div>',
                 unsafe_allow_html=True)
     crude_pct  = global_quotes.get("Crude Oil",    {}).get("pct", 0) or 0
@@ -3251,64 +3125,64 @@ with tab6:
 
     macro_rows = [
         ("Crude Oil", f"{crude_pct:+.2f}%",
-         "ðŸ”´ Negative â€” raises import costs, inflation" if crude_pct > 1.5
-         else "ðŸŸ¢ Positive â€” lower costs, rupee support" if crude_pct < -1.0
-         else "ðŸŸ¡ Neutral"),
+         "🔴 Negative — raises import costs, inflation" if crude_pct > 1.5
+         else "🟢 Positive — lower costs, rupee support" if crude_pct < -1.0
+         else "🟡 Neutral"),
         ("Gold", f"{gold_pct:+.2f}%",
-         "ðŸ”´ Risk-off signal â€” FII may sell equities" if gold_pct > 0.8
-         else "ðŸŸ¢ Risk-on â€” equity positive" if gold_pct < -0.3
-         else "ðŸŸ¡ Neutral"),
+         "🔴 Risk-off signal — FII may sell equities" if gold_pct > 0.8
+         else "🟢 Risk-on — equity positive" if gold_pct < -0.3
+         else "🟡 Neutral"),
         ("Dollar Index", f"{dxy_pct:+.2f}%",
-         "ðŸ”´ Strong dollar â†’ FII outflows from India" if dxy_pct > 0.3
-         else "ðŸŸ¢ Weak dollar â†’ FII inflows into EM" if dxy_pct < -0.3
-         else "ðŸŸ¡ Neutral"),
+         "🔴 Strong dollar → FII outflows from India" if dxy_pct > 0.3
+         else "🟢 Weak dollar → FII inflows into EM" if dxy_pct < -0.3
+         else "🟡 Neutral"),
         ("USD/INR", f"{usdinr_pct:+.2f}%",
-         "ðŸ”´ Rupee weakening â†’ FII selling pressure" if usdinr_pct > 0.2
-         else "ðŸŸ¢ Rupee strengthening â†’ positive" if usdinr_pct < -0.2
-         else "ðŸŸ¡ Stable"),
+         "🔴 Rupee weakening → FII selling pressure" if usdinr_pct > 0.2
+         else "🟢 Rupee strengthening → positive" if usdinr_pct < -0.2
+         else "🟡 Stable"),
         ("US 10Y Yield", f"{tnx_ltp:.2f}%",
-         "ðŸ”´ High yield â†’ FII prefers US bonds over India" if tnx_ltp > 4.5
-         else "ðŸŸ¢ Low yield â†’ EM equities attractive" if tnx_ltp < 3.8
-         else "ðŸŸ¡ Moderate"),
+         "🔴 High yield → FII prefers US bonds over India" if tnx_ltp > 4.5
+         else "🟢 Low yield → EM equities attractive" if tnx_ltp < 3.8
+         else "🟡 Moderate"),
     ]
     macro_df = pd.DataFrame(macro_rows, columns=["Factor", "Change", "India Impact"])
     st.dataframe(macro_df.set_index("Factor"), use_container_width=True)
 
-    # â”€â”€ Live News Feed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    st.markdown('<div class="section-title" style="margin-top:16px">ðŸ“° Latest Market News</div>',
+    # ── Live News Feed ────────────────────────────────────────────────────────
+    st.markdown('<div class="section-title" style="margin-top:16px">📰 Latest Market News</div>',
                 unsafe_allow_html=True)
-    st.caption("Headlines from Economic Times, Mint & Reuters â€” updates every 5 minutes")
+    st.caption("Headlines from Economic Times, Mint & Reuters — updates every 5 minutes")
     with st.spinner("Fetching news..."):
         headlines = fetch_news_headlines()
 
     if headlines:
         bull_count = sum(1 for h in headlines if h["sentiment"] == "bullish")
         bear_count = sum(1 for h in headlines if h["sentiment"] == "bearish")
-        news_sentiment = "ðŸŸ¢ Mostly Positive" if bull_count > bear_count + 1 \
-                    else ("ðŸ”´ Mostly Negative" if bear_count > bull_count + 1 else "ðŸŸ¡ Mixed")
+        news_sentiment = "🟢 Mostly Positive" if bull_count > bear_count + 1 \
+                    else ("🔴 Mostly Negative" if bear_count > bull_count + 1 else "🟡 Mixed")
         st.markdown(f"**News Sentiment:** {news_sentiment} &nbsp;|&nbsp; "
-                    f"ðŸŸ¢ {bull_count} positive &nbsp;|&nbsp; ðŸ”´ {bear_count} negative &nbsp;|&nbsp; "
+                    f"🟢 {bull_count} positive &nbsp;|&nbsp; 🔴 {bear_count} negative &nbsp;|&nbsp; "
                     f"{len(headlines)} headlines scanned")
         st.divider()
         for h in headlines:
             s_color = "#089981" if h["sentiment"] == "bullish" else \
-                      ("#f23645" if h["sentiment"] == "bearish" else "#b2b5be")
-            s_icon  = "â–²" if h["sentiment"] == "bullish" else \
-                      ("â–¼" if h["sentiment"] == "bearish" else "â€”")
+                      ("#f23645" if h["sentiment"] == "bearish" else "#9ca3af")
+            s_icon  = "▲" if h["sentiment"] == "bullish" else \
+                      ("▼" if h["sentiment"] == "bearish" else "—")
             st.markdown(
-                f'<div style="padding:7px 0;border-bottom:1px solid #2a2e39;font-size:13px">'
+                f'<div style="padding:7px 0;border-bottom:1px solid #1e2130;font-size:13px">'
                 f'<span style="color:{s_color};font-weight:700;margin-right:6px">{s_icon}</span>'
                 f'<span style="color:#e0e0e0">{h["title"]}</span>'
-                f'<span style="color:#787b86;font-size:11px;margin-left:8px">[{h["source"]}]</span>'
+                f'<span style="color:#6b7280;font-size:11px;margin-left:8px">[{h["source"]}]</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
     else:
         st.info("News feed temporarily unavailable. Check internet connection.")
 
-    st.caption("âš ï¸ News sentiment uses keyword analysis â€” not financial advice. Verify before acting.")
+    st.caption("⚠️ News sentiment uses keyword analysis — not financial advice. Verify before acting.")
 
-# â”€â”€ TAB 5: Trade Plan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── TAB 5: Trade Plan ────────────────────────────────────────────────────────
 with tab7:
     st.markdown('<div class="section-title">Today\'s Trade Plan</div>', unsafe_allow_html=True)
     nq  = quotes.get("Nifty 50", {})
@@ -3333,12 +3207,12 @@ with tab7:
                 sl    = round(vwap_nifty * 0.997, 0)
                 tgt1  = round(nifty_ltp + (nifty_ltp - sl) * 1.5, 0)
                 tgt2  = round(nifty_ltp + (nifty_ltp - sl) * 2.5, 0)
-                st.markdown(f"**Entry zone:** {nifty_ltp - 30:,.0f} â€“ {nifty_ltp + 30:,.0f}")
+                st.markdown(f"**Entry zone:** {nifty_ltp - 30:,.0f} – {nifty_ltp + 30:,.0f}")
                 st.markdown(f"**Stop-loss:** {sl:,.0f}")
                 st.markdown(f"**Target 1:** {tgt1:,.0f}  |  **Target 2:** {tgt2:,.0f}")
                 st.markdown(f"**VWAP:** {vwap_nifty:,.0f}")
             if vix_val:
-                st.markdown(f"**India VIX:** {vix_val:.2f} {'âš ï¸ High â€” reduce size' if vix_val > 18 else 'âœ… Normal'}")
+                st.markdown(f"**India VIX:** {vix_val:.2f} {'⚠️ High — reduce size' if vix_val > 18 else '✅ Normal'}")
 
         with tp2:
             st.markdown("### Bank Nifty")
@@ -3349,20 +3223,20 @@ with tab7:
                 sl_b   = round(vwap_bank * 0.997, 0)
                 tgt1_b = round(bnifty_ltp + (bnifty_ltp - sl_b) * 1.5, 0)
                 tgt2_b = round(bnifty_ltp + (bnifty_ltp - sl_b) * 2.5, 0)
-                st.markdown(f"**Entry zone:** {bnifty_ltp - 50:,.0f} â€“ {bnifty_ltp + 50:,.0f}")
+                st.markdown(f"**Entry zone:** {bnifty_ltp - 50:,.0f} – {bnifty_ltp + 50:,.0f}")
                 st.markdown(f"**Stop-loss:** {sl_b:,.0f}")
                 st.markdown(f"**Target 1:** {tgt1_b:,.0f}  |  **Target 2:** {tgt2_b:,.0f}")
                 st.markdown(f"**VWAP:** {vwap_bank:,.0f}")
 
         st.divider()
-        st.markdown("### ðŸ§® Position Size Calculator")
+        st.markdown("### 🧮 Position Size Calculator")
         ps1, ps2, ps3 = st.columns(3)
         with ps1:
-            ps_capital = st.number_input("Capital (â‚¹)", value=100000, step=10000, key="ps_cap")
+            ps_capital = st.number_input("Capital (₹)", value=100000, step=10000, key="ps_cap")
             ps_risk_pct = st.number_input("Risk per trade (%)", value=1.0, min_value=0.1, max_value=5.0, step=0.1, key="ps_rp")
         with ps2:
-            ps_entry = st.number_input("Option Entry Price (â‚¹)", value=100.0, step=1.0, key="ps_entry")
-            ps_sl    = st.number_input("Stop-Loss Price (â‚¹)", value=70.0, step=1.0, key="ps_sl")
+            ps_entry = st.number_input("Option Entry Price (₹)", value=100.0, step=1.0, key="ps_entry")
+            ps_sl    = st.number_input("Stop-Loss Price (₹)", value=70.0, step=1.0, key="ps_sl")
         with ps3:
             ps_index   = st.selectbox("Index", ["Nifty 50 (75)", "Bank Nifty (30)", "Fin Nifty (40)"], key="ps_idx")
             lot_sizes  = {"Nifty 50 (75)": 75, "Bank Nifty (30)": 30, "Fin Nifty (40)": 40}
@@ -3378,36 +3252,36 @@ with tab7:
             <div class="metric-card" style="border-left-color:#2962ff;margin-top:8px">
               <div style="display:flex;gap:40px;flex-wrap:wrap">
                 <div><div class="trade-label">Max Risk Amount</div>
-                     <div style="color:#ffa500;font-weight:800;font-size:18px">â‚¹{max_risk_amt:,.0f}</div></div>
+                     <div style="color:#ffa500;font-weight:800;font-size:18px">₹{max_risk_amt:,.0f}</div></div>
                 <div><div class="trade-label">Loss per Lot</div>
-                     <div style="color:#f23645;font-weight:800;font-size:18px">â‚¹{max_loss_per_lot:,.0f}</div></div>
+                     <div style="color:#f23645;font-weight:800;font-size:18px">₹{max_loss_per_lot:,.0f}</div></div>
                 <div><div class="trade-label">Max Lots to Trade</div>
                      <div style="color:#089981;font-weight:800;font-size:28px">{max_lots}</div></div>
                 <div><div class="trade-label">Premium Required</div>
-                     <div style="font-weight:700;font-size:18px">â‚¹{premium_needed:,.0f}</div></div>
+                     <div style="font-weight:700;font-size:18px">₹{premium_needed:,.0f}</div></div>
               </div>
-              <div style="font-size:11px;color:#787b86;margin-top:8px">
-                Formula: Risk = (Entry âˆ’ SL) Ã— Lot size Ã— Lots | Max Lots = Max Risk Ã· Loss per Lot
+              <div style="font-size:11px;color:#6b7280;margin-top:8px">
+                Formula: Risk = (Entry − SL) × Lot size × Lots | Max Lots = Max Risk ÷ Loss per Lot
               </div>
             </div>""", unsafe_allow_html=True)
         else:
             st.caption("Enter valid Entry and Stop-Loss prices to calculate position size.")
 
         st.divider()
-        st.markdown("### âš ï¸ Risk Management Rules")
+        st.markdown("### ⚠️ Risk Management Rules")
         st.markdown("""
-        - **Max 1-2% risk per trade** â€” never exceed your daily loss limit
-        - **Wait for first 15â€“30 min** â€” avoid trading in the opening range before 9:45 AM
-        - **No trade if VIX > 20** â€” volatility too high for directional bets
-        - **Exit at 3:15 PM** â€” never hold options to expiry without a plan
+        - **Max 1-2% risk per trade** — never exceed your daily loss limit
+        - **Wait for first 15–30 min** — avoid trading in the opening range before 9:45 AM
+        - **No trade if VIX > 20** — volatility too high for directional bets
+        - **Exit at 3:15 PM** — never hold options to expiry without a plan
         - **Signals are analytical guidance only, not guaranteed advice**
         """)
     else:
         st.info("Market data loading. Click Refresh if it takes too long.")
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  TAB 7 â€” Price Alerts
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 7 — Price Alerts
+# ══════════════════════════════════════════════════════════════════════════════
 ALERTS_FILE = os.path.join(os.path.dirname(__file__), "price_alerts.csv")
 
 def load_alerts() -> pd.DataFrame:
@@ -3422,8 +3296,8 @@ def save_alerts(df: pd.DataFrame):
     df.to_csv(ALERTS_FILE, index=False)
 
 with tab8:
-    st.markdown("## ðŸ”” Price Alerts")
-    st.caption("Set price levels â€” dashboard highlights when they are triggered on Refresh.")
+    st.markdown("## 🔔 Price Alerts")
+    st.caption("Set price levels — dashboard highlights when they are triggered on Refresh.")
 
     alerts_df = load_alerts()
     current_prices = {
@@ -3442,7 +3316,7 @@ with tab8:
     st.divider()
 
     # Add new alert
-    st.markdown("### âž• Add New Alert")
+    st.markdown("### ➕ Add New Alert")
     with st.form("alert_form", clear_on_submit=True):
         ac1, ac2, ac3 = st.columns(3)
         with ac1:
@@ -3453,7 +3327,7 @@ with tab8:
             cur = current_prices.get(a_index, 0)
             a_price = st.number_input("Alert Price", value=float(cur) if cur else 0.0, step=10.0)
         a_note = st.text_input("Note (optional)", placeholder="e.g. Key resistance level, breakout watch")
-        if st.form_submit_button("ðŸ”” Set Alert", use_container_width=True):
+        if st.form_submit_button("🔔 Set Alert", use_container_width=True):
             new_row = pd.DataFrame([{
                 "index":     a_index,
                 "condition": a_cond,
@@ -3467,7 +3341,7 @@ with tab8:
             st.rerun()
 
     # Check and display alerts
-    st.markdown("### ðŸ“‹ Active Alerts")
+    st.markdown("### 📋 Active Alerts")
     if alerts_df.empty:
         st.info("No alerts set yet. Add one above.")
     else:
@@ -3485,18 +3359,18 @@ with tab8:
                 triggered_any = True
                 st.markdown(f"""
                 <div class="alert-box alert-triggered">
-                ðŸš¨ <b>TRIGGERED!</b> &nbsp;
+                🚨 <b>TRIGGERED!</b> &nbsp;
                 <b>{row['index']}</b> {row['condition']} <b>{row['price']:,.2f}</b><br>
                 Current: <b style="color:#f23645">{cur_price:,.2f}</b> &nbsp;|&nbsp;
-                <span style="color:#b2b5be">{row.get('note','')}</span>
+                <span style="color:#9ca3af">{row.get('note','')}</span>
                 </div>""", unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="alert-box">
-                ðŸ”” <b>{row['index']}</b> {row['condition']} <b>{row['price']:,.2f}</b> &nbsp;|&nbsp;
+                🔔 <b>{row['index']}</b> {row['condition']} <b>{row['price']:,.2f}</b> &nbsp;|&nbsp;
                 Current: {cur_price:,.2f} &nbsp;|&nbsp;
                 Gap: {abs(cur_price - row['price']):,.2f} pts &nbsp;|&nbsp;
-                <span style="color:#b2b5be">{row.get('note','')}</span>
+                <span style="color:#9ca3af">{row.get('note','')}</span>
                 </div>""", unsafe_allow_html=True)
 
         if triggered_any:
@@ -3504,7 +3378,7 @@ with tab8:
 
         st.divider()
         # Delete alerts
-        if st.button("ðŸ—‘ï¸ Clear All Alerts"):
+        if st.button("🗑️ Clear All Alerts"):
             save_alerts(pd.DataFrame(columns=["index","condition","price","note","active"]))
             st.success("All alerts cleared.")
             st.rerun()
@@ -3518,9 +3392,9 @@ with tab8:
             st.rerun()
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  TAB 8 â€” Trade Journal
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 8 — Trade Journal
+# ══════════════════════════════════════════════════════════════════════════════
 JOURNAL_FILE = os.path.join(os.path.dirname(__file__), "trade_journal.csv")
 JOURNAL_COLS = ["date", "time", "index", "strategy", "direction", "strike",
                 "expiry", "qty", "entry_price", "exit_price", "pnl",
@@ -3568,12 +3442,12 @@ def journal_stats(df: pd.DataFrame) -> dict:
             "best": best, "worst": worst, "expectancy": expectancy}
 
 with tab9:
-    st.markdown("## ðŸ““ Trade Journal")
-    st.caption("Log every trade â€” paper or real. Track your performance and improve over time.")
+    st.markdown("## 📓 Trade Journal")
+    st.caption("Log every trade — paper or real. Track your performance and improve over time.")
 
-    j_tab1, j_tab2, j_tab3 = st.tabs(["âž• Log Trade", "ðŸ“Š Performance", "ðŸ“‹ History"])
+    j_tab1, j_tab2, j_tab3 = st.tabs(["➕ Log Trade", "📊 Performance", "📋 History"])
 
-    # â”€â”€ LOG TRADE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── LOG TRADE ─────────────────────────────────────────────────────────────
     with j_tab1:
         st.markdown("### Log a New Trade")
         now_ist = datetime.now(IST)
@@ -3601,13 +3475,13 @@ with tab9:
 
             r3c1, r3c2, r3c3 = st.columns(3)
             with r3c1:
-                t_entry = st.number_input("Entry Price â‚¹", min_value=0.0, value=0.0, step=0.5)
+                t_entry = st.number_input("Entry Price ₹", min_value=0.0, value=0.0, step=0.5)
             with r3c2:
-                t_exit = st.number_input("Exit Price â‚¹", min_value=0.0, value=0.0, step=0.5)
+                t_exit = st.number_input("Exit Price ₹", min_value=0.0, value=0.0, step=0.5)
             with r3c3:
                 lot_size = 75 if "Nifty 50" in t_index else (30 if "Bank" in t_index else 75)
                 pnl_calc = round((t_exit - t_entry) * t_qty * lot_size, 2)
-                st.metric("Calculated P&L", f"â‚¹{pnl_calc:,.2f}",
+                st.metric("Calculated P&L", f"₹{pnl_calc:,.2f}",
                           delta=f"{'Profit' if pnl_calc > 0 else 'Loss' if pnl_calc < 0 else 'Breakeven'}")
 
             r4c1, r4c2, r4c3 = st.columns(3)
@@ -3621,7 +3495,7 @@ with tab9:
             t_notes = st.text_area("Trade Notes (what worked, what didn't, lessons learned)",
                                     placeholder="e.g. Entered after VWAP confirmation, RSI was 58, volume breakout confirmed. Exited at Target 1. Should have held for Target 2.", height=100)
 
-            submitted = st.form_submit_button("ðŸ’¾ Save Trade", use_container_width=True)
+            submitted = st.form_submit_button("💾 Save Trade", use_container_width=True)
             if submitted:
                 if t_entry == 0:
                     st.error("Please enter the Entry Price.")
@@ -3644,10 +3518,10 @@ with tab9:
                         "notes":         t_notes,
                     }
                     save_trade(row)
-                    st.success(f"âœ… Trade saved! P&L: â‚¹{pnl_calc:,.2f}")
+                    st.success(f"✅ Trade saved! P&L: ₹{pnl_calc:,.2f}")
                     st.balloons() if pnl_calc > 0 else None
 
-    # â”€â”€ PERFORMANCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── PERFORMANCE ───────────────────────────────────────────────────────────
     with j_tab2:
         st.markdown("### Performance Dashboard")
         jdf = load_journal()
@@ -3664,11 +3538,11 @@ with tab9:
             k1.metric("Total Trades",  stats["total"])
             k2.metric("Win Rate",      f"{stats['win_rate']:.1f}%",
                       delta=f"{stats['wins']}W / {stats['losses']}L")
-            k3.metric("Total P&L",     f"â‚¹{stats['total_pnl']:,.0f}",
+            k3.metric("Total P&L",     f"₹{stats['total_pnl']:,.0f}",
                       delta="Profit" if stats["total_pnl"] > 0 else "Loss")
-            k4.metric("Avg Win",       f"â‚¹{stats['avg_win']:,.0f}")
-            k5.metric("Avg Loss",      f"â‚¹{stats['avg_loss']:,.0f}")
-            k6.metric("Expectancy",    f"â‚¹{stats['expectancy']:,.0f}")
+            k4.metric("Avg Win",       f"₹{stats['avg_win']:,.0f}")
+            k5.metric("Avg Loss",      f"₹{stats['avg_loss']:,.0f}")
+            k6.metric("Expectancy",    f"₹{stats['expectancy']:,.0f}")
 
             st.divider()
             pc1, pc2 = st.columns(2)
@@ -3685,9 +3559,9 @@ with tab9:
                     line=dict(color="#089981" if stats["total_pnl"] >= 0 else "#f23645", width=2),
                     fillcolor="rgba(8,153,129,0.1)" if stats["total_pnl"] >= 0 else "rgba(242,54,69,0.1)",
                 ))
-                fig_pnl.update_layout(paper_bgcolor="#131722", plot_bgcolor="#131722",
+                fig_pnl.update_layout(paper_bgcolor="#0e1117", plot_bgcolor="#0e1117",
                     font=dict(color="#e0e0e0"), margin=dict(l=10,r=10,t=10,b=10), height=250,
-                    xaxis=dict(gridcolor="#2a2e39"), yaxis=dict(gridcolor="#2a2e39"))
+                    xaxis=dict(gridcolor="#1e2130"), yaxis=dict(gridcolor="#1e2130"))
                 st.plotly_chart(fig_pnl, use_container_width=True)
 
             # Win/Loss pie
@@ -3699,7 +3573,7 @@ with tab9:
                     marker_colors=["#089981", "#f23645", "#ffa500"],
                     hole=0.5,
                 ))
-                fig_pie.update_layout(paper_bgcolor="#131722",
+                fig_pie.update_layout(paper_bgcolor="#0e1117",
                     font=dict(color="#e0e0e0"), margin=dict(l=10,r=10,t=10,b=10), height=250)
                 st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -3712,9 +3586,9 @@ with tab9:
                     x=by_index["index"], y=by_index["pnl"],
                     marker_color=["#089981" if v >= 0 else "#f23645" for v in by_index["pnl"]],
                 ))
-                fig_idx.update_layout(paper_bgcolor="#131722", plot_bgcolor="#131722",
+                fig_idx.update_layout(paper_bgcolor="#0e1117", plot_bgcolor="#0e1117",
                     font=dict(color="#e0e0e0"), margin=dict(l=10,r=10,t=10,b=10), height=220,
-                    xaxis=dict(gridcolor="#2a2e39"), yaxis=dict(gridcolor="#2a2e39"))
+                    xaxis=dict(gridcolor="#1e2130"), yaxis=dict(gridcolor="#1e2130"))
                 st.plotly_chart(fig_idx, use_container_width=True)
 
             with pc4:
@@ -3724,9 +3598,9 @@ with tab9:
                     x=by_strat["strategy"], y=by_strat["pnl"],
                     marker_color=["#089981" if v >= 0 else "#f23645" for v in by_strat["pnl"]],
                 ))
-                fig_strat.update_layout(paper_bgcolor="#131722", plot_bgcolor="#131722",
+                fig_strat.update_layout(paper_bgcolor="#0e1117", plot_bgcolor="#0e1117",
                     font=dict(color="#e0e0e0"), margin=dict(l=10,r=10,t=10,b=10), height=220,
-                    xaxis=dict(gridcolor="#2a2e39"), yaxis=dict(gridcolor="#2a2e39"))
+                    xaxis=dict(gridcolor="#1e2130"), yaxis=dict(gridcolor="#1e2130"))
                 st.plotly_chart(fig_strat, use_container_width=True)
 
             # Emotion analysis
@@ -3743,22 +3617,22 @@ with tab9:
                 best_row = jdf.loc[jdf["pnl"].idxmax()]
                 st.markdown(f"""
                 <div class="trade-card-call">
-                  <div style="color:#089981;font-weight:700;font-size:16px">ðŸ† Best Trade</div>
-                  <div style="font-size:24px;font-weight:800;color:#089981">â‚¹{best_row['pnl']:,.0f}</div>
-                  <div style="color:#b2b5be;font-size:13px">{best_row['date'].date() if pd.notna(best_row['date']) else ''} &nbsp;|&nbsp; {best_row['index']} &nbsp;|&nbsp; {best_row['direction']}</div>
-                  <div style="color:#b2b5be;font-size:12px;margin-top:6px">{best_row['notes'][:120] if best_row['notes'] else ''}...</div>
+                  <div style="color:#089981;font-weight:700;font-size:16px">🏆 Best Trade</div>
+                  <div style="font-size:24px;font-weight:800;color:#089981">₹{best_row['pnl']:,.0f}</div>
+                  <div style="color:#9ca3af;font-size:13px">{best_row['date'].date() if pd.notna(best_row['date']) else ''} &nbsp;|&nbsp; {best_row['index']} &nbsp;|&nbsp; {best_row['direction']}</div>
+                  <div style="color:#9ca3af;font-size:12px;margin-top:6px">{best_row['notes'][:120] if best_row['notes'] else ''}...</div>
                 </div>""", unsafe_allow_html=True)
             with bc2:
                 worst_row = jdf.loc[jdf["pnl"].idxmin()]
                 st.markdown(f"""
                 <div class="trade-card-put">
-                  <div style="color:#f23645;font-weight:700;font-size:16px">ðŸ“‰ Worst Trade</div>
-                  <div style="font-size:24px;font-weight:800;color:#f23645">â‚¹{worst_row['pnl']:,.0f}</div>
-                  <div style="color:#b2b5be;font-size:13px">{worst_row['date'].date() if pd.notna(worst_row['date']) else ''} &nbsp;|&nbsp; {worst_row['index']} &nbsp;|&nbsp; {worst_row['direction']}</div>
-                  <div style="color:#b2b5be;font-size:12px;margin-top:6px">{worst_row['notes'][:120] if worst_row['notes'] else ''}...</div>
+                  <div style="color:#f23645;font-weight:700;font-size:16px">📉 Worst Trade</div>
+                  <div style="font-size:24px;font-weight:800;color:#f23645">₹{worst_row['pnl']:,.0f}</div>
+                  <div style="color:#9ca3af;font-size:13px">{worst_row['date'].date() if pd.notna(worst_row['date']) else ''} &nbsp;|&nbsp; {worst_row['index']} &nbsp;|&nbsp; {worst_row['direction']}</div>
+                  <div style="color:#9ca3af;font-size:12px;margin-top:6px">{worst_row['notes'][:120] if worst_row['notes'] else ''}...</div>
                 </div>""", unsafe_allow_html=True)
 
-    # â”€â”€ HISTORY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── HISTORY ───────────────────────────────────────────────────────────────
     with j_tab3:
         st.markdown("### Trade History")
         jdf_h = load_journal()
@@ -3789,7 +3663,7 @@ with tab9:
                     if v > 0:   return "color: #089981; font-weight: 700"
                     if v < 0:   return "color: #f23645; font-weight: 700"
                 except Exception: pass
-                return "color: #ffa500"
+                return "color: #f59e0b"
 
             display_cols = ["date","index","direction","strike","qty","entry_price","exit_price","pnl","result","setup_quality","emotion"]
             available = [c for c in display_cols if c in filtered.columns]
@@ -3801,11 +3675,11 @@ with tab9:
 
             # Download
             csv_data = filtered.to_csv(index=False).encode("utf-8")
-            st.download_button("â¬‡ï¸ Download Journal as CSV", data=csv_data,
+            st.download_button("⬇️ Download Journal as CSV", data=csv_data,
                                file_name="trade_journal.csv", mime="text/csv")
 
             # Delete last trade
-            if st.button("ðŸ—‘ï¸ Delete Last Trade", type="secondary"):
+            if st.button("🗑️ Delete Last Trade", type="secondary"):
                 jdf_del = load_journal()
                 if not jdf_del.empty:
                     jdf_del = jdf_del.iloc[:-1]
@@ -3813,12 +3687,12 @@ with tab9:
                     st.success("Last trade deleted.")
                     st.rerun()
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  TAB 9 â€” Stock Picks
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 9 — Stock Picks
+# ══════════════════════════════════════════════════════════════════════════════
 with tab10:
-    st.markdown("## ðŸ“Š Nifty 50 Stock Screener")
-    st.caption("Scores all 50 Nifty stocks using EMA trend, RSI, MACD, and volume. Updates every 5 minutes. Use for swing/positional ideas â€” not intraday.")
+    st.markdown("## 📊 Nifty 50 Stock Screener")
+    st.caption("Scores all 50 Nifty stocks using EMA trend, RSI, MACD, and volume. Updates every 5 minutes. Use for swing/positional ideas — not intraday.")
 
     sp_col1, sp_col2 = st.columns([1, 3])
     with sp_col1:
@@ -3850,18 +3724,18 @@ with tab10:
             avoids  = screen_df[screen_df["Signal"] == "AVOID"]
 
             sc1, sc2, sc3 = st.columns(3)
-            sc1.metric("Strong Buys", len(buys),   delta=f"Score â‰¥ 4")
+            sc1.metric("Strong Buys", len(buys),   delta=f"Score ≥ 4")
             sc2.metric("Watch List",  len(watches), delta=f"Score 2-3")
-            sc3.metric("Avoid",       len(avoids),  delta=f"Score â‰¤ -2")
+            sc3.metric("Avoid",       len(avoids),  delta=f"Score ≤ -2")
 
     st.divider()
 
     if not screen_df.empty:
-        # Top 5 BUY picks â€” detailed cards
-        st.markdown("### ðŸŸ¢ Top Buy Candidates")
+        # Top 5 BUY picks — detailed cards
+        st.markdown("### 🟢 Top Buy Candidates")
         top_buys = screen_df[screen_df["Signal"].isin(["BUY", "WATCH"])].head(5)
         if top_buys.empty:
-            st.info("No strong buy signals right now â€” market may be consolidating.")
+            st.info("No strong buy signals right now — market may be consolidating.")
         else:
             for _, row in top_buys.iterrows():
                 score_pct = min(int((row["Score"] / 10) * 100), 100)
@@ -3873,13 +3747,13 @@ with tab10:
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
                     <div>
                       <div style="font-size:18px;font-weight:800;color:{sig_color}">{row['Stock']}</div>
-                      <div style="font-size:11px;color:#787b86">{row['Sector']} &nbsp;|&nbsp;
+                      <div style="font-size:11px;color:#6b7280">{row['Sector']} &nbsp;|&nbsp;
                         <span style="background:{sig_color};color:#000;padding:1px 8px;border-radius:10px;font-weight:700;font-size:11px">{row['Signal']}</span>
                       </div>
                     </div>
                     <div style="text-align:center">
                       <div class="trade-label">LTP</div>
-                      <div style="font-size:18px;font-weight:700">â‚¹{row['LTP']:,}</div>
+                      <div style="font-size:18px;font-weight:700">₹{row['LTP']:,}</div>
                     </div>
                     <div style="text-align:center">
                       <div class="trade-label">Today</div>
@@ -3902,10 +3776,10 @@ with tab10:
                       <div style="font-size:14px;font-weight:700">{row['From 52H%']}%</div>
                     </div>
                   </div>
-                  <div style="margin-top:8px;font-size:11px;color:#b2b5be">ðŸ“‹ {row['Reasons']}</div>
+                  <div style="margin-top:8px;font-size:11px;color:#9ca3af">📋 {row['Reasons']}</div>
                 </div>""", unsafe_allow_html=True)
 
-        st.markdown("### ðŸ”´ Top Stocks to Avoid / Short Watch")
+        st.markdown("### 🔴 Top Stocks to Avoid / Short Watch")
         top_avoids = screen_df[screen_df["Signal"] == "AVOID"].tail(5)
         if not top_avoids.empty:
             avoid_data = top_avoids[["Stock", "Sector", "LTP", "Chg%", "RSI", "Score", "Reasons"]].copy()
@@ -3913,7 +3787,7 @@ with tab10:
             st.dataframe(avoid_data.set_index("Stock"), use_container_width=True)
 
         st.divider()
-        st.markdown("### ðŸ“‹ Full Screener Table")
+        st.markdown("### 📋 Full Screener Table")
         display_cols = ["Stock", "Sector", "LTP", "Chg%", "RSI", "Vol Ratio", "From 52H%", "Score", "Signal"]
         disp = filtered_df[display_cols].copy()
 
@@ -3942,27 +3816,27 @@ with tab10:
 
         st.markdown("""
         <div style="background:#1e222d;border-radius:8px;padding:12px 16px;margin-top:8px;
-                    border-left:4px solid #ffa500;font-size:12px;color:#b2b5be">
-        âš ï¸ <b style="color:#ffa500">Disclaimer:</b>
-        These scores use technical indicators on daily data. They are for research and swing trade ideas only â€”
+                    border-left:4px solid #ffa500;font-size:12px;color:#9ca3af">
+        ⚠️ <b style="color:#ffa500">Disclaimer:</b>
+        These scores use technical indicators on daily data. They are for research and swing trade ideas only —
         not financial advice. Always do your own analysis before investing. Past performance does not guarantee future returns.
         </div>""", unsafe_allow_html=True)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-#  TAB 10 â€” Mutual Funds
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB 10 — Mutual Funds
+# ══════════════════════════════════════════════════════════════════════════════
 with tab11:
-    st.markdown("## ðŸ’° Mutual Fund Recommender")
-    st.caption("Answer 3 questions â€” the dashboard will suggest the best mutual funds for your profile.")
+    st.markdown("## 💰 Mutual Fund Recommender")
+    st.caption("Answer 3 questions — the dashboard will suggest the best mutual funds for your profile.")
 
     st.markdown("### Tell me about yourself")
     mf_c1, mf_c2, mf_c3 = st.columns(3)
     with mf_c1:
         mf_risk = st.selectbox("Risk Profile", [
-            "Conservative â€” I don't like losing money",
-            "Moderate â€” I can handle some ups and downs",
-            "Aggressive â€” I want maximum growth",
+            "Conservative — I don't like losing money",
+            "Moderate — I can handle some ups and downs",
+            "Aggressive — I want maximum growth",
         ])
     with mf_c2:
         mf_goal = st.selectbox("Investment Goal", [
@@ -3977,19 +3851,19 @@ with tab11:
     with mf_c3:
         mf_horizon = st.selectbox("Investment Horizon", [
             "< 1 year",
-            "1 â€“ 3 years",
-            "3 â€“ 5 years",
-            "5 â€“ 7 years",
+            "1 – 3 years",
+            "3 – 5 years",
+            "5 – 7 years",
             "7+ years",
         ])
 
-    mf_sip = st.number_input("Monthly SIP Amount (â‚¹)", min_value=100, value=5000, step=500)
+    mf_sip = st.number_input("Monthly SIP Amount (₹)", min_value=100, value=5000, step=500)
 
     # Map selections to filter keys
     risk_map = {
-        "Conservative â€” I don't like losing money": "Conservative",
-        "Moderate â€” I can handle some ups and downs": "Moderate",
-        "Aggressive â€” I want maximum growth": "Aggressive",
+        "Conservative — I don't like losing money": "Conservative",
+        "Moderate — I can handle some ups and downs": "Moderate",
+        "Aggressive — I want maximum growth": "Aggressive",
     }
     user_risk    = risk_map[mf_risk]
     user_goal    = mf_goal
@@ -4005,9 +3879,9 @@ with tab11:
         if user_goal in fund["goal"]:                         s += 3
         h_map = {
             "< 1 year":   ["< 1y", "1-3y"],
-            "1 â€“ 3 years":["1-3y", "3y+"],
-            "3 â€“ 5 years":["3y+", "5y+"],
-            "5 â€“ 7 years":["5y+", "7y+", "10y+"],
+            "1 – 3 years":["1-3y", "3y+"],
+            "3 – 5 years":["3y+", "5y+"],
+            "5 – 7 years":["5y+", "7y+", "10y+"],
             "7+ years":   ["7y+", "10y+", "5y+"],
         }
         for h in h_map.get(user_horizon, []):
@@ -4021,24 +3895,24 @@ with tab11:
         top_funds = scored_funds[:4]
 
     st.divider()
-    st.markdown(f"### ðŸŽ¯ Recommended Funds for You")
-    st.caption(f"Profile: **{user_risk}** | Goal: **{user_goal}** | Horizon: **{user_horizon}** | SIP: â‚¹{mf_sip:,}/month")
+    st.markdown(f"### 🎯 Recommended Funds for You")
+    st.caption(f"Profile: **{user_risk}** | Goal: **{user_goal}** | Horizon: **{user_horizon}** | SIP: ₹{mf_sip:,}/month")
 
     with st.spinner("Fetching live NAV from AMFI..."):
         amfi_navs = fetch_amfi_navs()
     if amfi_navs:
-        st.caption(f"âœ… Live NAV loaded from AMFI â€” {len(amfi_navs):,} funds")
+        st.caption(f"✅ Live NAV loaded from AMFI — {len(amfi_navs):,} funds")
     else:
-        st.caption("âš ï¸ NAV fetch failed â€” showing fund details without live NAV")
+        st.caption("⚠️ NAV fetch failed — showing fund details without live NAV")
 
     risk_colors = {
-        "Very Low": "#2962ff", "Low": "#089981", "Moderate": "#ffa500",
+        "Very Low": "#3b82f6", "Low": "#089981", "Moderate": "#ffa500",
         "Moderate-High": "#f97316", "High": "#f23645", "Very High": "#dc2626",
     }
-    star_map = {5: "â­â­â­â­â­", 4: "â­â­â­â­", 3: "â­â­â­"}
+    star_map = {5: "⭐⭐⭐⭐⭐", 4: "⭐⭐⭐⭐", 3: "⭐⭐⭐"}
 
     for i, fund in enumerate(top_funds):
-        rc = risk_colors.get(fund["risk"], "#b2b5be")
+        rc = risk_colors.get(fund["risk"], "#9ca3af")
         ret_color_1y = "#089981" if fund["ret_1y"] > 15 else ("#ffa500" if fund["ret_1y"] > 10 else "#f23645")
         corpus_10y = round(mf_sip * (((1 + fund["ret_5y"]/100/12) ** 120 - 1) / (fund["ret_5y"]/100/12)), 0)
 
@@ -4048,24 +3922,24 @@ with tab11:
             nav_html = f"""
               <div style="text-align:center;border:1px solid {rc};border-radius:8px;padding:6px 14px">
                 <div class="trade-label">Live NAV</div>
-                <div style="font-size:20px;font-weight:800;color:{rc}">â‚¹{nav_data['nav']:,.2f}</div>
-                <div style="font-size:10px;color:#787b86">as of {nav_data['date']}</div>
+                <div style="font-size:20px;font-weight:800;color:{rc}">₹{nav_data['nav']:,.2f}</div>
+                <div style="font-size:10px;color:#6b7280">as of {nav_data['date']}</div>
               </div>"""
         else:
-            nav_html = '<div style="text-align:center"><div class="trade-label">NAV</div><div style="color:#787b86;font-size:12px">N/A</div></div>'
+            nav_html = '<div style="text-align:center"><div class="trade-label">NAV</div><div style="color:#6b7280;font-size:12px">N/A</div></div>'
 
         st.markdown(f"""
         <div class="metric-card" style="border-left-color:{rc};margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
             <div style="flex:1;min-width:200px">
               <div style="font-size:16px;font-weight:800;color:#e0e0e0">#{i+1} {fund['name']}</div>
-              <div style="font-size:12px;color:#b2b5be;margin-top:2px">
+              <div style="font-size:12px;color:#9ca3af;margin-top:2px">
                 {fund['category']} &nbsp;|&nbsp;
                 <span style="color:{rc};font-weight:700">{fund['risk']} Risk</span> &nbsp;|&nbsp;
-                {star_map.get(fund['stars'], 'â­â­â­')} &nbsp;|&nbsp;
-                Min SIP: â‚¹{fund['min_sip']:,} &nbsp;|&nbsp; AUM: {fund['aum']}
+                {star_map.get(fund['stars'], '⭐⭐⭐')} &nbsp;|&nbsp;
+                Min SIP: ₹{fund['min_sip']:,} &nbsp;|&nbsp; AUM: {fund['aum']}
               </div>
-              <div style="font-size:12px;color:#787b86;margin-top:4px">ðŸ• Horizon: {fund['horizon']}</div>
+              <div style="font-size:12px;color:#6b7280;margin-top:4px">🕐 Horizon: {fund['horizon']}</div>
             </div>
             <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
               {nav_html}
@@ -4082,18 +3956,18 @@ with tab11:
                 <div style="font-size:16px;font-weight:700;color:#089981">{fund['ret_5y']}%</div>
               </div>
               <div style="text-align:center">
-                <div class="trade-label">â‚¹{mf_sip:,} SIP â†’ 10Y</div>
-                <div style="font-size:16px;font-weight:700;color:#a855f7">â‚¹{corpus_10y/100000:.1f}L</div>
+                <div class="trade-label">₹{mf_sip:,} SIP → 10Y</div>
+                <div style="font-size:16px;font-weight:700;color:#a855f7">₹{corpus_10y/100000:.1f}L</div>
               </div>
             </div>
           </div>
           <div style="margin-top:10px;font-size:13px;color:#d1d5db">
-            ðŸ’¡ <b>Why this fund:</b> {fund['why']}
+            💡 <b>Why this fund:</b> {fund['why']}
           </div>
         </div>""", unsafe_allow_html=True)
 
     st.divider()
-    st.markdown("### ðŸ“š Fund Categories â€” Quick Guide")
+    st.markdown("### 📚 Fund Categories — Quick Guide")
     guide_data = {
         "Category":     ["Liquid Fund", "Short Duration Debt", "Index Fund (Nifty 50)", "Large Cap", "Flexi Cap", "Mid Cap", "Small Cap", "ELSS", "Hybrid/BAF"],
         "Best For":     ["Emergency Fund / Parking", "1-3 Year Goals", "Safe Long-term Wealth", "Stable Growth", "All-weather Portfolio", "High Growth", "Maximum Growth", "Tax Saving + Growth", "First-time Investors"],
@@ -4105,8 +3979,8 @@ with tab11:
 
     st.markdown("""
     <div style="background:#1e222d;border-radius:8px;padding:14px 18px;margin-top:12px;
-                border-left:4px solid #2962ff;font-size:13px;color:#b2b5be">
-    âš ï¸ <b style="color:#2962ff">Disclaimer:</b>
+                border-left:4px solid #3b82f6;font-size:13px;color:#9ca3af">
+    ⚠️ <b style="color:#2962ff">Disclaimer:</b>
     Returns shown are approximate historical figures for reference only.
     Mutual fund investments are subject to market risks. Past returns do not guarantee future performance.
     Please read the Scheme Information Document (SID) carefully before investing.
@@ -4115,4 +3989,4 @@ with tab11:
 
 
 st.divider()
-st.caption("ðŸ“¡ Dashboard auto-refreshes every 30 seconds during market hours (9:15 AM â€“ 3:30 PM IST) via browser meta-refresh.")
+st.caption("📡 Dashboard auto-refreshes every 30 seconds during market hours (9:15 AM – 3:30 PM IST) via browser meta-refresh.")
