@@ -1556,7 +1556,7 @@ else:
     if _upstox_quotes:
         _data_source = "🟡 Live data · Upstox"
     else:
-        _data_source = "🔴 Delayed (15 min) · Yahoo Finance — add Zerodha credentials for live data"
+        _data_source = "🔴 Delayed (15 min) · Yahoo Finance — add UPSTOX_ACCESS_TOKEN to Streamlit secrets for live data"
 
 # ── Data source badge ─────────────────────────────────────────────────────────
 _badge_color = "#26a69a" if _ZERODHA_AVAILABLE else ("#f59e0b" if _UPSTOX_AVAILABLE else "#ef5350")
