@@ -125,7 +125,7 @@ section[data-testid="stSidebar"]        { background: #1e222d !important; border
     padding: 0 !important; gap: 0 !important;
 }
 button[data-baseweb="tab"] {
-    background: transparent !important; color: #787b86 !important;
+    background: transparent !important; color: #9598a1 !important;
     border: none !important; border-bottom: 2px solid transparent !important;
     padding: 10px 16px !important; font-size: 13px !important;
     font-weight: 500 !important; border-radius: 0 !important;
@@ -150,7 +150,7 @@ button[aria-selected="true"][data-baseweb="tab"] {
     background: #1e222d !important; border: 1px solid #2a2e39 !important;
     border-radius: 6px !important; padding: 12px 16px !important;
 }
-[data-testid="stMetricLabel"] { color: #787b86 !important; font-size: 11px !important; text-transform: uppercase; letter-spacing: 0.08em; }
+[data-testid="stMetricLabel"] { color: #9598a1 !important; font-size: 12px !important; text-transform: uppercase; letter-spacing: 0.08em; }
 [data-testid="stMetricValue"] { color: #d1d4dc !important; font-size: 1.4rem !important; font-weight: 600 !important; font-variant-numeric: tabular-nums; }
 
 /* Color tokens */
@@ -160,14 +160,14 @@ button[aria-selected="true"][data-baseweb="tab"] {
 
 /* Section titles */
 .section-title {
-    font-size: 11px; font-weight: 600; color: #787b86;
+    font-size: 12px; font-weight: 600; color: #9598a1;
     text-transform: uppercase; letter-spacing: 0.1em;
     margin: 20px 0 10px; padding-bottom: 6px;
     border-bottom: 1px solid #2a2e39;
 }
 
 /* Pills */
-.pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin: 2px; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin: 2px; }
 .pill-green  { background: rgba(8,153,129,0.15);  color: #089981; border: 1px solid rgba(8,153,129,0.3); }
 .pill-red    { background: rgba(242,54,69,0.15);   color: #f23645; border: 1px solid rgba(242,54,69,0.3); }
 .pill-yellow { background: rgba(255,160,0,0.15);   color: #ffa500; border: 1px solid rgba(255,160,0,0.3); }
@@ -182,9 +182,9 @@ button[aria-selected="true"][data-baseweb="tab"] {
 .trade-card-call { background: #1a2a23; border: 1px solid #089981; border-radius: 6px; padding: 18px 20px; margin: 6px 0; }
 .trade-card-put  { background: #2a1a1e; border: 1px solid #f23645; border-radius: 6px; padding: 18px 20px; margin: 6px 0; }
 .trade-header { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-.trade-strike { font-size: 13px; color: #787b86; margin-bottom: 12px; }
+.trade-strike { font-size: 13px; color: #9598a1; margin-bottom: 12px; }
 .trade-row    { display: flex; justify-content: space-between; margin: 5px 0; }
-.trade-label  { font-size: 11px; color: #4c525e; text-transform: uppercase; letter-spacing: 0.08em; }
+.trade-label  { font-size: 12px; color: #9598a1; text-transform: uppercase; letter-spacing: 0.08em; }
 .trade-value  { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .conf-high { color: #089981; font-weight: 700; }
@@ -229,14 +229,14 @@ button[aria-selected="true"][data-baseweb="tab"] {
 
 /* Expanders */
 [data-testid="stExpander"] { background: #1e222d !important; border: 1px solid #2a2e39 !important; border-radius: 6px !important; }
-[data-testid="stExpander"] summary { color: #787b86 !important; font-size: 12px !important; }
+[data-testid="stExpander"] summary { color: #9598a1 !important; font-size: 12px !important; }
 
 /* Dividers */
 hr { border-color: #2a2e39 !important; margin: 16px 0 !important; }
 
 /* DataFrames */
 [data-testid="stDataFrame"] { border: 1px solid #2a2e39 !important; border-radius: 6px !important; }
-[data-testid="stDataFrame"] th { background: #1e222d !important; color: #787b86 !important; font-size: 11px !important; text-transform: uppercase; }
+[data-testid="stDataFrame"] th { background: #1e222d !important; color: #9598a1 !important; font-size: 12px !important; text-transform: uppercase; }
 [data-testid="stDataFrame"] td { background: #131722 !important; color: #d1d4dc !important; font-size: 12px !important; }
 [data-testid="stDataFrame"] tr:hover td { background: #1e222d !important; }
 
@@ -1473,7 +1473,7 @@ def render_trade_card(setup: dict, side: str):
     color    = "#089981" if is_call else "#f23645"
     label    = "📈 CALL (CE)" if is_call else "📉 PUT (PE)"
     preferred = setup["net_score"] > 0 if is_call else setup["net_score"] < 0
-    badge     = ' <span style="background:#ffa500;color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">★ PREFERRED</span>' if preferred else ""
+    badge     = ' <span style="background:#ffa500;color:#000;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700">★ PREFERRED</span>' if preferred else ""
 
     st.markdown(f"""
     <div class="{card_cls}">
@@ -1499,7 +1499,7 @@ def render_trade_card(setup: dict, side: str):
           {t['conf_icon']} Confidence: {t['conf']} ({t['score']}/8)
         </span>
       </div>
-      <div style="margin-top:8px;font-size:12px;color:#9ca3af">
+      <div style="margin-top:8px;font-size:12px;color:#b2b5be">
         🕐 Exit: {t['exit_time']}
       </div>
     </div>
@@ -1695,7 +1695,7 @@ with col_h3:
     n_warn = "🔴" if n_exp["days"] <= 1 else ("🟡" if n_exp["days"] <= 2 else "🟢")
     b_warn = "🔴" if b_exp["days"] <= 1 else ("🟡" if b_exp["days"] <= 2 else "🟢")
     st.markdown(f"""
-    <div style="margin-top:14px;font-size:11px;color:#9ca3af;line-height:1.8">
+    <div style="margin-top:14px;font-size:12px;color:#b2b5be;line-height:1.8">
     {n_warn} <b>Nifty expiry:</b> {n_exp['date']} ({n_exp['days']}d)<br>
     {b_warn} <b>BNF expiry:</b> {b_exp['date']} ({b_exp['days']}d)
     </div>""", unsafe_allow_html=True)
@@ -1738,7 +1738,7 @@ else:
 # ── Data source badge ─────────────────────────────────────────────────────────
 _badge_color = "#089981" if _ZERODHA_AVAILABLE else ("#ffa500" if _UPSTOX_AVAILABLE else "#f23645")
 st.markdown(
-    f'<div style="font-size:11px;color:{_badge_color};margin-bottom:4px">'
+    f'<div style="font-size:12px;color:{_badge_color};margin-bottom:4px">'
     f'{_data_source} · as of {_fetch_time} IST</div>',
     unsafe_allow_html=True,
 )
@@ -1753,10 +1753,10 @@ for col, (name, q) in zip(idx_cols, quotes.items()):
             cls   = "bull" if q["chg"] >= 0 else "bear"
             st.markdown(f"""
             <div class="metric-card">
-              <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">{name}</div>
+              <div style="font-size:12px;color:#b2b5be;text-transform:uppercase;letter-spacing:.06em">{name}</div>
               <div style="font-size:22px;font-weight:700" class="{cls}">{q['ltp']:,.2f}</div>
               <div style="font-size:13px" class="{cls}">{arrow} {abs(q['chg']):,.2f} ({q['pct']:+.2f}%)</div>
-              <div style="font-size:11px;color:#6b7280;margin-top:4px">H:{q['high']:,.0f} L:{q['low']:,.0f}</div>
+              <div style="font-size:12px;color:#9598a1;margin-top:4px">H:{q['high']:,.0f} L:{q['low']:,.0f}</div>
             </div>""", unsafe_allow_html=True)
         else:
             st.metric(name, "Loading…")
@@ -1815,13 +1815,13 @@ with tab3:
             f'padding:10px 12px;margin:4px 0">'
             f'<div style="color:{border};font-weight:700;font-size:14px">{icon} {label}</div>'
             f'<div style="color:#e0e0e0;font-weight:700;font-size:16px;margin:3px 0">{value}</div>'
-            f'<div style="color:#9ca3af;font-size:12px">{msg}</div></div>',
+            f'<div style="color:#b2b5be;font-size:12px">{msg}</div></div>',
             unsafe_allow_html=True,
         )
 
     def sec_title(n, title):
-        st.markdown(f'<div style="font-size:13px;font-weight:800;color:#9ca3af;'
-                    f'text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">{n} {title}</div>',
+        st.markdown(f'<div style="font-size:13px;font-weight:800;color:#b2b5be;'
+                    f'text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">{n} {title}</div>',
                     unsafe_allow_html=True)
 
     # ── 6 columns — widths proportional to content ────────────────────────────
@@ -1897,7 +1897,7 @@ with tab3:
             f'<div style="background:{gs_bg};border-left:4px solid {gs_m["color"]};'
             f'border-radius:8px;padding:12px;margin:4px 0">'
             f'<div style="font-size:28px;font-weight:900;color:{gs_m["color"]};line-height:1">'
-            f'{gs_m["score"]:+d}<span style="font-size:13px;color:#9ca3af"> /10</span></div>'
+            f'{gs_m["score"]:+d}<span style="font-size:13px;color:#b2b5be"> /10</span></div>'
             f'<div style="font-size:14px;font-weight:700;color:{gs_m["color"]};margin:4px 0">{gs_m["label"]}</div>'
             f'{factors_html}</div>',
             unsafe_allow_html=True,
@@ -1940,7 +1940,7 @@ with tab3:
             f'<div style="background:{vd_bg};border-left:4px solid {vc};border-radius:8px;'
             f'padding:14px 12px;margin:4px 0;text-align:center">'
             f'<div style="font-size:20px;font-weight:900;color:{vc}">{verdict}</div>'
-            f'<div style="font-size:13px;color:#9ca3af;margin-top:8px;white-space:pre-line;line-height:1.8">{advice}</div>'
+            f'<div style="font-size:13px;color:#b2b5be;margin-top:8px;white-space:pre-line;line-height:1.8">{advice}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -1987,21 +1987,21 @@ with tab1:
         st.markdown(f'<div class="metric-card" style="border-left-color:{vix_color}">'
                     f'<div class="trade-label">India VIX</div>'
                     f'<div style="font-size:24px;font-weight:800;color:{vix_color}">{vix_i:.2f}</div>'
-                    f'<div style="font-size:12px;color:#9ca3af">{"⚠️ High — reduce size" if vix_i > 18 else "✅ Normal range"}</div>'
+                    f'<div style="font-size:12px;color:#b2b5be">{"⚠️ High — reduce size" if vix_i > 18 else "✅ Normal range"}</div>'
                     f'</div>', unsafe_allow_html=True)
     with ic2:
         n_color = "#089981" if nq_i.get("chg",0)>=0 else "#f23645"
         st.markdown(f'<div class="metric-card" style="border-left-color:{n_color}">'
                     f'<div class="trade-label">Nifty 50</div>'
                     f'<div style="font-size:24px;font-weight:800;color:{n_color}">{n_ltp:,.2f}</div>'
-                    f'<div style="font-size:12px;color:#9ca3af">{nq_i.get("pct",0):+.2f}% today</div>'
+                    f'<div style="font-size:12px;color:#b2b5be">{nq_i.get("pct",0):+.2f}% today</div>'
                     f'</div>', unsafe_allow_html=True)
     with ic3:
         b_color = "#089981" if bnq_i.get("chg",0)>=0 else "#f23645"
         st.markdown(f'<div class="metric-card" style="border-left-color:{b_color}">'
                     f'<div class="trade-label">Bank Nifty</div>'
                     f'<div style="font-size:24px;font-weight:800;color:{b_color}">{bn_ltp:,.2f}</div>'
-                    f'<div style="font-size:12px;color:#9ca3af">{bnq_i.get("pct",0):+.2f}% today</div>'
+                    f'<div style="font-size:12px;color:#b2b5be">{bnq_i.get("pct",0):+.2f}% today</div>'
                     f'</div>', unsafe_allow_html=True)
 
     st.divider()
@@ -2033,7 +2033,7 @@ with tab1:
                     orb_cls    = "#ffa500"
                 st.markdown(f"""
                 <div class="metric-card" style="border-left-color:{orb_cls}">
-                  <div style="font-size:12px;color:#9ca3af;margin-bottom:6px"><b>{name_orb} ORB</b></div>
+                  <div style="font-size:12px;color:#b2b5be;margin-bottom:6px"><b>{name_orb} ORB</b></div>
                   <div style="display:flex;justify-content:space-between;margin-bottom:6px">
                     <div><div class="trade-label">ORB High</div>
                          <div style="color:#f23645;font-weight:700;font-size:15px">{orb_h:,.2f}</div></div>
@@ -2045,7 +2045,7 @@ with tab1:
                          <div style="font-weight:700;font-size:15px">{ltp_orb:,.2f}</div></div>
                   </div>
                   <div style="color:{orb_cls};font-weight:700;font-size:14px">{orb_signal}</div>
-                  <div style="color:#9ca3af;font-size:11px;margin-top:4px">
+                  <div style="color:#b2b5be;font-size:12px;margin-top:4px">
                     Strategy: Buy breakout above ORB High → CE | Breakdown below ORB Low → PE<br>
                     SL: Re-entry inside the range | Target: 1.5× – 2× the range size
                   </div>
@@ -2075,7 +2075,7 @@ with tab1:
     def _level_chip(label, val, color):
         return (f'<div style="background:#1e222d;border:1px solid {color};border-radius:6px;'
                 f'padding:6px 10px;text-align:center;min-width:80px">'
-                f'<div style="color:#6b7280;font-size:10px;font-weight:700">{label}</div>'
+                f'<div style="color:#b2b5be;font-size:12px;font-weight:700">{label}</div>'
                 f'<div style="color:{color};font-size:14px;font-weight:800">{val}</div></div>')
 
     def show_intraday_signals(df, ltp, vix, name, step, orb=None, pivots=None):
@@ -2148,10 +2148,10 @@ with tab1:
             f'<div style="color:#e0e0e0;font-size:13px;margin-top:4px">{setup["entry_cond"]}</div>'
             f'</div>'
             f'<div style="text-align:right">'
-            f'<div style="color:#9ca3af;font-size:11px">VWAP</div>'
+            f'<div style="color:#b2b5be;font-size:12px">VWAP</div>'
             f'<div style="color:#a78bfa;font-weight:700;font-size:15px">{vwap_val:,.0f}</div>'
             f'</div></div>'
-            f'<div style="color:#9ca3af;font-size:12px;margin-top:8px">'
+            f'<div style="color:#b2b5be;font-size:12px;margin-top:8px">'
             f'{setup.get("vix_advice","")}</div>'
             f'</div>', unsafe_allow_html=True)
 
@@ -2184,13 +2184,13 @@ with tab1:
                 st.markdown(
                     f'<div style="background:#1e222d;border-left:3px solid {color};border-radius:6px;'
                     f'padding:10px 12px">'
-                    f'<div style="color:#6b7280;font-size:11px">{label}</div>'
+                    f'<div style="color:#b2b5be;font-size:12px">{label}</div>'
                     f'<div style="color:{color};font-weight:800;font-size:15px">{val}</div>'
-                    f'<div style="color:#6b7280;font-size:10px">{note}</div></div>',
+                    f'<div style="color:#b2b5be;font-size:12px">{note}</div></div>',
                     unsafe_allow_html=True)
 
         st.markdown(
-            f'<div style="color:#9ca3af;font-size:12px;margin:6px 0 14px">'
+            f'<div style="color:#b2b5be;font-size:12px;margin:6px 0 14px">'
             f'Index needs to move <b style="color:{dir_color}">{idx_move_t1:,.0f} pts</b> to T1 '
             f'vs <b style="color:#f23645">{idx_move_sl:,.0f} pts</b> risk — '
             f'<b>R:R = 1:{rr_idx}</b></div>', unsafe_allow_html=True)
@@ -2257,37 +2257,37 @@ with tab1:
                 row_bg     = f"rgba({'38,166,154' if opt_dir=='CE' else '239,83,80'},0.07)" if is_rec and affordable else "rgba(255,255,255,0.02)"
                 row_border = oc if (is_rec and affordable) else "#374151"
                 op         = "1" if is_rec else "0.4"
-                rec_badge  = ' <span style="background:#ffa500;color:#000;padding:1px 6px;border-radius:4px;font-size:10px">REC</span>' if is_rec and label == "OTM 1" else ""
+                rec_badge  = ' <span style="background:#ffa500;color:#000;padding:1px 6px;border-radius:4px;font-size:12px">REC</span>' if is_rec and label == "OTM 1" else ""
 
                 st.markdown(f"""
                 <div style="background:{row_bg};border:1px solid {row_border};border-radius:8px;
                             padding:10px 14px;margin:4px 0;opacity:{op}">
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
                     <div>
-                      <span style="color:{oc};font-weight:800;font-size:16px">{strike} {opt_dir}</span>{rec_badge}<span style="color:#6b7280;font-size:11px;margin-left:8px">{label}</span>
+                      <span style="color:{oc};font-weight:800;font-size:16px">{strike} {opt_dir}</span>{rec_badge}<span style="color:#b2b5be;font-size:12px;margin-left:8px">{label}</span>
                     </div>
                     <div style="background:#1e2130;border-radius:6px;padding:3px 10px;font-size:12px">
-                      📅 <span style="color:#9ca3af">Expiry:</span> <span style="color:#e0e0e0;font-weight:700">{expiry_date}</span> <span style="color:#6b7280">({days_left}d)</span>
+                      📅 <span style="color:#b2b5be">Expiry:</span> <span style="color:#e0e0e0;font-weight:700">{expiry_date}</span> <span style="color:#9598a1">({days_left}d)</span>
                     </div>
                   </div>
                   <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
-                    <div><div style="color:#6b7280">{'Premium 🟢 LIVE' if prem_source=='LIVE' else 'Premium 🟡 EST'}</div>
+                    <div><div style="color:#9598a1">{'Premium 🟢 LIVE' if prem_source=='LIVE' else 'Premium 🟡 EST'}</div>
                          <div style="color:{oc};font-weight:700">{pr}</div>
-                         {'<div style="color:#6b7280;font-size:10px">IV: '+f"{live_iv:.1f}%</div>" if live_iv else ''}</div>
-                    <div><div style="color:#6b7280">1-lot cost</div>
+                         {'<div style="color:#b2b5be;font-size:12px">IV: '+f"{live_iv:.1f}%</div>" if live_iv else ''}</div>
+                    <div><div style="color:#9598a1">1-lot cost</div>
                          <div style="font-weight:700">₹{cost_lo:,}–{cost_hi:,}</div></div>
-                    <div><div style="color:#6b7280">Max lots</div>
+                    <div><div style="color:#9598a1">Max lots</div>
                          <div style="color:{'#089981' if affordable else '#6b7280'};font-weight:800;font-size:14px">{max_lots if affordable else '—'}</div></div>
-                    <div><div style="color:#6b7280">Prem SL / T1 / T2</div>
+                    <div><div style="color:#9598a1">Prem SL / T1 / T2</div>
                          <div style="font-weight:700"><span style="color:#f23645">{prem_sl_pct}</span> &nbsp;
                          <span style="color:#089981">{prem_t1_pct}</span> &nbsp;
                          <span style="color:#089981">{prem_t2_pct}</span></div></div>
-                    <div><div style="color:#6b7280">Index SL</div>
+                    <div><div style="color:#9598a1">Index SL</div>
                          <div style="color:#f23645;font-weight:700">{setup['idx_sl_label']}</div></div>
-                    <div><div style="color:#6b7280">Index T1</div>
+                    <div><div style="color:#9598a1">Index T1</div>
                          <div style="color:#089981;font-weight:700">{setup['idx_t1_label']}</div></div>
                   </div>
-                  <div style="color:#6b7280;font-size:11px;margin-top:6px">💡 {note}</div>
+                  <div style="color:#b2b5be;font-size:12px;margin-top:6px">💡 {note}</div>
                 </div>""", unsafe_allow_html=True)
 
         live_label = "🟢 LIVE from Upstox" if live_chain else "🟡 Estimated (add token for live)"
@@ -2298,7 +2298,7 @@ with tab1:
         <div style="background:#1e222d;border-left:4px solid #ffa500;border-radius:8px;
                     padding:12px 16px;margin-top:12px;font-size:13px">
         <b style="color:#ffa500">Risk Rules (Non-negotiable)</b><br>
-        <span style="color:#9ca3af">
+        <span style="color:#b2b5be">
         • Risk only 1–2% of capital per trade &nbsp;|&nbsp;
         • Exit at premium SL (−30%) without hesitation &nbsp;|&nbsp;
         • Exit if index crosses your SL level — do NOT average down &nbsp;|&nbsp;
@@ -2363,7 +2363,7 @@ with tab1:
             st.markdown(f"""<div class="metric-card" style="border-left-color:{g_color}">
             <div class="trade-label">Global Cues</div>
             <div style="font-size:18px;font-weight:800;color:{g_color}">{g_arrow} {g_sentiment.get('label','—')[:20]}</div>
-            <div style="font-size:11px;color:#9ca3af">Score: {g_score:+d}/10</div>
+            <div style="font-size:12px;color:#b2b5be">Score: {g_score:+d}/10</div>
             </div>""", unsafe_allow_html=True)
 
         with mc2:
@@ -2371,7 +2371,7 @@ with tab1:
             st.markdown(f"""<div class="metric-card" style="border-left-color:{vcolor}">
             <div class="trade-label">India VIX</div>
             <div style="font-size:22px;font-weight:800;color:{vcolor}">{vix_i:.2f}</div>
-            <div style="font-size:11px;color:#9ca3af">{"⚠️ High" if vix_i>20 else ("⚠️ Watch" if vix_i>16 else "✅ Normal")}</div>
+            <div style="font-size:12px;color:#b2b5be">{"⚠️ High" if vix_i>20 else ("⚠️ Watch" if vix_i>16 else "✅ Normal")}</div>
             </div>""", unsafe_allow_html=True)
 
         with mc3:
@@ -2388,8 +2388,8 @@ with tab1:
             else:
                 st.markdown("""<div class="metric-card">
                 <div class="trade-label">FII / DII</div>
-                <div style="font-size:13px;color:#6b7280">Data unavailable</div>
-                <div style="font-size:11px;color:#6b7280">NSE updates after 4 PM</div>
+                <div style="font-size:13px;color:#9598a1">Data unavailable</div>
+                <div style="font-size:12px;color:#9598a1">NSE updates after 4 PM</div>
                 </div>""", unsafe_allow_html=True)
 
         with mc4:
@@ -2399,12 +2399,12 @@ with tab1:
                 st.markdown(f"""<div class="metric-card" style="border-left-color:{bc}">
                 <div class="trade-label">Market Breadth</div>
                 <div style="font-size:13px;font-weight:700;color:{bc}">{breadth_data.get('label','—')}</div>
-                <div style="font-size:11px;color:#9ca3af">A/D Ratio: {breadth_data.get('ratio',0):.1f}</div>
+                <div style="font-size:12px;color:#b2b5be">A/D Ratio: {breadth_data.get('ratio',0):.1f}</div>
                 </div>""", unsafe_allow_html=True)
             else:
                 st.markdown("""<div class="metric-card">
                 <div class="trade-label">Market Breadth</div>
-                <div style="font-size:13px;color:#6b7280">Unavailable</div>
+                <div style="font-size:13px;color:#9598a1">Unavailable</div>
                 </div>""", unsafe_allow_html=True)
 
         with mc5:
@@ -2417,7 +2417,7 @@ with tab1:
             st.markdown(f"""<div class="metric-card" style="border-left-color:{tc}">
             <div class="trade-label">Session</div>
             <div style="font-size:16px;font-weight:800;color:{tc}">{'🟢 OPEN' if is_open else '🔴 CLOSED'} {mkt_time}</div>
-            <div style="font-size:10px;color:#9ca3af">Max hold: {hold_str[:20]}</div>
+            <div style="font-size:12px;color:#b2b5be">Max hold: {hold_str[:20]}</div>
             </div>""", unsafe_allow_html=True)
 
         # ── Full Market Intelligence Panel ────────────────────────────────────
@@ -2442,12 +2442,12 @@ with tab1:
               <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
                 <div>
                   <span style="color:{regime_color};font-size:18px;font-weight:800">{regime.replace('_',' ')} MODE</span>
-                  <span style="background:{risk_color}33;color:{risk_color};font-size:11px;font-weight:700;
+                  <span style="background:{risk_color}33;color:{risk_color};font-size:12px;font-weight:700;
                         padding:2px 8px;border-radius:10px;margin-left:10px;border:1px solid {risk_color}">
                     {risk_level} RISK
                   </span>
                 </div>
-                <div style="color:#9ca3af;font-size:12px">Macro Score: <b style="color:{regime_color}">{macro_score:+d}/20</b></div>
+                <div style="color:#b2b5be;font-size:12px">Macro Score: <b style="color:{regime_color}">{macro_score:+d}/20</b></div>
               </div>
               <div style="background:#131722;border-radius:6px;height:6px;margin-bottom:10px">
                 <div style="background:{regime_color};width:{score_bar_w}%;height:100%;border-radius:6px"></div>
@@ -2477,7 +2477,7 @@ with tab1:
                         bc = "#089981" if d["bull"] is True else ("#f23645" if d["bull"] is False else "#6b7280")
                         drv_html += (f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
                                      f'border-bottom:1px solid #1e2130;font-size:12px">'
-                                     f'<span style="color:#9ca3af">{d["factor"]}</span>'
+                                     f'<span style="color:#b2b5be">{d["factor"]}</span>'
                                      f'<span style="color:{bc};font-weight:600">{d["signal"]}</span>'
                                      f'</div>')
                     st.markdown(f'<div style="background:#1e222d;border-radius:8px;padding:12px">{drv_html}</div>',
@@ -2487,13 +2487,13 @@ with tab1:
                     st.markdown("**📰 News Intelligence**")
                     if news_intel.get("top_bull"):
                         for h in news_intel["top_bull"][:2]:
-                            st.markdown(f'<div style="font-size:11px;color:#089981;padding:2px 0">🟢 {h[:90]}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div style="font-size:12px;color:#089981;padding:2px 0">🟢 {h[:90]}</div>', unsafe_allow_html=True)
                     if news_intel.get("top_bear"):
                         for h in news_intel["top_bear"][:2]:
-                            st.markdown(f'<div style="font-size:11px;color:#f23645;padding:2px 0">🔴 {h[:90]}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div style="font-size:12px;color:#f23645;padding:2px 0">🔴 {h[:90]}</div>', unsafe_allow_html=True)
                     if news_intel.get("earnings_headlines"):
                         for h in news_intel["earnings_headlines"][:2]:
-                            st.markdown(f'<div style="font-size:11px;color:#ffa500;padding:2px 0">📊 {h[:90]}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div style="font-size:12px;color:#ffa500;padding:2px 0">📊 {h[:90]}</div>', unsafe_allow_html=True)
 
                 with d2:
                     # Global indices table
@@ -2506,7 +2506,7 @@ with tab1:
                         clr  = "#089981" if pct > 0 else "#f23645"
                         gi_html += (f'<div style="display:flex;justify-content:space-between;padding:4px 0;'
                                     f'border-bottom:1px solid #1e2130;font-size:12px">'
-                                    f'<span style="color:#9ca3af">{gname}</span>'
+                                    f'<span style="color:#b2b5be">{gname}</span>'
                                     f'<span style="color:{clr};font-weight:600">{pct:+.2f}%</span>'
                                     f'</div>')
                     st.markdown(f'<div style="background:#1e222d;border-radius:8px;padding:12px">{gi_html}</div>',
@@ -2522,7 +2522,7 @@ with tab1:
                         bar_w = min(abs(pct) * 20, 100)
                         sec_html += (f'<div style="display:flex;justify-content:space-between;align-items:center;'
                                      f'padding:4px 0;border-bottom:1px solid #1e2130;font-size:12px">'
-                                     f'<span style="color:#9ca3af;min-width:90px">{sname}</span>'
+                                     f'<span style="color:#b2b5be;min-width:90px">{sname}</span>'
                                      f'<div style="flex:1;margin:0 8px;background:#1e2130;border-radius:3px;height:4px">'
                                      f'<div style="background:{clr};width:{bar_w}%;height:100%;border-radius:3px;'
                                      f'{"margin-left:auto" if pct < 0 else ""}"></div></div>'
@@ -2550,9 +2550,9 @@ with tab1:
                           "#089981" if pct > 0 else "#f23645")
                     with col:
                         st.markdown(f"""<div style="background:#1e222d;border-radius:6px;padding:8px;text-align:center">
-                        <div style="color:#6b7280;font-size:10px">{mname}</div>
+                        <div style="color:#b2b5be;font-size:12px">{mname}</div>
                         <div style="color:{clr};font-size:14px;font-weight:700">{ltp:.2f}</div>
-                        <div style="color:{clr};font-size:11px">{pct:+.2f}%</div>
+                        <div style="color:{clr};font-size:12px">{pct:+.2f}%</div>
                         </div>""", unsafe_allow_html=True)
 
         st.markdown("---")
@@ -2627,7 +2627,7 @@ with tab1:
                     </div>
                     <div style="text-align:right">
                       <div style="font-size:22px;font-weight:900;color:{s_color}">{conf:.0f}%</div>
-                      <div style="font-size:11px;color:#9ca3af">Confidence</div>
+                      <div style="font-size:12px;color:#b2b5be">Confidence</div>
                     </div>
                   </div>
                   {'<div style="margin-top:8px;background:#1e222d;border-radius:6px;height:8px;overflow:hidden"><div style="background:'+s_color+';width:'+str(conf)+'%;height:100%;border-radius:6px"></div></div>' if status != 'AVOID' else ''}
@@ -2692,48 +2692,48 @@ with tab1:
                               <span style="color:{dir_color};font-size:22px;font-weight:900">
                                 {strike:,} {direction}
                               </span>
-                              <span style="color:#9ca3af;font-size:12px;margin-left:8px">{sl_lbl}</span>
+                              <span style="color:#b2b5be;font-size:12px;margin-left:8px">{sl_lbl}</span>
                             </div>
                             <div style="background:#131722;border-radius:6px;padding:4px 12px;font-size:12px">
                               📅 {exp_lbl}
                             </div>
                           </div>
                           <div style="background:#131722;border-radius:8px;padding:10px 14px;margin-bottom:10px">
-                            <div style="color:#9ca3af;font-size:11px;margin-bottom:4px">ENTRY ZONE</div>
+                            <div style="color:#b2b5be;font-size:12px;margin-bottom:4px">ENTRY ZONE</div>
                             <div style="color:#e0e0e0;font-size:16px;font-weight:700">
                               Premium: ₹{e_lo}–₹{e_hi}
-                              &nbsp;<span style="color:#9ca3af;font-size:12px">(live: ~₹{e_mid:.0f})</span>
+                              &nbsp;<span style="color:#b2b5be;font-size:12px">(live: ~₹{e_mid:.0f})</span>
                             </div>
-                            <div style="color:#6b7280;font-size:11px;margin-top:2px">
+                            <div style="color:#b2b5be;font-size:12px;margin-top:2px">
                               Index entry zone: {ei_lo:,} – {ei_hi:,}
                             </div>
                           </div>
                           <table style="width:100%;border-collapse:collapse;font-size:13px">
-                            <tr style="color:#9ca3af;font-size:10px;text-transform:uppercase">
+                            <tr style="color:#b2b5be;font-size:12px;text-transform:uppercase">
                               <td>Level</td><td>Premium</td><td>Index Level</td><td>P&L / lot</td>
                             </tr>
                             <tr style="color:#f23645;border-top:1px solid #374151">
                               <td style="padding:5px 0;font-weight:700">🛑 Stop Loss</td>
-                              <td>₹{psl} <span style="color:#6b7280;font-size:10px">({psl_pct:+d}%)</span></td>
-                              <td style="color:#9ca3af">{i_sl_lbl}</td>
+                              <td>₹{psl} <span style="color:#b2b5be;font-size:12px">({psl_pct:+d}%)</span></td>
+                              <td style="color:#b2b5be">{i_sl_lbl}</td>
                               <td style="color:#f23645">−₹{int((e_mid-psl)*lot):,}</td>
                             </tr>
                             <tr style="color:#089981;border-top:1px solid #1e2130">
                               <td style="padding:5px 0;font-weight:700">🎯 Target 1</td>
-                              <td>₹{pt1} <span style="color:#6b7280;font-size:10px">({pt1_pct:+d}%)</span></td>
-                              <td style="color:#9ca3af">{i_t1_lbl}</td>
+                              <td>₹{pt1} <span style="color:#b2b5be;font-size:12px">({pt1_pct:+d}%)</span></td>
+                              <td style="color:#b2b5be">{i_t1_lbl}</td>
                               <td style="color:#089981">+₹{int((pt1-e_mid)*lot):,}</td>
                             </tr>
                             <tr style="color:#089981;border-top:1px solid #1e2130">
                               <td style="padding:5px 0;font-weight:700">🎯 Target 2</td>
-                              <td>₹{pt2} <span style="color:#6b7280;font-size:10px">({pt2_pct:+d}%)</span></td>
-                              <td style="color:#9ca3af">{i_t2_lbl}</td>
+                              <td>₹{pt2} <span style="color:#b2b5be;font-size:12px">({pt2_pct:+d}%)</span></td>
+                              <td style="color:#b2b5be">{i_t2_lbl}</td>
                               <td style="color:#089981">+₹{int((pt2-e_mid)*lot):,}</td>
                             </tr>
                             <tr style="color:#ffa500;border-top:1px solid #1e2130">
                               <td style="padding:5px 0;font-weight:700">🏆 Target 3</td>
-                              <td>₹{pt3} <span style="color:#6b7280;font-size:10px">({pt3_pct:+d}%)</span></td>
-                              <td style="color:#9ca3af">{i_t3_lbl}</td>
+                              <td>₹{pt3} <span style="color:#b2b5be;font-size:12px">({pt3_pct:+d}%)</span></td>
+                              <td style="color:#b2b5be">{i_t3_lbl}</td>
                               <td style="color:#ffa500">+₹{int((pt3-e_mid)*lot):,}</td>
                             </tr>
                           </table>
@@ -2742,7 +2742,7 @@ with tab1:
                               ⚖️ R:R = <b style="color:#ffa500">1:{rr}</b>
                             </div>
                             <div style="background:#131722;border-radius:6px;padding:6px 14px;font-size:12px">
-                              ⏱️ Hold till: <b style="color:#9ca3af">{mh}</b>
+                              ⏱️ Hold till: <b style="color:#b2b5be">{mh}</b>
                             </div>
                             <div style="background:#131722;border-radius:6px;padding:6px 14px;font-size:12px">
                               📦 Lot: <b>{lot} units</b>
@@ -2760,7 +2760,7 @@ with tab1:
                             🧠 ANALYSIS
                           </div>
                           {''.join([f'<div style="font-size:12px;padding:3px 0;border-bottom:1px solid #1e2130;color:#d1d5db">{r}</div>' for r in reasons[:10]])}
-                          <div style="color:#6b7280;font-size:11px;margin-top:8px">
+                          <div style="color:#b2b5be;font-size:12px;margin-top:8px">
                             VIX: {rec.get('vix_note','—')}
                           </div>
                         </div>""", unsafe_allow_html=True)
@@ -2789,7 +2789,7 @@ with tab1:
                         <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0">
                           <div style="background:#1e222d;border-radius:6px;padding:6px 12px;font-size:12px">
                             📊 PCR: <b style="color:{'#089981' if pcr_d['bias']=='bullish' else '#f23645'}">{pcr_d['pcr']:.2f}</b>
-                            <span style="color:#6b7280"> ({pcr_d['label'][:25]})</span>
+                            <span style="color:#9598a1"> ({pcr_d['label'][:25]})</span>
                           </div>
                           <div style="background:#1e222d;border-radius:6px;padding:6px 12px;font-size:12px">
                             🏋️ Max Pain: <b style="color:#ffa500">{rec.get('max_pain',0):,}</b>
@@ -3084,16 +3084,16 @@ with tab6:
     <div style="background:rgba(0,0,0,0.3);border:2px solid {gs['color']};border-radius:14px;
                 padding:16px 24px;margin-bottom:16px;display:flex;align-items:center;gap:24px">
       <div>
-        <div style="font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">
+        <div style="font-size:12px;color:#b2b5be;text-transform:uppercase;letter-spacing:.06em">
           Global Sentiment for India</div>
         <div style="font-size:22px;font-weight:800;color:{gs['color']}">{gs['label']}</div>
       </div>
       <div style="text-align:center;border-left:1px solid #374151;padding-left:24px">
-        <div style="font-size:11px;color:#9ca3af">Score</div>
+        <div style="font-size:12px;color:#b2b5be">Score</div>
         <div style="font-size:36px;font-weight:900;color:{gs['color']}">{gs['score']:+d}</div>
-        <div style="font-size:10px;color:#6b7280">out of ±10</div>
+        <div style="font-size:12px;color:#9598a1">out of ±10</div>
       </div>
-      <div style="font-size:12px;color:#9ca3af;flex:1">
+      <div style="font-size:12px;color:#b2b5be;flex:1">
         {'  ·  '.join([f"<span style='color:{'#089981' if f[2]=='bull' else ('#f23645' if f[2]=='bear' else '#9ca3af')}'>{f[0]}: {f[1]}</span>" for f in gs['factors']])}
       </div>
     </div>""", unsafe_allow_html=True)
@@ -3109,7 +3109,7 @@ with tab6:
                 cls   = "bull" if q["chg"] >= 0 else "bear"
                 st.markdown(f"""
                 <div class="metric-card" style="border-left-color:{'#089981' if q['chg']>=0 else '#f23645'}">
-                  <div style="font-size:11px;color:#9ca3af">{name}</div>
+                  <div style="font-size:12px;color:#b2b5be">{name}</div>
                   <div style="font-size:18px;font-weight:700" class="{cls}">{q['ltp']:,.2f}</div>
                   <div style="font-size:12px" class="{cls}">{arrow} {abs(q['chg']):,.2f} ({q['pct']:+.2f}%)</div>
                 </div>""", unsafe_allow_html=True)
@@ -3173,7 +3173,7 @@ with tab6:
                 f'<div style="padding:7px 0;border-bottom:1px solid #1e2130;font-size:13px">'
                 f'<span style="color:{s_color};font-weight:700;margin-right:6px">{s_icon}</span>'
                 f'<span style="color:#e0e0e0">{h["title"]}</span>'
-                f'<span style="color:#6b7280;font-size:11px;margin-left:8px">[{h["source"]}]</span>'
+                f'<span style="color:#b2b5be;font-size:12px;margin-left:8px">[{h["source"]}]</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -3260,7 +3260,7 @@ with tab7:
                 <div><div class="trade-label">Premium Required</div>
                      <div style="font-weight:700;font-size:18px">₹{premium_needed:,.0f}</div></div>
               </div>
-              <div style="font-size:11px;color:#6b7280;margin-top:8px">
+              <div style="font-size:12px;color:#9598a1;margin-top:8px">
                 Formula: Risk = (Entry − SL) × Lot size × Lots | Max Lots = Max Risk ÷ Loss per Lot
               </div>
             </div>""", unsafe_allow_html=True)
@@ -3362,7 +3362,7 @@ with tab8:
                 🚨 <b>TRIGGERED!</b> &nbsp;
                 <b>{row['index']}</b> {row['condition']} <b>{row['price']:,.2f}</b><br>
                 Current: <b style="color:#f23645">{cur_price:,.2f}</b> &nbsp;|&nbsp;
-                <span style="color:#9ca3af">{row.get('note','')}</span>
+                <span style="color:#b2b5be">{row.get('note','')}</span>
                 </div>""", unsafe_allow_html=True)
             else:
                 st.markdown(f"""
@@ -3370,7 +3370,7 @@ with tab8:
                 🔔 <b>{row['index']}</b> {row['condition']} <b>{row['price']:,.2f}</b> &nbsp;|&nbsp;
                 Current: {cur_price:,.2f} &nbsp;|&nbsp;
                 Gap: {abs(cur_price - row['price']):,.2f} pts &nbsp;|&nbsp;
-                <span style="color:#9ca3af">{row.get('note','')}</span>
+                <span style="color:#b2b5be">{row.get('note','')}</span>
                 </div>""", unsafe_allow_html=True)
 
         if triggered_any:
@@ -3619,8 +3619,8 @@ with tab9:
                 <div class="trade-card-call">
                   <div style="color:#089981;font-weight:700;font-size:16px">🏆 Best Trade</div>
                   <div style="font-size:24px;font-weight:800;color:#089981">₹{best_row['pnl']:,.0f}</div>
-                  <div style="color:#9ca3af;font-size:13px">{best_row['date'].date() if pd.notna(best_row['date']) else ''} &nbsp;|&nbsp; {best_row['index']} &nbsp;|&nbsp; {best_row['direction']}</div>
-                  <div style="color:#9ca3af;font-size:12px;margin-top:6px">{best_row['notes'][:120] if best_row['notes'] else ''}...</div>
+                  <div style="color:#b2b5be;font-size:13px">{best_row['date'].date() if pd.notna(best_row['date']) else ''} &nbsp;|&nbsp; {best_row['index']} &nbsp;|&nbsp; {best_row['direction']}</div>
+                  <div style="color:#b2b5be;font-size:12px;margin-top:6px">{best_row['notes'][:120] if best_row['notes'] else ''}...</div>
                 </div>""", unsafe_allow_html=True)
             with bc2:
                 worst_row = jdf.loc[jdf["pnl"].idxmin()]
@@ -3628,8 +3628,8 @@ with tab9:
                 <div class="trade-card-put">
                   <div style="color:#f23645;font-weight:700;font-size:16px">📉 Worst Trade</div>
                   <div style="font-size:24px;font-weight:800;color:#f23645">₹{worst_row['pnl']:,.0f}</div>
-                  <div style="color:#9ca3af;font-size:13px">{worst_row['date'].date() if pd.notna(worst_row['date']) else ''} &nbsp;|&nbsp; {worst_row['index']} &nbsp;|&nbsp; {worst_row['direction']}</div>
-                  <div style="color:#9ca3af;font-size:12px;margin-top:6px">{worst_row['notes'][:120] if worst_row['notes'] else ''}...</div>
+                  <div style="color:#b2b5be;font-size:13px">{worst_row['date'].date() if pd.notna(worst_row['date']) else ''} &nbsp;|&nbsp; {worst_row['index']} &nbsp;|&nbsp; {worst_row['direction']}</div>
+                  <div style="color:#b2b5be;font-size:12px;margin-top:6px">{worst_row['notes'][:120] if worst_row['notes'] else ''}...</div>
                 </div>""", unsafe_allow_html=True)
 
     # ── HISTORY ───────────────────────────────────────────────────────────────
@@ -3747,8 +3747,8 @@ with tab10:
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
                     <div>
                       <div style="font-size:18px;font-weight:800;color:{sig_color}">{row['Stock']}</div>
-                      <div style="font-size:11px;color:#6b7280">{row['Sector']} &nbsp;|&nbsp;
-                        <span style="background:{sig_color};color:#000;padding:1px 8px;border-radius:10px;font-weight:700;font-size:11px">{row['Signal']}</span>
+                      <div style="font-size:12px;color:#9598a1">{row['Sector']} &nbsp;|&nbsp;
+                        <span style="background:{sig_color};color:#000;padding:1px 8px;border-radius:10px;font-weight:700;font-size:12px">{row['Signal']}</span>
                       </div>
                     </div>
                     <div style="text-align:center">
@@ -3776,7 +3776,7 @@ with tab10:
                       <div style="font-size:14px;font-weight:700">{row['From 52H%']}%</div>
                     </div>
                   </div>
-                  <div style="margin-top:8px;font-size:11px;color:#9ca3af">📋 {row['Reasons']}</div>
+                  <div style="margin-top:8px;font-size:12px;color:#b2b5be">📋 {row['Reasons']}</div>
                 </div>""", unsafe_allow_html=True)
 
         st.markdown("### 🔴 Top Stocks to Avoid / Short Watch")
@@ -3816,7 +3816,7 @@ with tab10:
 
         st.markdown("""
         <div style="background:#1e222d;border-radius:8px;padding:12px 16px;margin-top:8px;
-                    border-left:4px solid #ffa500;font-size:12px;color:#9ca3af">
+                    border-left:4px solid #ffa500;font-size:12px;color:#b2b5be">
         ⚠️ <b style="color:#ffa500">Disclaimer:</b>
         These scores use technical indicators on daily data. They are for research and swing trade ideas only —
         not financial advice. Always do your own analysis before investing. Past performance does not guarantee future returns.
@@ -3923,23 +3923,23 @@ with tab11:
               <div style="text-align:center;border:1px solid {rc};border-radius:8px;padding:6px 14px">
                 <div class="trade-label">Live NAV</div>
                 <div style="font-size:20px;font-weight:800;color:{rc}">₹{nav_data['nav']:,.2f}</div>
-                <div style="font-size:10px;color:#6b7280">as of {nav_data['date']}</div>
+                <div style="font-size:12px;color:#9598a1">as of {nav_data['date']}</div>
               </div>"""
         else:
-            nav_html = '<div style="text-align:center"><div class="trade-label">NAV</div><div style="color:#6b7280;font-size:12px">N/A</div></div>'
+            nav_html = '<div style="text-align:center"><div class="trade-label">NAV</div><div style="color:#b2b5be;font-size:12px">N/A</div></div>'
 
         st.markdown(f"""
         <div class="metric-card" style="border-left-color:{rc};margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
             <div style="flex:1;min-width:200px">
               <div style="font-size:16px;font-weight:800;color:#e0e0e0">#{i+1} {fund['name']}</div>
-              <div style="font-size:12px;color:#9ca3af;margin-top:2px">
+              <div style="font-size:12px;color:#b2b5be;margin-top:2px">
                 {fund['category']} &nbsp;|&nbsp;
                 <span style="color:{rc};font-weight:700">{fund['risk']} Risk</span> &nbsp;|&nbsp;
                 {star_map.get(fund['stars'], '⭐⭐⭐')} &nbsp;|&nbsp;
                 Min SIP: ₹{fund['min_sip']:,} &nbsp;|&nbsp; AUM: {fund['aum']}
               </div>
-              <div style="font-size:12px;color:#6b7280;margin-top:4px">🕐 Horizon: {fund['horizon']}</div>
+              <div style="font-size:12px;color:#9598a1;margin-top:4px">🕐 Horizon: {fund['horizon']}</div>
             </div>
             <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
               {nav_html}
@@ -3979,7 +3979,7 @@ with tab11:
 
     st.markdown("""
     <div style="background:#1e222d;border-radius:8px;padding:14px 18px;margin-top:12px;
-                border-left:4px solid #3b82f6;font-size:13px;color:#9ca3af">
+                border-left:4px solid #3b82f6;font-size:13px;color:#b2b5be">
     ⚠️ <b style="color:#2962ff">Disclaimer:</b>
     Returns shown are approximate historical figures for reference only.
     Mutual fund investments are subject to market risks. Past returns do not guarantee future performance.
