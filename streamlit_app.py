@@ -1008,6 +1008,16 @@ def add_supertrend(df: pd.DataFrame, period: int = 10, multiplier: float = 3.0) 
     return df
 
 
+def safe_quote_get(quotes_dict: dict, key: str, subkey: str, default=0):
+    """Safely get quote data with multiple levels of fallback."""
+    if not quotes_dict:
+        return default
+    quote = quotes_dict.get(key)
+    if not quote or not isinstance(quote, dict):
+        return default
+    return quote.get(subkey, default)
+
+
 def is_market_open() -> bool:
     now = datetime.now(IST)
     if now.weekday() >= 5:
@@ -2013,11 +2023,11 @@ with tab1:
     intra_nifty_df = add_indicators(intra_nifty_df)
     intra_bank_df  = add_indicators(intra_bank_df)
 
-    nq_i   = quotes.get("Nifty 50",    {})
-    bnq_i  = quotes.get("Bank Nifty",  {})
-    vix_i  = quotes.get("India VIX",   {}).get("ltp", 0)
-    n_ltp  = nq_i.get("ltp",  0)
-    bn_ltp = bnq_i.get("ltp", 0)
+    nq_i   = quotes.get("Nifty 50",    {}) or {}
+    bnq_i  = quotes.get("Bank Nifty",  {}) or {}
+    vix_i  = safe_quote_get(quotes, "India VIX", "ltp", 0)
+    n_ltp  = nq_i.get("ltp",  0) if nq_i else 0
+    bn_ltp = bnq_i.get("ltp", 0) if bnq_i else 0
 
     # ── Market condition banner ───────────────────────────────────────────────
     ic1, ic2, ic3, _ = st.columns([1, 1, 1, 2])
@@ -3228,11 +3238,17 @@ with tab6:
     # ── Macro Impact Matrix ───────────────────────────────────────────────────
     st.markdown('<div class="section-title" style="margin-top:16px">Macro Impact on India</div>',
                 unsafe_allow_html=True)
-    crude_pct  = global_quotes.get("Crude Oil",    {}).get("pct", 0) or 0
-    gold_pct   = global_quotes.get("Gold",         {}).get("pct", 0) or 0
-    dxy_pct    = global_quotes.get("Dollar Index", {}).get("pct", 0) or 0
-    usdinr_pct = global_quotes.get("USD/INR",      {}).get("pct", 0) or 0
-    tnx_ltp    = global_quotes.get("US 10Y Yield", {}).get("ltp", 4.2) or 4.2
+
+    def safe_nested_get_macro(d, key, subkey, default=0):
+        """Safely get nested dict values for macro section."""
+        val = d.get(key) if d else None
+        return val.get(subkey, default) if val and isinstance(val, dict) else default
+
+    crude_pct  = safe_nested_get_macro(global_quotes, "Crude Oil",    "pct", 0)
+    gold_pct   = safe_nested_get_macro(global_quotes, "Gold",         "pct", 0)
+    dxy_pct    = safe_nested_get_macro(global_quotes, "Dollar Index", "pct", 0)
+    usdinr_pct = safe_nested_get_macro(global_quotes, "USD/INR",      "pct", 0)
+    tnx_ltp    = safe_nested_get_macro(global_quotes, "US 10Y Yield", "ltp", 4.2)
 
     macro_rows = [
         ("Crude Oil", f"{crude_pct:+.2f}%",
