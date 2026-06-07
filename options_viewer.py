@@ -101,34 +101,24 @@ def render_option_chain_table(df: pd.DataFrame, ltp: float, name: str = "Nifty 5
         return
 
     # Build HTML table with custom styling
-    html = f"""
-    <div style="overflow-x: auto; border-radius: 8px; border: 1px solid #2a2e39;">
-    <table style="width:100%; border-collapse: collapse; font-family: monospace; font-size: 12px;">
-        <thead>
-            <tr style="background: #1e222d; border-bottom: 2px solid #2a2e39;">
-                <th style="padding: 10px; color: #9598a1; text-align: center; font-weight: 700;">
-                    📈 CALL OPTIONS
-                </th>
-                <th style="padding: 10px; color: #9598a1; text-align: center; border-left: 2px solid #2a2e39; border-right: 2px solid #2a2e39; font-weight: 700;">
-                    🎯 STRIKE
-                </th>
-                <th style="padding: 10px; color: #9598a1; text-align: center; font-weight: 700;">
-                    📉 PUT OPTIONS
-                </th>
-            </tr>
-            <tr style="background: #131722; border-bottom: 1px solid #2a2e39;">
-                <th colspan="3" style="padding: 6px; text-align: center; color: #b2b5be; font-weight: 600;">
-                    {name} — LTP: ₹{ltp:,.2f}
-                </th>
-            </tr>
-            <tr style="background: #1e222d; border-bottom: 2px solid #2a2e39;">
-                <td style="padding: 8px; color: #9598a1; text-align: center; font-weight: 600;">LTP | IV% | OI | Vol</td>
-                <td style="padding: 8px; color: #9598a1; text-align: center; border-left: 2px solid #2a2e39; border-right: 2px solid #2a2e39; font-weight: 600;">Strike | Δ</td>
-                <td style="padding: 8px; color: #9598a1; text-align: center; font-weight: 600;">LTP | IV% | OI | Vol</td>
-            </tr>
-        </thead>
-        <tbody>
-    """
+    html = '<div style="overflow-x: auto; border-radius: 8px; border: 1px solid #2a2e39;">'
+    html += '<table style="width:100%; border-collapse: collapse; font-family: monospace; font-size: 12px;">'
+    html += '<thead>'
+    html += '<tr style="background: #1e222d; border-bottom: 2px solid #2a2e39;">'
+    html += '<th style="padding: 10px; color: #9598a1; text-align: center; font-weight: 700;">CALL OPTIONS</th>'
+    html += '<th style="padding: 10px; color: #9598a1; text-align: center; border-left: 2px solid #2a2e39; border-right: 2px solid #2a2e39; font-weight: 700;">STRIKE</th>'
+    html += '<th style="padding: 10px; color: #9598a1; text-align: center; font-weight: 700;">PUT OPTIONS</th>'
+    html += '</tr>'
+    html += '<tr style="background: #131722; border-bottom: 1px solid #2a2e39;">'
+    html += f'<th colspan="3" style="padding: 6px; text-align: center; color: #b2b5be; font-weight: 600;">{name} - LTP: Rs {ltp:,.2f}</th>'
+    html += '</tr>'
+    html += '<tr style="background: #1e222d; border-bottom: 2px solid #2a2e39;">'
+    html += '<td style="padding: 8px; color: #9598a1; text-align: center; font-weight: 600;">LTP | IV% | OI | Vol</td>'
+    html += '<td style="padding: 8px; color: #9598a1; text-align: center; border-left: 2px solid #2a2e39; border-right: 2px solid #2a2e39; font-weight: 600;">Strike | D</td>'
+    html += '<td style="padding: 8px; color: #9598a1; text-align: center; font-weight: 600;">LTP | IV% | OI | Vol</td>'
+    html += '</tr>'
+    html += '</thead>'
+    html += '<tbody>'
 
     for idx, row in df_display.iterrows():
         strike = int(row["Strike"])
@@ -147,47 +137,39 @@ def render_option_chain_table(df: pd.DataFrame, ltp: float, name: str = "Nifty 5
         pe_ltp_color = "#f23645" if row["PE_LTP"] > 0 else "#9598a1"
         pe_oi_color = "#a78bfa" if row["PE_OI"] > 100000 else "#9598a1"
 
-        html += f"""
-        <tr style="background: {row_bg}; border-bottom: 1px solid {border_color};">
-            <!-- CALL SIDE -->
-            <td style="padding: 8px; text-align: right; border-right: 1px solid #2a2e39;">
-                <div style="color: {ce_ltp_color}; font-weight: 700;">₹{row['CE_LTP']:.2f}</div>
-                <div style="color: #ffa500; font-size: 11px;">{row['CE_IV']:.1f}%</div>
-                <div style="color: {ce_oi_color}; font-size: 11px;">{format_number(row['CE_OI'])}</div>
-                <div style="color: #9598a1; font-size: 11px;">{int(row['CE_Vol'])}</div>
-            </td>
-            <!-- STRIKE SIDE -->
-            <td style="padding: 8px; text-align: center; border-left: 2px solid {border_color}; border-right: 2px solid {border_color}; background: {strike_bg}; font-weight: 700;">
-                <div style="color: #d1d4dc; font-size: 14px;">{strike}</div>
-                <div style="color: #b2b5be; font-size: 11px;">Δ {row['CE_Delta']:.2f} | Δ {row['PE_Delta']:.2f}</div>
-            </td>
-            <!-- PUT SIDE -->
-            <td style="padding: 8px; text-align: left; border-left: 1px solid #2a2e39;">
-                <div style="color: {pe_ltp_color}; font-weight: 700;">₹{row['PE_LTP']:.2f}</div>
-                <div style="color: #ffa500; font-size: 11px;">{row['PE_IV']:.1f}%</div>
-                <div style="color: {pe_oi_color}; font-size: 11px;">{format_number(row['PE_OI'])}</div>
-                <div style="color: #9598a1; font-size: 11px;">{int(row['PE_Vol'])}</div>
-            </td>
-        </tr>
-        """
+        html += '<tr style="background: ' + row_bg + '; border-bottom: 1px solid ' + border_color + ';">'
+        html += '<td style="padding: 8px; text-align: right; border-right: 1px solid #2a2e39;">'
+        html += f'<div style="color: {ce_ltp_color}; font-weight: 700;">Rs{row["CE_LTP"]:.2f}</div>'
+        html += f'<div style="color: #ffa500; font-size: 11px;">{row["CE_IV"]:.1f}%</div>'
+        html += f'<div style="color: {ce_oi_color}; font-size: 11px;">{format_number(row["CE_OI"])}</div>'
+        html += f'<div style="color: #9598a1; font-size: 11px;">{int(row["CE_Vol"])}</div>'
+        html += '</td>'
+        html += '<td style="padding: 8px; text-align: center; border-left: 2px solid ' + border_color + '; border-right: 2px solid ' + border_color + '; background: ' + strike_bg + '; font-weight: 700;">'
+        html += f'<div style="color: #d1d4dc; font-size: 14px;">{strike}</div>'
+        html += f'<div style="color: #b2b5be; font-size: 11px;">D {row["CE_Delta"]:.2f} | D {row["PE_Delta"]:.2f}</div>'
+        html += '</td>'
+        html += '<td style="padding: 8px; text-align: left; border-left: 1px solid #2a2e39;">'
+        html += f'<div style="color: {pe_ltp_color}; font-weight: 700;">Rs{row["PE_LTP"]:.2f}</div>'
+        html += f'<div style="color: #ffa500; font-size: 11px;">{row["PE_IV"]:.1f}%</div>'
+        html += f'<div style="color: {pe_oi_color}; font-size: 11px;">{format_number(row["PE_OI"])}</div>'
+        html += f'<div style="color: #9598a1; font-size: 11px;">{int(row["PE_Vol"])}</div>'
+        html += '</td>'
+        html += '</tr>'
 
-    html += """
-        </tbody>
-    </table>
-    </div>
-    """
+    html += '</tbody>'
+    html += '</table>'
+    html += '</div>'
 
     st.markdown(html, unsafe_allow_html=True)
 
     # Legend
-    st.markdown("""
-    <div style="margin-top: 12px; padding: 10px; background: #1e222d; border-radius: 6px; font-size: 12px;">
-        <span style="color: #089981; margin-right: 20px;">🟢 ATM Strike (Highlighted)</span>
-        <span style="color: #ffa500; margin-right: 20px;">📊 IV% (Implied Volatility)</span>
-        <span style="color: #a78bfa; margin-right: 20px;">📍 OI (Open Interest)</span>
-        <span style="color: #9598a1;">Δ (Delta: sensitivity to price move)</span>
-    </div>
-    """, unsafe_allow_html=True)
+    legend_html = '<div style="margin-top: 12px; padding: 10px; background: #1e222d; border-radius: 6px; font-size: 12px;">'
+    legend_html += '<span style="color: #089981; margin-right: 20px;">ATM Strike (Highlighted)</span>'
+    legend_html += '<span style="color: #ffa500; margin-right: 20px;">IV% (Implied Volatility)</span>'
+    legend_html += '<span style="color: #a78bfa; margin-right: 20px;">OI (Open Interest)</span>'
+    legend_html += '<span style="color: #9598a1;">D (Delta: price sensitivity)</span>'
+    legend_html += '</div>'
+    st.markdown(legend_html, unsafe_allow_html=True)
 
 
 def render_strike_selector(df: pd.DataFrame, ltp: float, direction: str = "CE") -> Optional[int]:
