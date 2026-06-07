@@ -145,11 +145,11 @@ class OptionChainCache:
     """Cache live option chains — 12s TTL for premium freshness."""
 
     @staticmethod
-    def get_chain(upstox_key: str, expiry_date: str, fetch_fn) -> pd.DataFrame:
-        """Get live option chain with 12s refresh."""
+    def get_chain(upstox_key: str, expiry_date: str, fetch_fn) -> Dict:
+        """Get live option chain with 12s refresh. Returns {strike: {ce, pe, iv...}} dict."""
         key = f"option_chain_{upstox_key}_{expiry_date}"
-        df = CacheManager.get_or_fetch(key, fetch_fn, upstox_key, expiry_date, ttl_seconds=12)
-        return df if isinstance(df, pd.DataFrame) and not df.empty else pd.DataFrame()
+        data = CacheManager.get_or_fetch(key, fetch_fn, upstox_key, expiry_date, ttl_seconds=12)
+        return data if isinstance(data, dict) else {}
 
 
 def print_cache_stats():

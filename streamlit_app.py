@@ -2383,7 +2383,7 @@ with tab1:
         # Fetch live chain (12s TTL)
         live_chain_data = OptionChainCache.get_chain(ikey_opt, expiry_str, get_live_chain) if _CACHE_OK else get_live_chain(ikey_opt, expiry_str)
 
-        if live_chain_data:
+        if live_chain_data and isinstance(live_chain_data, dict) and len(live_chain_data) > 0:
             # Build display dataframe
             df_chain = ov.build_chain_dataframe(live_chain_data, ltp_opt, step_opt)
 
