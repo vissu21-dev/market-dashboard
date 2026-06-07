@@ -763,14 +763,19 @@ def compute_global_sentiment(global_quotes: dict) -> dict:
         else:
             factors.append((name, f"{pct:+.2f}%", "neutral"))
 
-    sp_pct    = global_quotes.get("S&P 500",      {}).get("pct")
-    nas_pct   = global_quotes.get("Nasdaq",        {}).get("pct")
-    nik_pct   = global_quotes.get("Nikkei 225",    {}).get("pct")
-    crude_pct = global_quotes.get("Crude Oil",     {}).get("pct")
-    gold_pct  = global_quotes.get("Gold",          {}).get("pct")
-    dxy_pct   = global_quotes.get("Dollar Index",  {}).get("pct")
-    usdinr_pct= global_quotes.get("USD/INR",       {}).get("pct")
-    tnx_ltp   = global_quotes.get("US 10Y Yield",  {}).get("ltp")
+    # Safe nested dict access
+    def safe_get(d, key, subkey):
+        val = d.get(key) if d else None
+        return val.get(subkey) if val and isinstance(val, dict) else None
+
+    sp_pct    = safe_get(global_quotes, "S&P 500",      "pct")
+    nas_pct   = safe_get(global_quotes, "Nasdaq",        "pct")
+    nik_pct   = safe_get(global_quotes, "Nikkei 225",    "pct")
+    crude_pct = safe_get(global_quotes, "Crude Oil",     "pct")
+    gold_pct  = safe_get(global_quotes, "Gold",          "pct")
+    dxy_pct   = safe_get(global_quotes, "Dollar Index",  "pct")
+    usdinr_pct= safe_get(global_quotes, "USD/INR",       "pct")
+    tnx_ltp   = safe_get(global_quotes, "US 10Y Yield",  "ltp")
 
     chk("S&P 500",       sp_pct,    weight=2)
     chk("Nasdaq",        nas_pct,   weight=1)
@@ -1815,18 +1820,23 @@ with tab3:
     st.caption("Run this every morning before 9:15 AM to prepare your trading plan for the day.")
 
     # ── Fetch all data upfront ────────────────────────────────────────────────
-    nq_m       = quotes.get("Nifty 50",   {})
-    bnq_m      = quotes.get("Bank Nifty", {})
-    vix_m      = quotes.get("India VIX",  {}).get("ltp", 0)
+    def safe_nested_get(d, key, subkey, default=0):
+        """Safely get nested dict values."""
+        val = d.get(key) if d else None
+        return val.get(subkey, default) if val and isinstance(val, dict) else default
+
+    nq_m       = quotes.get("Nifty 50",   {}) or {}
+    bnq_m      = quotes.get("Bank Nifty", {}) or {}
+    vix_m      = safe_nested_get(quotes, "India VIX", "ltp", 0)
     sp_m       = {n: get_quote(t) for n, t in {"S&P 500":"^GSPC","Crude Oil":"CL=F","USD/INR":"USDINR=X"}.items()}
     nifty_df_m = get_candles("^NSEI", period="5d", interval="15m")
     nifty_df_m = add_indicators(nifty_df_m)
     g_quotes_m = {n: get_quote(t) for n, t in GLOBAL.items()}
     gs_m       = compute_global_sentiment(g_quotes_m)
     nifty_pct  = nq_m.get("pct", 0)
-    sp_pct     = sp_m.get("S&P 500",  {}).get("pct", 0)
-    crude_pct  = sp_m.get("Crude Oil",{}).get("pct", 0)
-    usdinr_ltp = sp_m.get("USD/INR",  {}).get("ltp", 84)
+    sp_pct     = safe_nested_get(sp_m, "S&P 500",  "pct", 0)
+    crude_pct  = safe_nested_get(sp_m, "Crude Oil", "pct", 0)
+    usdinr_ltp = safe_nested_get(sp_m, "USD/INR",  "ltp", 84)
 
     last_m   = nifty_df_m.iloc[-1] if not nifty_df_m.empty else {}
     ema9_m   = last_m.get("ema9",  0) if not nifty_df_m.empty else 0
