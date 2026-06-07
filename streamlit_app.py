@@ -72,6 +72,14 @@ try:
 except Exception as e:
     _TRADE_ADVISOR_OK = False
 
+# Market Events & Intelligence (NEW)
+try:
+    import market_events
+    import market_events_dashboard
+    _MARKET_EVENTS_OK = True
+except Exception as e:
+    _MARKET_EVENTS_OK = False
+
 # Upstox (secondary data source, fallback)
 try:
     import config as upstox_config
@@ -1825,8 +1833,9 @@ for col, (name, q) in zip(idx_cols, quotes.items()):
 st.divider()
 
 # ── Charts + Signals ──────────────────────────────────────────────────────────
-tab_advisor, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
+tab_advisor, tab_events, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
     "🎯 Trade Advisor",
+    "📊 Market Events",
     "🎯 Trade Command",
     "🤖 AI Expert",
     "🌅 Morning Checklist",
@@ -1968,6 +1977,29 @@ with tab_advisor:
             st.caption(f"Error details: {str(e)[:150]}")
     else:
         st.error("❌ Trade Advisor modules not available.")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB EVENTS — Market Events & Intelligence (NEW)
+# ══════════════════════════════════════════════════════════════════════════════
+with tab_events:
+    if _MARKET_EVENTS_OK:
+        try:
+            market_events_dashboard.render_market_events_dashboard()
+        except Exception as e:
+            st.error(f"⚠️ Market Events dashboard error. Please refresh.")
+            st.caption(f"Error: {str(e)[:150]}")
+    else:
+        st.info(
+            "📊 Market Events Dashboard provides:\n\n"
+            "✅ Economic calendar with RBI, Budget, GDP announcements\n"
+            "✅ Political news tracking elections and government policies\n"
+            "✅ Geopolitical alerts affecting Indian markets\n"
+            "✅ Sector-specific news and analysis\n"
+            "✅ Real-time market risk assessment\n"
+            "✅ Trading advisories based on event risk\n\n"
+            "This intelligence integrates with Trade Advisor to dynamically adjust recommendations."
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════

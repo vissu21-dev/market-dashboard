@@ -2,6 +2,7 @@
 Professional Trade Recommendation Advisor
 Wraps trade_engine.py and provides institutional-grade trade recommendations
 with multi-strike options, entry zone analysis, and confidence scoring.
+NOW WITH NEWS/EVENT INTEGRATION for dynamic, market-aware recommendations.
 """
 
 import pandas as pd
@@ -11,6 +12,17 @@ import pytz
 from typing import Dict, List, Optional, Tuple
 import logging
 from risk_manager import calculate_position_size, INSTRUMENT_CONFIG
+
+try:
+    from market_events import (
+        get_full_market_intelligence,
+        get_upcoming_events_today,
+        get_market_risk_score,
+        analyze_market_sentiment_from_news,
+    )
+    _MARKET_EVENTS_OK = True
+except Exception:
+    _MARKET_EVENTS_OK = False
 
 log = logging.getLogger(__name__)
 IST = pytz.timezone("Asia/Kolkata")
@@ -520,3 +532,185 @@ def generate_multi_strike_recommendations(
             recommendations[strike_label] = None
 
     return recommendations
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EVENT-AWARE RECOMMENDATION ADJUSTMENT
+# ─────────────────────────────────────────────────────────────────────────────
+
+def adjust_recommendation_for_market_events(
+    trade: Dict,
+    market_intelligence: Optional[Dict] = None,
+) -> Dict:
+    """
+    Adjust trade recommendation based on upcoming events and market intelligence.
+
+    Returns:
+        Modified trade recommendation with adjustments
+    """
+    if not _MARKET_EVENTS_OK or market_intelligence is None:
+        return trade
+
+    try:
+        # Get event risk
+        risk_data = market_intelligence.get("risk_assessment", {})
+        risk_score = risk_data.get("risk_score", 50)
+        events_today = market_intelligence.get("events_today", [])
+
+        original_confidence = trade.get("confidence_pct", 50)
+
+        # Adjust confidence based on risk
+        confidence_reduction = 0
+        event_warnings = []
+
+        # Check for imminent high-impact events
+        for event in events_today:
+            minutes_until = event.get("minutes_until", 999)
+            impact = event.get("impact", 0)
+
+            if minutes_until < 60 and impact > 200:
+                confidence_reduction += 25
+                event_warnings.append(f"⚠️ {event.get('event', 'Event')} in {minutes_until} min")
+            elif minutes_until < 120 and impact > 150:
+                confidence_reduction += 15
+                event_warnings.append(f"📌 {event.get('event', 'Event')} in {minutes_until} min")
+
+        # Apply risk-based adjustment
+        if risk_score > 70:
+            confidence_reduction += 20
+            event_warnings.append("⚠️ Market volatility elevated - reduce size")
+        elif risk_score > 50:
+            confidence_reduction += 10
+
+        # Calculate new confidence
+        adjusted_confidence = max(5, original_confidence - confidence_reduction)
+
+        # Update trade with event intelligence
+        trade["original_confidence"] = original_confidence
+        trade["adjusted_confidence"] = int(adjusted_confidence)
+        trade["confidence_reduction"] = int(confidence_reduction)
+        trade["confidence_pct"] = int(adjusted_confidence)
+
+        # Update conviction level
+        if adjusted_confidence >= 70:
+            trade["conviction_level"] = "HIGH"
+        elif adjusted_confidence >= 55:
+            trade["conviction_level"] = "MODERATE"
+        elif adjusted_confidence >= 40:
+            trade["conviction_level"] = "LOW"
+        else:
+            trade["conviction_level"] = "AVOID"
+
+        # Add event warnings
+        trade["event_warnings"] = event_warnings
+        trade["market_risk_score"] = risk_score
+        trade["risk_level"] = risk_data.get("risk_level", "MODERATE")
+
+        # Adjust position sizing based on risk
+        if risk_score > 70:
+            trade["position_size_multiplier"] = 0.5  # Reduce size 50%
+            trade["position_adjustment_reason"] = "High market volatility - reducing size"
+        elif risk_score > 50:
+            trade["position_size_multiplier"] = 0.75  # Reduce size 25%
+            trade["position_adjustment_reason"] = "Moderate volatility - slightly reducing size"
+        else:
+            trade["position_size_multiplier"] = 1.0
+            trade["position_adjustment_reason"] = "Normal market conditions"
+
+        # Add sentiment-based adjustment
+        sentiment = market_intelligence.get("sentiment_analysis", {})
+        if sentiment.get("overall_sentiment", 0.5) < 0.4:
+            trade["directional_bias_adjustment"] = "bearish"
+            if trade.get("direction") == "CALL":
+                trade["conviction_level"] = "AVOID"
+                trade["reason"] = "Market sentiment bearish, CALL setup less favorable"
+
+        return trade
+
+    except Exception as e:
+        log.warning(f"Error adjusting for market events: {e}")
+        return trade
+
+
+def get_event_alerts(market_intelligence: Optional[Dict] = None) -> Dict:
+    """
+    Get trading alerts based on upcoming events.
+
+    Returns:
+        Dict with alerts and trading recommendations
+    """
+    if not _MARKET_EVENTS_OK or market_intelligence is None:
+        return {}
+
+    try:
+        events_today = market_intelligence.get("events_today", [])
+        risk_data = market_intelligence.get("risk_assessment", {})
+        sentiment = market_intelligence.get("sentiment_analysis", {})
+
+        alerts = {
+            "immediate_alerts": [],
+            "upcoming_alerts": [],
+            "trading_restrictions": [],
+            "position_management_advice": [],
+            "recommended_action": None,
+        }
+
+        # Immediate alerts (< 30 minutes)
+        for event in events_today:
+            if event.get("minutes_until", 999) < 30:
+                alerts["immediate_alerts"].append({
+                    "event": event.get("event"),
+                    "time": f"{event.get('minutes_until')} minutes",
+                    "impact": event.get("impact"),
+                    "action": "CLOSE POSITIONS or reduce size significantly"
+                })
+
+        # Upcoming alerts (30-120 minutes)
+        for event in events_today:
+            mins = event.get("minutes_until", 999)
+            if 30 <= mins < 120:
+                alerts["upcoming_alerts"].append({
+                    "event": event.get("event"),
+                    "time": f"{mins} minutes",
+                    "impact": event.get("impact"),
+                    "action": "Monitor closely, prepare to exit"
+                })
+
+        # Trading restrictions based on risk
+        risk_level = risk_data.get("risk_level", "MODERATE")
+        if risk_level == "CRITICAL":
+            alerts["trading_restrictions"] = [
+                "🛑 NO NEW POSITIONS - Wait for market clarity",
+                "Close ALL open positions immediately",
+                "Only re-enter after event resolution"
+            ]
+        elif risk_level == "HIGH":
+            alerts["trading_restrictions"] = [
+                "⚠️ AVOID NEW ENTRIES - Focus on risk management",
+                "Reduce position size 50%",
+                "Tighten stop losses"
+            ]
+        elif risk_level == "MODERATE":
+            alerts["trading_restrictions"] = [
+                "Monitor events closely",
+                "Reduce position size slightly",
+                "Be ready to exit quickly"
+            ]
+
+        # Position management advice
+        if risk_data.get("position_management"):
+            alerts["position_management_advice"] = risk_data.get("position_management")
+
+        # Recommended overall action
+        if risk_level in ["CRITICAL", "HIGH"]:
+            alerts["recommended_action"] = "🛑 AVOID TRADING - Wait for clarity"
+        elif risk_level == "MODERATE":
+            alerts["recommended_action"] = "⚠️ PROCEED WITH CAUTION - Reduce size, monitor events"
+        else:
+            alerts["recommended_action"] = "🟢 NORMAL TRADING CONDITIONS"
+
+        return alerts
+
+    except Exception as e:
+        log.warning(f"Error getting event alerts: {e}")
+        return {}
