@@ -1845,6 +1845,9 @@ tab_advisor, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_advisor:
     if _TRADE_ADVISOR_OK:
+        st.markdown("## 🎯 Professional Trade Advisor")
+        st.caption("Real-time trade recommendations with professional risk management — During market hours (9:15 AM - 3:30 PM IST) only.")
+
         # Initialize session state for trade advisor
         if "account_size" not in st.session_state:
             st.session_state.account_size = 100000
@@ -1859,67 +1862,112 @@ with tab_advisor:
         if "total_daily_risk" not in st.session_state:
             st.session_state.total_daily_risk = 0
 
-        # Store candle data in session state for advisor to access
         try:
-            nifty_intraday = get_candles("^NSEI", period="1d", interval="15m") if not nifty_df.empty else pd.DataFrame()
-            if not nifty_intraday.empty:
-                nifty_intraday = add_indicators(nifty_intraday)
-            st.session_state.NIFTY_candles = nifty_intraday
+            # Check if market is open
+            if not is_market_open():
+                st.warning("📊 Market is currently CLOSED. Recommendations available only during 9:15 AM - 3:30 PM IST")
+                st.info("Check back during market hours for live trade recommendations.")
+            else:
+                # Store candle data in session state for advisor to access
+                try:
+                    nifty_intraday = get_candles("^NSEI", period="1d", interval="15m")
+                    if not nifty_intraday.empty:
+                        nifty_intraday = add_indicators(nifty_intraday)
+                    st.session_state.NIFTY_candles = nifty_intraday
 
-            banknifty_intraday = get_candles("^NSEBANK", period="1d", interval="15m") if not bank_df.empty else pd.DataFrame()
-            if not banknifty_intraday.empty:
-                banknifty_intraday = add_indicators(banknifty_intraday)
-            st.session_state.BANKNIFTY_candles = banknifty_intraday
+                    banknifty_intraday = get_candles("^NSEBANK", period="1d", interval="15m")
+                    if not banknifty_intraday.empty:
+                        banknifty_intraday = add_indicators(banknifty_intraday)
+                    st.session_state.BANKNIFTY_candles = banknifty_intraday
 
-            finnifty_intraday = get_candles("^NSEfinnifty", period="1d", interval="15m") if not finnifty_df.empty else pd.DataFrame()
-            if not finnifty_intraday.empty:
-                finnifty_intraday = add_indicators(finnifty_intraday)
-            st.session_state.FINNIFTY_candles = finnifty_intraday
-        except Exception:
-            pass
+                    finnifty_intraday = get_candles("^NSEfinnifty", period="1d", interval="15m")
+                    if not finnifty_intraday.empty:
+                        finnifty_intraday = add_indicators(finnifty_intraday)
+                    st.session_state.FINNIFTY_candles = finnifty_intraday
+                except Exception:
+                    pass
 
-        # Prepare market data for trade advisor
-        market_data = {
-            "NIFTY 50": {
-                "ltp": quotes.get("Nifty 50", {}).get("ltp", 0),
-                "vix": quotes.get("India VIX", {}).get("ltp", 15) if quotes.get("India VIX") else 15,
-                "orb": nifty_orb,
-                "pivots": nifty_pivots_i,
-            },
-            "BANK NIFTY": {
-                "ltp": quotes.get("Bank Nifty", {}).get("ltp", 0),
-                "vix": quotes.get("India VIX", {}).get("ltp", 15) if quotes.get("India VIX") else 15,
-                "orb": bank_orb,
-                "pivots": bank_pivots_i,
-            },
-            "FIN NIFTY": {
-                "ltp": 0,  # Will fetch if available
-                "vix": quotes.get("India VIX", {}).get("ltp", 15) if quotes.get("India VIX") else 15,
-                "orb": {},
-                "pivots": {},
-            },
-        }
+                # Get fresh data for trade advisor
+                nifty_quote = quotes.get("Nifty 50", {}) or {}
+                bank_quote = quotes.get("Bank Nifty", {}) or {}
+                vix_val = quotes.get("India VIX", {}).get("ltp", 15) if quotes.get("India VIX") else 15
 
-        # Get options chains if available
-        options_chains = {
-            "NIFTY": nifty_chain if isinstance(nifty_chain, dict) else {},
-            "BANKNIFTY": bank_chain if isinstance(bank_chain, dict) else {},
-            "FINNIFTY": {},
-        }
+                # Get ORB and pivots (with safe fallbacks)
+                try:
+                    nifty_orb_fresh = get_orb("^NSEI") or {}
+                except Exception:
+                    nifty_orb_fresh = {}
 
-        # Render trade advisor page
-        try:
-            trade_advisor_page.render_trade_advisor_page(
-                market_data=market_data,
-                options_chains=options_chains,
-                global_sentiment=gs.get("score", 0) if gs else 0,
-                fii_dii=fii_dii,
-                breadth=breadth_data,
-            )
+                try:
+                    bank_orb_fresh = get_orb("^NSEBANK") or {}
+                except Exception:
+                    bank_orb_fresh = {}
+
+                try:
+                    nifty_pivots_fresh = get_pivots("^NSEI") or {}
+                except Exception:
+                    nifty_pivots_fresh = {}
+
+                try:
+                    bank_pivots_fresh = get_pivots("^NSEBANK") or {}
+                except Exception:
+                    bank_pivots_fresh = {}
+
+                # Prepare market data for trade advisor
+                market_data = {
+                    "NIFTY 50": {
+                        "ltp": nifty_quote.get("ltp", 0),
+                        "vix": vix_val,
+                        "orb": nifty_orb_fresh,
+                        "pivots": nifty_pivots_fresh,
+                    },
+                    "BANK NIFTY": {
+                        "ltp": bank_quote.get("ltp", 0),
+                        "vix": vix_val,
+                        "orb": bank_orb_fresh,
+                        "pivots": bank_pivots_fresh,
+                    },
+                    "FIN NIFTY": {
+                        "ltp": 0,
+                        "vix": vix_val,
+                        "orb": {},
+                        "pivots": {},
+                    },
+                }
+
+                # Get options chains if available (safe fallbacks)
+                try:
+                    nifty_chain_fresh = {}  # Will be empty, updated data available in options chain tab
+                except Exception:
+                    nifty_chain_fresh = {}
+
+                options_chains = {
+                    "NIFTY": nifty_chain_fresh,
+                    "BANKNIFTY": {},
+                    "FINNIFTY": {},
+                }
+
+                # Get global sentiment if available
+                global_score = 0
+                try:
+                    gs_fresh = compute_global_sentiment({})
+                    global_score = gs_fresh.get("score", 0) if gs_fresh else 0
+                except Exception:
+                    global_score = 0
+
+                # Render trade advisor page
+                trade_advisor_page.render_trade_advisor_page(
+                    market_data=market_data,
+                    options_chains=options_chains,
+                    global_sentiment=global_score,
+                    fii_dii={},
+                    breadth={},
+                )
         except Exception as e:
-            st.error(f"Trade Advisor Error: {str(e)[:200]}")
+            st.error(f"⚠️ Trade Advisor encountered an error. Please refresh the page.")
+            st.caption(f"Error details: {str(e)[:150]}")
     else:
-        st.error("❌ Trade Advisor modules not available. Check imports.")
+        st.error("❌ Trade Advisor modules not available.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
