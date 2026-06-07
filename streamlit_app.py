@@ -62,6 +62,16 @@ try:
 except Exception:
     _AI_OK = False
 
+# Trade Advisor & Risk Management (NEW)
+try:
+    import trade_advisor_page
+    import trade_journal
+    import ui_components
+    import risk_manager as rm
+    _TRADE_ADVISOR_OK = True
+except Exception as e:
+    _TRADE_ADVISOR_OK = False
+
 # Upstox (secondary data source, fallback)
 try:
     import config as upstox_config
@@ -1634,6 +1644,13 @@ def candlestick_fig(df: pd.DataFrame, title: str,
 if _CACHE_OK:
     CacheManager.init_session()
 
+# Initialize trade journal database
+if _TRADE_ADVISOR_OK:
+    try:
+        trade_journal.init_database()
+    except Exception:
+        pass
+
 now_ist = datetime.now(IST)
 market_open = is_market_open()
 
@@ -1808,7 +1825,8 @@ for col, (name, q) in zip(idx_cols, quotes.items()):
 st.divider()
 
 # ── Charts + Signals ──────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
+tab_advisor, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
+    "🎯 Trade Advisor",
     "🎯 Trade Command",
     "🤖 AI Expert",
     "🌅 Morning Checklist",
@@ -1821,6 +1839,88 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
     "📊 Stock Picks",
     "💰 Mutual Funds",
 ])
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  TAB ADVISOR — Trade Advisor (NEW - Professional Trading)
+# ══════════════════════════════════════════════════════════════════════════════
+with tab_advisor:
+    if _TRADE_ADVISOR_OK:
+        # Initialize session state for trade advisor
+        if "account_size" not in st.session_state:
+            st.session_state.account_size = 100000
+        if "risk_percent" not in st.session_state:
+            st.session_state.risk_percent = 1.0
+        if "active_trades" not in st.session_state:
+            st.session_state.active_trades = []
+        if "daily_pnl" not in st.session_state:
+            st.session_state.daily_pnl = 0
+        if "active_trades_count" not in st.session_state:
+            st.session_state.active_trades_count = 0
+        if "total_daily_risk" not in st.session_state:
+            st.session_state.total_daily_risk = 0
+
+        # Store candle data in session state for advisor to access
+        try:
+            nifty_intraday = get_candles("^NSEI", period="1d", interval="15m") if not nifty_df.empty else pd.DataFrame()
+            if not nifty_intraday.empty:
+                nifty_intraday = add_indicators(nifty_intraday)
+            st.session_state.NIFTY_candles = nifty_intraday
+
+            banknifty_intraday = get_candles("^NSEBANK", period="1d", interval="15m") if not bank_df.empty else pd.DataFrame()
+            if not banknifty_intraday.empty:
+                banknifty_intraday = add_indicators(banknifty_intraday)
+            st.session_state.BANKNIFTY_candles = banknifty_intraday
+
+            finnifty_intraday = get_candles("^NSEfinnifty", period="1d", interval="15m") if not finnifty_df.empty else pd.DataFrame()
+            if not finnifty_intraday.empty:
+                finnifty_intraday = add_indicators(finnifty_intraday)
+            st.session_state.FINNIFTY_candles = finnifty_intraday
+        except Exception:
+            pass
+
+        # Prepare market data for trade advisor
+        market_data = {
+            "NIFTY 50": {
+                "ltp": quotes.get("Nifty 50", {}).get("ltp", 0),
+                "vix": quotes.get("India VIX", {}).get("ltp", 15) if quotes.get("India VIX") else 15,
+                "orb": nifty_orb,
+                "pivots": nifty_pivots_i,
+            },
+            "BANK NIFTY": {
+                "ltp": quotes.get("Bank Nifty", {}).get("ltp", 0),
+                "vix": quotes.get("India VIX", {}).get("ltp", 15) if quotes.get("India VIX") else 15,
+                "orb": bank_orb,
+                "pivots": bank_pivots_i,
+            },
+            "FIN NIFTY": {
+                "ltp": 0,  # Will fetch if available
+                "vix": quotes.get("India VIX", {}).get("ltp", 15) if quotes.get("India VIX") else 15,
+                "orb": {},
+                "pivots": {},
+            },
+        }
+
+        # Get options chains if available
+        options_chains = {
+            "NIFTY": nifty_chain if isinstance(nifty_chain, dict) else {},
+            "BANKNIFTY": bank_chain if isinstance(bank_chain, dict) else {},
+            "FINNIFTY": {},
+        }
+
+        # Render trade advisor page
+        try:
+            trade_advisor_page.render_trade_advisor_page(
+                market_data=market_data,
+                options_chains=options_chains,
+                global_sentiment=gs.get("score", 0) if gs else 0,
+                fii_dii=fii_dii,
+                breadth=breadth_data,
+            )
+        except Exception as e:
+            st.error(f"Trade Advisor Error: {str(e)[:200]}")
+    else:
+        st.error("❌ Trade Advisor modules not available. Check imports.")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  TAB 0 — Morning Checklist

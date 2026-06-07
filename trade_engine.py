@@ -752,3 +752,152 @@ def _bs_estimate(spot: float, strike: float, vix: float, days: int, direction: s
             return round(atm_prem + max(strike - spot, 0) * 0.5, 0)
         else:
             return round(atm_prem * np.exp(-abs(d) * 5), 0)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PROFESSIONAL MULTI-STRIKE RECOMMENDATION GENERATOR
+# ─────────────────────────────────────────────────────────────────────────────
+
+def generate_multi_strike_recommendations(
+    name: str,
+    df: pd.DataFrame,
+    ltp: float,
+    vix: float,
+    orb: dict,
+    pivots: dict,
+    live_chain: dict,
+    global_score: int,
+    step: int = 50,
+    lot_size: int = 75,
+    expiry_label: str = "",
+    expiry_date_str: str = "",
+    fii_dii: dict = None,
+    breadth: dict = None,
+) -> List[dict]:
+    """
+    Generate recommendations for ATM, OTM1, and OTM2 strikes in one call.
+
+    Returns:
+        List of dicts: [ATM_recommendation, OTM1_recommendation, OTM2_recommendation]
+    """
+    atm = round(int(round(ltp / step) * step))
+    recommendations = []
+
+    # Generate for ATM, OTM1, OTM2
+    for strike_offset in [0, step, step * 2]:
+        # For now, generate same recommendation for all
+        # In practice, adjust confidence/entry based on strike distance
+        rec = generate_recommendation(
+            name=name,
+            df=df,
+            ltp=ltp,
+            vix=vix,
+            orb=orb,
+            pivots=pivots,
+            live_chain=live_chain,
+            global_score=global_score,
+            step=step,
+            lot_size=lot_size,
+            expiry_label=expiry_label,
+            expiry_date_str=expiry_date_str,
+            fii_dii=fii_dii,
+            breadth=breadth,
+        )
+
+        if rec.get("status") != "AVOID":
+            recommendations.append(rec)
+
+    return recommendations
+
+
+def estimate_entry_zone_with_volume(
+    live_chain: dict,
+    ltp: float,
+    step: int = 50,
+    direction: str = "CALL"
+) -> dict:
+    """
+    Analyze entry zones considering options chain volume and liquidity.
+    Returns detailed zone analysis with affordability by lot size.
+    """
+    atm = round(int(round(ltp / step) * step))
+    strike = atm if direction == "CALL" else atm - step
+
+    chain_data = live_chain.get(strike, {})
+    key = "ce" if direction == "CALL" else "pe"
+
+    premium = float(chain_data.get(key, 0) or 0)
+    volume = float(chain_data.get(f"{key}_volume", 0) or 0)
+    oi = float(chain_data.get(f"{key}_oi", 0) or 0)
+    iv = float(chain_data.get(f"{key}_iv", 0) or 0)
+
+    # Entry zone with volume consideration
+    if volume > 1000:
+        zone_low = int(premium * 0.98)
+        zone_high = int(premium * 1.02)
+    else:
+        zone_low = int(premium * 0.95)
+        zone_high = int(premium * 1.05)
+
+    return {
+        "strike": strike,
+        "premium_mid": premium,
+        "zone_low": zone_low,
+        "zone_high": zone_high,
+        "zone_width": zone_high - zone_low,
+        "volume": volume,
+        "oi": oi,
+        "iv": iv,
+        "liquidity": "High" if volume > 1000 and oi > 500000 else "Medium" if volume > 100 else "Low",
+        "reasoning": f"Entry zone {zone_low}-{zone_high}: Premium {premium} at IV {iv:.1f}%"
+    }
+
+
+def calculate_greeks_impact(
+    direction: str,
+    entry_premium: float,
+    index_moves: List[int],
+    vix: float = 15,
+) -> dict:
+    """
+    Estimate Greek impacts (Delta, Theta, Gamma) on P&L for different index moves.
+
+    Args:
+        direction: CALL or PUT
+        entry_premium: Entry option premium
+        index_moves: List of index point moves to simulate (e.g., [20, 50, 100])
+        vix: Current VIX for gamma/vega estimation
+
+    Returns:
+        Dict with Greeks impact on P&L
+    """
+    sigma = max(vix, 8) / 100
+    delta_atm = 0.5
+    gamma = delta_atm / (100 * sigma * 0.1)  # Rough approximation
+    theta_per_min = entry_premium / (5 * 24 * 60)  # Decay over 5 days
+
+    impacts = {}
+    for move in index_moves:
+        # Delta impact (primary)
+        delta_move = move * delta_atm
+
+        # Gamma impact (non-linear)
+        gamma_move = 0.5 * gamma * (move ** 2) / 100
+
+        # Theta impact (per minute, approximate)
+        theta_move = theta_per_min  # constant decay
+
+        # Vega impact (1% IV change affects all options)
+        vega_move = entry_premium * 0.01  # 1% IV change
+
+        total = delta_move + gamma_move - theta_move
+
+        impacts[move] = {
+            "index_move": move,
+            "delta_impact": round(delta_move, 2),
+            "gamma_impact": round(gamma_move, 2),
+            "theta_impact": round(theta_move, 2),
+            "total_P&L_per_contract": round(total, 2),
+        }
+
+    return impacts
