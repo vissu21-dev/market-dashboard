@@ -20,6 +20,20 @@ _dashboard_dir = os.path.dirname(os.path.abspath(__file__))
 if _dashboard_dir not in sys.path:
     sys.path.insert(0, _dashboard_dir)
 
+# Performance & caching
+try:
+    from cache_manager import CacheManager, QuoteCache, CandleCache, IndicatorCache, OptionChainCache
+    _CACHE_OK = True
+except Exception:
+    _CACHE_OK = False
+
+# Options viewer
+try:
+    import options_viewer as ov
+    _OPTIONS_VIEWER_OK = True
+except Exception:
+    _OPTIONS_VIEWER_OK = False
+
 # Zerodha (primary data source)
 try:
     import zerodha_fetcher as zd
@@ -552,9 +566,8 @@ def _upstox_candles(upstox_key: str, upstox_interval: str,
 
 
 # ── Data helpers ──────────────────────────────────────────────────────────────
-@st.cache_data(ttl=15)
-def get_quote(ticker: str) -> dict:
-    """Upstox-first quote; falls back to Yahoo Finance for global tickers."""
+def _fetch_quote_raw(ticker: str) -> dict:
+    """Raw quote fetch (used by cache manager)."""
     if _UPSTOX_AVAILABLE and ticker in _YF_TO_UPSTOX:
         q = _upstox_quote(_YF_TO_UPSTOX[ticker])
         if q:
@@ -562,8 +575,6 @@ def get_quote(ticker: str) -> dict:
     # Yahoo Finance fallback
     try:
         fi = yf.Ticker(ticker).fast_info
-        # Use daily history for accurate previous close (fast_info.previous_close
-        # can be off by several points for NSE indices)
         prev = 0.0
         try:
             daily = yf.download(ticker, period="5d", interval="1d",
@@ -604,9 +615,15 @@ def get_quote(ticker: str) -> dict:
         return {}
 
 
-@st.cache_data(ttl=60)
-def get_candles(ticker: str, period: str = "5d", interval: str = "15m") -> pd.DataFrame:
-    """Zerodha-first candles; Upstox second; Yahoo Finance fallback."""
+def get_quote(ticker: str) -> dict:
+    """Get quote with intelligent caching (90s TTL)."""
+    if _CACHE_OK:
+        return QuoteCache.get_quote(ticker, _fetch_quote_raw)
+    return _fetch_quote_raw(ticker)
+
+
+def _fetch_candles_raw(ticker: str, period: str, interval: str) -> pd.DataFrame:
+    """Raw candle fetch (used by cache manager)."""
     today     = datetime.now(IST).date()
     days      = _PERIOD_TO_DAYS.get(period, 5)
     from_date = str(today - timedelta(days=days))
@@ -639,6 +656,13 @@ def get_candles(ticker: str, period: str = "5d", interval: str = "15m") -> pd.Da
         return df
     except Exception:
         return pd.DataFrame()
+
+
+def get_candles(ticker: str, period: str = "5d", interval: str = "15m") -> pd.DataFrame:
+    """Get candles with smart caching (60s for intraday, 1h for daily)."""
+    if _CACHE_OK:
+        return CandleCache.get_candles(ticker, period, interval, _fetch_candles_raw)
+    return _fetch_candles_raw(ticker, period, interval)
 
 
 @st.cache_data(ttl=21600)
@@ -1590,6 +1614,11 @@ def candlestick_fig(df: pd.DataFrame, title: str,
 # ══════════════════════════════════════════════════════════════════════════════
 #  MAIN APP
 # ══════════════════════════════════════════════════════════════════════════════
+
+# Initialize performance cache (critical for reducing API calls)
+if _CACHE_OK:
+    CacheManager.init_session()
+
 now_ist = datetime.now(IST)
 market_open = is_market_open()
 
@@ -2309,6 +2338,78 @@ with tab1:
 
     nifty_pivs_for_signal = {k: float(v) for k, v in nifty_pivots_i.items()} if nifty_pivots_i else {}
     bank_pivs_for_signal  = {k: float(v) for k, v in bank_pivots_i.items()}  if bank_pivots_i  else {}
+
+    # ══════════════════════════════════════════════════════════════════════════════
+    #  LIVE OPTIONS CHAIN VIEWER
+    # ══════════════════════════════════════════════════════════════════════════════
+    st.divider()
+    st.markdown("## 📊 Live Options Chain")
+    st.caption("Real-time strike prices, premiums (CE/PE), IV, and Open Interest — refreshes every 12 seconds")
+
+    if _OPTIONS_VIEWER_OK and _UPSTOX_AVAILABLE:
+        # Fetch live option chains
+        exp_info_chains = next_expiry_info()
+
+        options_index = st.radio(
+            "View options for:",
+            ["Nifty 50", "Bank Nifty"],
+            horizontal=True,
+            key="options_chain_index"
+        )
+
+        if options_index == "Nifty 50":
+            ikey_opt = "NSE_INDEX|Nifty 50"
+            expiry_str = exp_info_chains["nifty"]["date_str"]
+            ltp_opt = n_ltp
+            step_opt = 50
+            name_opt = "Nifty 50"
+        else:
+            ikey_opt = "NSE_INDEX|Nifty Bank"
+            expiry_str = exp_info_chains["banknifty"]["date_str"]
+            ltp_opt = bn_ltp
+            step_opt = 100
+            name_opt = "Bank Nifty"
+
+        # Fetch live chain (12s TTL)
+        live_chain_data = OptionChainCache.get_chain(ikey_opt, expiry_str, get_live_chain) if _CACHE_OK else get_live_chain(ikey_opt, expiry_str)
+
+        if live_chain_data:
+            # Build display dataframe
+            df_chain = ov.build_chain_dataframe(live_chain_data, ltp_opt, step_opt)
+
+            if not df_chain.empty:
+                # Display options chain table
+                ov.render_option_chain_table(df_chain, ltp_opt, name_opt)
+
+                st.markdown("---")
+
+                # Strike selector
+                oc1, oc2 = st.columns(2)
+                with oc1:
+                    selected_ce_strike = ov.render_strike_selector(df_chain, ltp_opt, "CE")
+                    if selected_ce_strike:
+                        ce_row = df_chain[df_chain["Strike"] == selected_ce_strike].iloc[0]
+                        st.success(f"✅ Selected CE {selected_ce_strike} @ ₹{ce_row['CE_LTP']:.2f}")
+
+                with oc2:
+                    selected_pe_strike = ov.render_strike_selector(df_chain, ltp_opt, "PE")
+                    if selected_pe_strike:
+                        pe_row = df_chain[df_chain["Strike"] == selected_pe_strike].iloc[0]
+                        st.success(f"✅ Selected PE {selected_pe_strike} @ ₹{pe_row['PE_LTP']:.2f}")
+
+                st.markdown("---")
+
+                # IV Heatmap
+                with st.expander("🔥 IV Heatmap (Volatility Surface)", expanded=False):
+                    ov.show_iv_heatmap(df_chain)
+            else:
+                st.warning("Option chain data empty. Try refreshing.")
+        else:
+            st.info("📊 Fetching live option chain... Make sure your Upstox token is active.")
+    elif not _OPTIONS_VIEWER_OK:
+        st.error("❌ Options viewer module not loaded. Check your installation.")
+    else:
+        st.warning("⚠️ Upstox token not available. Add UPSTOX_ACCESS_TOKEN to Streamlit secrets for live option data.")
 
     # ── OLD signals (kept for existing users, shown below new section) ────────
     st.divider()
