@@ -2440,7 +2440,10 @@ with tab1:
             name_opt = "Bank Nifty"
 
         # Fetch live chain (12s TTL)
-        live_chain_data = OptionChainCache.get_chain(ikey_opt, expiry_str, get_live_chain) if _CACHE_OK else get_live_chain(ikey_opt, expiry_str)
+        try:
+            live_chain_data = OptionChainCache.get_chain(ikey_opt, expiry_str, get_live_chain) if _CACHE_OK else get_live_chain(ikey_opt, expiry_str)
+        except Exception as e:
+            live_chain_data = {}
 
         if live_chain_data and isinstance(live_chain_data, dict) and len(live_chain_data) > 0:
             # Build display dataframe
@@ -2474,7 +2477,15 @@ with tab1:
             else:
                 st.warning("Option chain data empty. Try refreshing.")
         else:
-            st.info("📊 Fetching live option chain... Make sure your Upstox token is active.")
+            # Show proper message based on what's actually happening
+            if not _UPSTOX_AVAILABLE:
+                st.warning("⚠️ Upstox token not available. Live option chain requires UPSTOX_ACCESS_TOKEN in Streamlit secrets.")
+            else:
+                st.info("📊 Live option chain data not loading. This may be due to:\n"
+                        "• Market is closed\n"
+                        "• API temporarily unavailable\n"
+                        "• Network connectivity issue\n\n"
+                        "Try refreshing the page or check back during market hours (9:15 AM - 3:30 PM IST).")
     elif not _OPTIONS_VIEWER_OK:
         st.error("❌ Options viewer module not loaded. Check your installation.")
     else:
