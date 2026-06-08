@@ -1872,29 +1872,33 @@ with tab_advisor:
             st.session_state.total_daily_risk = 0
 
         try:
-            # Check if market is open
-            if not is_market_open():
-                st.warning("📊 Market is currently CLOSED. Recommendations available only during 9:15 AM - 3:30 PM IST")
-                st.info("Check back during market hours for live trade recommendations.")
-            else:
-                # Store candle data in session state for advisor to access
-                try:
-                    nifty_intraday = get_candles("^NSEI", period="1d", interval="15m")
-                    if not nifty_intraday.empty:
-                        nifty_intraday = add_indicators(nifty_intraday)
-                    st.session_state.NIFTY_candles = nifty_intraday
+            # Check if market is open - but also allow demo/after-hours view
+            market_open = is_market_open()
 
-                    banknifty_intraday = get_candles("^NSEBANK", period="1d", interval="15m")
-                    if not banknifty_intraday.empty:
-                        banknifty_intraday = add_indicators(banknifty_intraday)
-                    st.session_state.BANKNIFTY_candles = banknifty_intraday
+            if not market_open:
+                st.info("📊 Market hours: 9:15 AM - 3:30 PM IST (Mon-Fri)")
+                st.info("Using latest available data for demonstration...")
 
-                    finnifty_intraday = get_candles("^NSEfinnifty", period="1d", interval="15m")
-                    if not finnifty_intraday.empty:
-                        finnifty_intraday = add_indicators(finnifty_intraday)
-                    st.session_state.FINNIFTY_candles = finnifty_intraday
-                except Exception:
-                    pass
+            # Always fetch and prepare data, regardless of market hours
+            # This allows viewing recommendations with latest data anytime
+            try:
+                # Fetch candle data with longer period to ensure we have enough
+                nifty_intraday = get_candles("^NSEI", period="10d", interval="15m")
+                if not nifty_intraday.empty:
+                    nifty_intraday = add_indicators(nifty_intraday)
+                st.session_state.NIFTY_candles = nifty_intraday
+
+                banknifty_intraday = get_candles("^NSEBANK", period="10d", interval="15m")
+                if not banknifty_intraday.empty:
+                    banknifty_intraday = add_indicators(banknifty_intraday)
+                st.session_state.BANKNIFTY_candles = banknifty_intraday
+
+                finnifty_intraday = get_candles("^CNXFIN", period="10d", interval="15m")
+                if not finnifty_intraday.empty:
+                    finnifty_intraday = add_indicators(finnifty_intraday)
+                st.session_state.FINNIFTY_candles = finnifty_intraday
+            except Exception as e:
+                st.error(f"⚠️ Error fetching candle data: {str(e)[:100]}")
 
                 # Get fresh data for trade advisor
                 nifty_quote = quotes.get("Nifty 50", {}) or {}
@@ -1967,38 +1971,19 @@ with tab_advisor:
                 except Exception:
                     global_score = 0
 
-                # ── Cache candle data for trade advisor ──────────────────────────
-                # Trade advisor page expects candles in session state
-                try:
-                    if "NIFTY_candles" not in st.session_state or (datetime.now(IST) - st.session_state.get("NIFTY_candles_ts", datetime.now(IST) - timedelta(minutes=5))).total_seconds() > 60:
-                        try:
-                            nifty_candles = get_candles("^NSEI", "5d", "15m")
-                            nifty_candles = add_indicators(nifty_candles)
-                            st.session_state["NIFTY_candles"] = nifty_candles
-                            st.session_state["NIFTY_candles_ts"] = datetime.now(IST)
-                        except Exception:
-                            nifty_candles = st.session_state.get("NIFTY_candles", pd.DataFrame())
+                # Show data status
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    nrows = len(st.session_state.get("NIFTY_candles", pd.DataFrame()))
+                    st.metric("NIFTY 50", f"{nrows} candles", delta="Ready" if nrows > 20 else "Loading...")
+                with col2:
+                    brows = len(st.session_state.get("BANKNIFTY_candles", pd.DataFrame()))
+                    st.metric("BANK NIFTY", f"{brows} candles", delta="Ready" if brows > 20 else "Loading...")
+                with col3:
+                    frows = len(st.session_state.get("FINNIFTY_candles", pd.DataFrame()))
+                    st.metric("FIN NIFTY", f"{frows} candles", delta="Ready" if frows > 20 else "Loading...")
 
-                    if "BANKNIFTY_candles" not in st.session_state or (datetime.now(IST) - st.session_state.get("BANKNIFTY_candles_ts", datetime.now(IST) - timedelta(minutes=5))).total_seconds() > 60:
-                        try:
-                            bnifty_candles = get_candles("^NSEBANK", "5d", "15m")
-                            bnifty_candles = add_indicators(bnifty_candles)
-                            st.session_state["BANKNIFTY_candles"] = bnifty_candles
-                            st.session_state["BANKNIFTY_candles_ts"] = datetime.now(IST)
-                        except Exception:
-                            bnifty_candles = st.session_state.get("BANKNIFTY_candles", pd.DataFrame())
-
-                    if "FINNIFTY_candles" not in st.session_state or (datetime.now(IST) - st.session_state.get("FINNIFTY_candles_ts", datetime.now(IST) - timedelta(minutes=5))).total_seconds() > 60:
-                        try:
-                            finnifty_candles = get_candles("^CNXFIN", "5d", "15m")
-                            finnifty_candles = add_indicators(finnifty_candles)
-                            st.session_state["FINNIFTY_candles"] = finnifty_candles
-                            st.session_state["FINNIFTY_candles_ts"] = datetime.now(IST)
-                        except Exception:
-                            finnifty_candles = st.session_state.get("FINNIFTY_candles", pd.DataFrame())
-                except Exception as e:
-                    # Fallback - use whatever is in cache
-                    pass
+                st.divider()
 
                 # Render trade advisor page
                 trade_advisor_page.render_trade_advisor_page(
