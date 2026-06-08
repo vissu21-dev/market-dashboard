@@ -3118,40 +3118,73 @@ ANTHROPIC_API_KEY = "sk-ant-..."
 # Get your key at: https://console.anthropic.com
         """)
     else:
-        # ── Build live market context ─────────────────────────────────────────
-        _ai_exp_info  = next_expiry_info()
-        _ai_n_chain   = get_live_chain("NSE_INDEX|Nifty 50",
-                                       _ai_exp_info["nifty"]["date_str"])
-        _ai_b_chain   = get_live_chain("NSE_INDEX|Nifty Bank",
-                                       _ai_exp_info["banknifty"]["date_str"])
-        _ai_n_df      = add_indicators(get_candles("^NSEI",    "5d", "15m"))
-        _ai_b_df      = add_indicators(get_candles("^NSEBANK", "5d", "15m"))
-        _ai_n_orb     = get_orb("^NSEI")
-        _ai_b_orb     = get_orb("^NSEBANK")
-        _ai_n_pivots  = {k: float(v) for k, v in get_pivots("^NSEI").items()}    if get_pivots("^NSEI")    else {}
-        _ai_b_pivots  = {k: float(v) for k, v in get_pivots("^NSEBANK").items()} if get_pivots("^NSEBANK") else {}
-        _ai_g_quotes  = {n: get_quote(t) for n, t in GLOBAL.items()}
-        _ai_fii       = intel.get("fii_dii",  {}) if "intel" in dir() else {}
-        _ai_breadth   = intel.get("breadth",  {}) if "intel" in dir() else {}
-        _ai_intel     = intel if "intel" in dir() else {}
+        # ── OPTIMIZED: Build market context with caching ──────────────────────
+        # Check if we need to rebuild the market context
+        _need_rebuild = False
+        _cache_key = "ai_market_context"
+        _cache_timestamp_key = "ai_market_context_ts"
 
-        _market_ctx = ai_expert.build_market_context(
-            quotes       = quotes,
-            nifty_df     = _ai_n_df,
-            bank_df      = _ai_b_df,
-            vix          = vix_i if "vix_i" in dir() else 15.0,
-            nifty_orb    = _ai_n_orb,
-            bank_orb     = _ai_b_orb,
-            nifty_pivots = _ai_n_pivots,
-            bank_pivots  = _ai_b_pivots,
-            nifty_chain  = _ai_n_chain,
-            bank_chain   = _ai_b_chain,
-            global_quotes= _ai_g_quotes,
-            fii_dii      = _ai_fii,
-            breadth      = _ai_breadth,
-            intel        = _ai_intel,
-            exp_info     = _ai_exp_info,
-        )
+        # Initialize cache if needed
+        if _cache_key not in st.session_state:
+            st.session_state[_cache_key] = None
+            st.session_state[_cache_timestamp_key] = None
+            _need_rebuild = True
+
+        # Rebuild if cache is stale (120s TTL for market context)
+        if st.session_state[_cache_timestamp_key] is not None:
+            age = (datetime.now(IST) - st.session_state[_cache_timestamp_key]).total_seconds()
+            if age > 120:
+                _need_rebuild = True
+        else:
+            _need_rebuild = True
+
+        # Build context only if needed
+        if _need_rebuild:
+            with st.spinner("⏳ Loading market data..."):
+                try:
+                    _ai_exp_info  = next_expiry_info()
+                    _ai_n_chain   = get_live_chain("NSE_INDEX|Nifty 50",
+                                                   _ai_exp_info["nifty"]["date_str"])
+                    _ai_b_chain   = get_live_chain("NSE_INDEX|Nifty Bank",
+                                                   _ai_exp_info["banknifty"]["date_str"])
+                    _ai_n_df      = add_indicators(get_candles("^NSEI",    "5d", "15m"))
+                    _ai_b_df      = add_indicators(get_candles("^NSEBANK", "5d", "15m"))
+                    _ai_n_orb     = get_orb("^NSEI")
+                    _ai_b_orb     = get_orb("^NSEBANK")
+                    _ai_n_pivots  = {k: float(v) for k, v in get_pivots("^NSEI").items()}    if get_pivots("^NSEI")    else {}
+                    _ai_b_pivots  = {k: float(v) for k, v in get_pivots("^NSEBANK").items()} if get_pivots("^NSEBANK") else {}
+                    _ai_g_quotes  = {n: get_quote(t) for n, t in GLOBAL.items()}
+                    _ai_fii       = intel.get("fii_dii",  {}) if "intel" in dir() else {}
+                    _ai_breadth   = intel.get("breadth",  {}) if "intel" in dir() else {}
+                    _ai_intel     = intel if "intel" in dir() else {}
+
+                    _market_ctx = ai_expert.build_market_context(
+                        quotes       = quotes,
+                        nifty_df     = _ai_n_df,
+                        bank_df      = _ai_b_df,
+                        vix          = vix_i if "vix_i" in dir() else 15.0,
+                        nifty_orb    = _ai_n_orb,
+                        bank_orb     = _ai_b_orb,
+                        nifty_pivots = _ai_n_pivots,
+                        bank_pivots  = _ai_b_pivots,
+                        nifty_chain  = _ai_n_chain,
+                        bank_chain   = _ai_b_chain,
+                        global_quotes= _ai_g_quotes,
+                        fii_dii      = _ai_fii,
+                        breadth      = _ai_breadth,
+                        intel        = _ai_intel,
+                        exp_info     = _ai_exp_info,
+                    )
+
+                    # Cache the result
+                    st.session_state[_cache_key] = _market_ctx
+                    st.session_state[_cache_timestamp_key] = datetime.now(IST)
+                except Exception as e:
+                    st.error(f"❌ Error loading market data: {str(e)[:100]}")
+                    _market_ctx = ""
+        else:
+            # Use cached market context
+            _market_ctx = st.session_state[_cache_key] or ""
 
         # ── Quick question buttons ────────────────────────────────────────────
         st.markdown("**⚡ Quick Analysis**")
