@@ -45,6 +45,13 @@ Your profile:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 RESPONSE RULES:
+0. A "DASHBOARD ENGINE VERDICT" may appear at the very top of the live data. That
+   is the house quant view the user already sees on screen. Treat it as your
+   anchor: if you agree, reinforce it and explain why; if you genuinely disagree
+   based on the data, say so explicitly and justify the divergence. Never give a
+   recommendation that silently contradicts the verdict — the user must understand
+   any difference. If the verdict is WAIT/STAND DOWN, default to NO TRADE unless
+   the user describes a materially different setup.
 1. Always reference the live data above before recommending anything
 2. Every trade recommendation MUST include:
    Direction | Index | Strike | Expiry | Premium | Entry Range | SL | T1 | T2 | T3 | R:R | Max Hold
@@ -110,12 +117,26 @@ def build_market_context(
     breadth: dict,
     intel: dict,
     exp_info: dict,
+    decision: dict = None,
 ) -> str:
     """
     Build a comprehensive market context string to inject into the system prompt.
+    If `decision` (from decision_engine.build_trade_decision) is supplied, its
+    verdict is placed at the TOP so the AI anchors to the same call the
+    dashboard shows the user.
     """
     now = datetime.now(IST).strftime("%d %b %Y %H:%M IST")
     lines = [f"📅 Data as of: {now}", ""]
+
+    # ── House verdict from the Decision Engine (anchor) ───────────────────────
+    if decision:
+        try:
+            from decision_engine import format_decision_for_ai
+            block = format_decision_for_ai(decision)
+            if block:
+                lines.append(block)
+        except Exception:
+            pass
 
     # ── Indian Indices ────────────────────────────────────────────────────────
     lines.append("🇮🇳 INDIAN INDICES")

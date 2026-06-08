@@ -350,3 +350,57 @@ def build_trade_decision(indices: List[Dict],
         "macro_context": macro_intel.get("summary", "") if macro_intel else "",
         "as_of": now_str,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Text rendering for the AI Expert prompt
+# ─────────────────────────────────────────────────────────────────────────────
+
+def format_decision_for_ai(decision: Optional[Dict]) -> str:
+    """
+    Render the decision object as a compact text block to inject at the TOP of
+    the AI Expert's market context, so the chatbot anchors to the same verdict
+    the dashboard shows the user. One brain, two surfaces.
+    """
+    if not decision:
+        return ""
+
+    L = ["🎯 DASHBOARD ENGINE VERDICT (the house view — align with this)"]
+    light = decision.get("traffic_light", "red").upper()
+    L.append(f"  Signal: {light}  |  Verdict: {decision.get('verdict','WAIT')}  "
+             f"|  Action: {decision.get('headline_action','WAIT — NO TRADE')}")
+    L.append(f"  As of: {decision.get('as_of','')}")
+
+    best = decision.get("best")
+    if decision.get("verdict") == "TRADE" and best:
+        sz = best.get("sizing", {})
+        L.append(f"  BEST TRADE: {best['index']} {best['strike']} {best['option_type']} "
+                 f"({best.get('strike_label','')}) exp {best.get('expiry','')}")
+        L.append(f"    Confidence {best['adj_confidence']}% (base {best['base_confidence']}%) "
+                 f"· {best['conviction']} conviction")
+        L.append(f"    Entry ₹{best.get('entry_low','?')}–₹{best.get('entry_high','?')} "
+                 f"| SL ₹{best.get('sl','?')} | T1 ₹{best.get('t1','?')} "
+                 f"T2 ₹{best.get('t2','?')} T3 ₹{best.get('t3','?')} | R:R 1:{best.get('rr','?')}")
+        L.append(f"    Position {sz.get('lots',0)} lot(s) / {sz.get('units',0)} units "
+                 f"· capital ₹{sz.get('capital_required',0):,} · max loss ₹{sz.get('max_loss',0):,}")
+        L.append(f"    Max hold {best.get('max_hold','—')} | "
+                 f"Invalidate if index crosses {best.get('invalidation','SL')}")
+        if best.get("reasons"):
+            L.append("    Why: " + "; ".join(best["reasons"][:4]))
+    else:
+        L.append(f"  NO-TRADE REASON: {decision.get('no_trade_reason','No edge right now.')}")
+
+    alts = decision.get("alternatives", [])
+    if alts:
+        a_str = ", ".join(
+            f"{a['index']} {a.get('strike','')}{a.get('option_type','')} {a.get('confidence',0)}%"
+            for a in alts[:3] if a.get('strike'))
+        if a_str:
+            L.append(f"  Other setups: {a_str}")
+
+    warns = decision.get("event_warnings", [])
+    if warns:
+        L.append("  Event flags: " + " | ".join(warns[:3]))
+
+    L.append("")
+    return "\n".join(L)

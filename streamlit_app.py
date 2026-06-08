@@ -3186,6 +3186,17 @@ ANTHROPIC_API_KEY = "sk-ant-..."
                     _ai_breadth   = intel.get("breadth",  {}) if "intel" in dir() else {}
                     _ai_intel     = intel if "intel" in dir() else {}
 
+                    # Same verdict the dashboard shows — anchor the AI to it
+                    _ai_decision = None
+                    if _DECISION_OK:
+                        try:
+                            _ai_decision = build_top_decision(
+                                account_size=float(st.session_state.get("account_size", 100000)),
+                                risk_pct=float(st.session_state.get("risk_percent", 1.0)),
+                            )
+                        except Exception:
+                            _ai_decision = None
+
                     _market_ctx = ai_expert.build_market_context(
                         quotes       = quotes,
                         nifty_df     = _ai_n_df,
@@ -3202,6 +3213,7 @@ ANTHROPIC_API_KEY = "sk-ant-..."
                         breadth      = _ai_breadth,
                         intel        = _ai_intel,
                         exp_info     = _ai_exp_info,
+                        decision     = _ai_decision,
                     )
 
                     # Cache the result
