@@ -526,7 +526,7 @@ _YF_INT_TO_UPSTOX = {
     "1d": "day", "1wk": "week", "1mo": "month",
 }
 _PERIOD_TO_DAYS = {
-    "1d": 1, "5d": 5, "1mo": 30, "3mo": 90,
+    "1d": 1, "5d": 5, "10d": 10, "1mo": 30, "3mo": 90,
     "6mo": 180, "1y": 365, "2y": 730,
 }
 
