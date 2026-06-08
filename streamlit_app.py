@@ -1922,6 +1922,9 @@ with tab_advisor:
                 except Exception:
                     bank_pivots_fresh = {}
 
+                # Get FIN NIFTY quote
+                fin_quote = quotes.get("Fin Nifty", {}) or {}
+
                 # Prepare market data for trade advisor
                 market_data = {
                     "NIFTY 50": {
@@ -1937,7 +1940,7 @@ with tab_advisor:
                         "pivots": bank_pivots_fresh,
                     },
                     "FIN NIFTY": {
-                        "ltp": 0,
+                        "ltp": fin_quote.get("ltp", 0),
                         "vix": vix_val,
                         "orb": {},
                         "pivots": {},
@@ -1963,6 +1966,39 @@ with tab_advisor:
                     global_score = gs_fresh.get("score", 0) if gs_fresh else 0
                 except Exception:
                     global_score = 0
+
+                # ── Cache candle data for trade advisor ──────────────────────────
+                # Trade advisor page expects candles in session state
+                try:
+                    if "NIFTY_candles" not in st.session_state or (datetime.now(IST) - st.session_state.get("NIFTY_candles_ts", datetime.now(IST) - timedelta(minutes=5))).total_seconds() > 60:
+                        try:
+                            nifty_candles = get_candles("^NSEI", "5d", "15m")
+                            nifty_candles = add_indicators(nifty_candles)
+                            st.session_state["NIFTY_candles"] = nifty_candles
+                            st.session_state["NIFTY_candles_ts"] = datetime.now(IST)
+                        except Exception:
+                            nifty_candles = st.session_state.get("NIFTY_candles", pd.DataFrame())
+
+                    if "BANKNIFTY_candles" not in st.session_state or (datetime.now(IST) - st.session_state.get("BANKNIFTY_candles_ts", datetime.now(IST) - timedelta(minutes=5))).total_seconds() > 60:
+                        try:
+                            bnifty_candles = get_candles("^NSEBANK", "5d", "15m")
+                            bnifty_candles = add_indicators(bnifty_candles)
+                            st.session_state["BANKNIFTY_candles"] = bnifty_candles
+                            st.session_state["BANKNIFTY_candles_ts"] = datetime.now(IST)
+                        except Exception:
+                            bnifty_candles = st.session_state.get("BANKNIFTY_candles", pd.DataFrame())
+
+                    if "FINNIFTY_candles" not in st.session_state or (datetime.now(IST) - st.session_state.get("FINNIFTY_candles_ts", datetime.now(IST) - timedelta(minutes=5))).total_seconds() > 60:
+                        try:
+                            finnifty_candles = get_candles("^CNXFIN", "5d", "15m")
+                            finnifty_candles = add_indicators(finnifty_candles)
+                            st.session_state["FINNIFTY_candles"] = finnifty_candles
+                            st.session_state["FINNIFTY_candles_ts"] = datetime.now(IST)
+                        except Exception:
+                            finnifty_candles = st.session_state.get("FINNIFTY_candles", pd.DataFrame())
+                except Exception as e:
+                    # Fallback - use whatever is in cache
+                    pass
 
                 # Render trade advisor page
                 trade_advisor_page.render_trade_advisor_page(
