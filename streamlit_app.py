@@ -1137,6 +1137,9 @@ def get_live_chain(instrument_key: str, expiry_date: str) -> dict:
     try:
         df = upstox_df.get_option_chain(instrument_key, expiry_date)
         if df.empty:
+            # Debug: API returned empty, log it
+            import logging
+            logging.warning(f"Upstox returned empty option chain for {instrument_key} {expiry_date}")
             return {}
         result = {}
         for _, row in df.iterrows():
@@ -1151,7 +1154,10 @@ def get_live_chain(instrument_key: str, expiry_date: str) -> dict:
                 "pe_vol": float(row.get("pe_volume", 0) or 0),
             }
         return result
-    except Exception:
+    except Exception as e:
+        # Debug: Log the actual error
+        import logging
+        logging.error(f"Upstox option chain fetch failed: {str(e)}")
         return {}
 
 
@@ -2481,11 +2487,44 @@ with tab1:
             if not _UPSTOX_AVAILABLE:
                 st.warning("⚠️ Upstox token not available. Live option chain requires UPSTOX_ACCESS_TOKEN in Streamlit secrets.")
             else:
-                st.info("📊 Live option chain data not loading. This may be due to:\n"
-                        "• Market is closed\n"
-                        "• API temporarily unavailable\n"
-                        "• Network connectivity issue\n\n"
-                        "Try refreshing the page or check back during market hours (9:15 AM - 3:30 PM IST).")
+                st.warning("📊 Live Upstox data unavailable. Showing estimated premiums instead.\n"
+                          "(Actual premiums may differ - always verify on your broker before trading)")
+
+                # Show fallback strike selector with estimated premiums
+                st.markdown("#### Estimated Strike Premiums (Fallback)")
+                st.caption("Using Black-Scholes estimation - NOT actual market prices")
+
+                # Create simple strike selector with estimates
+                fallback_col1, fallback_col2 = st.columns(2)
+
+                with fallback_col1:
+                    st.markdown("**CE (Call Options)**")
+                    atm = nearest_strike(ltp_opt, step_opt)
+
+                    # Simple BS estimation
+                    days_left = 3
+                    vix_est = vix_i if "vix_i" in dir() else 15
+                    bs_factor = 0.40 if "Bank" in name_opt else 0.308
+                    base_prem = ltp_opt * (vix_est/100) * np.sqrt(days_left/252) * bs_factor
+
+                    ce_options = [
+                        (f"ATM {atm}", atm, base_prem * 1.0),
+                        (f"OTM1 {atm + step_opt}", atm + step_opt, base_prem * 0.72),
+                        (f"OTM2 {atm + 2*step_opt}", atm + 2*step_opt, base_prem * 0.45),
+                    ]
+
+                    for label, strike, prem in ce_options:
+                        cost = int(prem * (75 if "Bank" not in name_opt else 30))
+                        st.write(f"🟢 {label}: ~₹{prem:.0f} (₹{cost:,}/lot)")
+
+                with fallback_col2:
+                    st.markdown("**PE (Put Options)**")
+                    for label, strike, prem in ce_options:
+                        cost = int(prem * (75 if "Bank" not in name_opt else 30))
+                        st.write(f"🔴 {label}: ~₹{prem:.0f} (₹{cost:,}/lot)")
+
+                st.divider()
+                st.info("⚠️ These are estimates only. Please verify actual prices on your broker (Zerodha, Shoonya, etc.) before placing trades.")
     elif not _OPTIONS_VIEWER_OK:
         st.error("❌ Options viewer module not loaded. Check your installation.")
     else:
