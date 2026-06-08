@@ -105,6 +105,44 @@ st.set_page_config(
 
 IST = pytz.timezone("Asia/Kolkata")
 
+
+@st.cache_data(ttl=3600)
+def get_build_info() -> dict:
+    """
+    Return the live git build identity (short hash + commit date) so the footer
+    can show exactly which commit is deployed. Lets you spot a stale Streamlit
+    Cloud build at a glance. Reads .git directly (no git binary needed), with a
+    subprocess fallback.
+    """
+    info = {"hash": "unknown", "date": ""}
+    try:
+        import subprocess
+        h = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=_dashboard_dir, stderr=subprocess.DEVNULL, timeout=5,
+        ).decode().strip()
+        d = subprocess.check_output(
+            ["git", "log", "-1", "--format=%cd", "--date=format:%d %b %H:%M"],
+            cwd=_dashboard_dir, stderr=subprocess.DEVNULL, timeout=5,
+        ).decode().strip()
+        if h:
+            return {"hash": h, "date": d}
+    except Exception:
+        pass
+    # Fallback: parse .git files directly
+    try:
+        git_dir = os.path.join(_dashboard_dir, ".git")
+        head = open(os.path.join(git_dir, "HEAD")).read().strip()
+        if head.startswith("ref:"):
+            ref = head.split(" ", 1)[1].strip()
+            sha = open(os.path.join(git_dir, ref)).read().strip()
+        else:
+            sha = head
+        info["hash"] = sha[:7]
+    except Exception:
+        pass
+    return info
+
 # ── Owner detection via secret URL key ───────────────────────────────────────
 # Owner accesses: https://your-app.streamlit.app/?key=YOUR_OWNER_KEY
 # Public users access the normal URL — toolbar is hidden for them
@@ -4367,4 +4405,9 @@ with tab11:
 
 
 st.divider()
-st.caption("📡 Dashboard auto-refreshes every 30 seconds during market hours (9:15 AM – 3:30 PM IST) via browser meta-refresh.")
+_bi = get_build_info()
+_build_str = f"build {_bi['hash']}" + (f" · {_bi['date']}" if _bi.get('date') else "")
+st.caption(
+    "📡 Dashboard auto-refreshes every 30 seconds during market hours "
+    f"(9:15 AM – 3:30 PM IST) via browser meta-refresh.  ·  🧱 {_build_str}"
+)
