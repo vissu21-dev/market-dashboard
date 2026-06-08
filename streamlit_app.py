@@ -2943,24 +2943,22 @@ with tab1:
             dir_color = "#089981" if direction == "CALL" else "#f23645"
 
             with st.container():
-                # Header bar
-                st.markdown(f"""
-                <div style="background:linear-gradient(90deg,{s_color}22,transparent);
-                border-left:5px solid {s_color};border-radius:10px;
-                padding:14px 20px;margin:8px 0 4px">
-                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-                    <div>
-                      <span style="font-size:20px;font-weight:900;color:{s_color}">{s_label}</span>
-                      <span style="font-size:16px;font-weight:700;color:#e0e0e0;margin-left:12px">{iname}</span>
-                      {'<span style="font-size:15px;font-weight:800;color:'+dir_color+';margin-left:8px">'+dir_emoji+' '+direction+' OPTION</span>' if direction else ''}
-                    </div>
-                    <div style="text-align:right">
-                      <div style="font-size:22px;font-weight:900;color:{s_color}">{conf:.0f}%</div>
-                      <div style="font-size:12px;color:#b2b5be">Confidence</div>
-                    </div>
-                  </div>
-                  {'<div style="margin-top:8px;background:#1e222d;border-radius:6px;height:8px;overflow:hidden"><div style="background:'+s_color+';width:'+str(conf)+'%;height:100%;border-radius:6px"></div></div>' if status != 'AVOID' else ''}
-                </div>""", unsafe_allow_html=True)
+                # Header bar — built as ONE line (no leading indentation / blank
+                # lines) so Streamlit never misreads indented HTML as a code block.
+                _dir_span = (f'<span style="font-size:15px;font-weight:800;color:{dir_color};margin-left:8px">{dir_emoji} {direction} OPTION</span>'
+                             if direction else '')
+                _conf_bar = (f'<div style="margin-top:8px;background:#1e222d;border-radius:6px;height:8px;overflow:hidden"><div style="background:{s_color};width:{conf}%;height:100%;border-radius:6px"></div></div>'
+                             if status != 'AVOID' else '')
+                _header_html = (
+                    f'<div style="background:linear-gradient(90deg,{s_color}22,transparent);border-left:5px solid {s_color};border-radius:10px;padding:14px 20px;margin:8px 0 4px">'
+                    f'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
+                    f'<div><span style="font-size:20px;font-weight:900;color:{s_color}">{s_label}</span>'
+                    f'<span style="font-size:16px;font-weight:700;color:#e0e0e0;margin-left:12px">{iname}</span>{_dir_span}</div>'
+                    f'<div style="text-align:right"><div style="font-size:22px;font-weight:900;color:{s_color}">{conf:.0f}%</div>'
+                    f'<div style="font-size:12px;color:#b2b5be">Confidence</div></div>'
+                    f'</div>{_conf_bar}</div>'
+                )
+                st.markdown(_header_html, unsafe_allow_html=True)
 
                 if status == "AVOID":
                     st.markdown(f"""
