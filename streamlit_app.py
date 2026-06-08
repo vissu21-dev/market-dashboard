@@ -80,6 +80,14 @@ try:
 except Exception as e:
     _MARKET_EVENTS_OK = False
 
+# AI Decision Engine — synthesizes everything into one actionable call (NEW)
+try:
+    import decision_engine
+    import decision_card
+    _DECISION_OK = True
+except Exception as e:
+    _DECISION_OK = False
+
 # Upstox (secondary data source, fallback)
 try:
     import config as upstox_config
@@ -1305,6 +1313,86 @@ def nearest_strike(price: float, step: int) -> int:
     return round(int(round(price / step) * step))
 
 
+def build_top_decision(account_size: float = 100000, risk_pct: float = 1.0) -> dict:
+    """
+    Gather data for NIFTY / BANK NIFTY / FIN NIFTY, run the AI Decision Engine,
+    and return the single decision object. Cached in session for 60s so it does
+    NOT recompute on every widget interaction.
+    """
+    if not _DECISION_OK:
+        return {}
+
+    # ── 60s session cache ────────────────────────────────────────────────────
+    ck = f"_decision_{int(account_size)}_{risk_pct}"
+    tk = ck + "_ts"
+    if ck in st.session_state and tk in st.session_state:
+        if (datetime.now(IST) - st.session_state[tk]).total_seconds() < 60:
+            return st.session_state[ck]
+
+    # `quotes` is built at module level before this function is called.
+    _q = globals().get("quotes", {}) or {}
+
+    exp = next_expiry_info()
+    g_quotes = {n: get_quote(t) for n, t in GLOBAL.items()}
+    g_score  = compute_global_sentiment(g_quotes).get("score", 0)
+
+    # Shared market-event + macro overlays
+    events_intel = None
+    if _MARKET_EVENTS_OK:
+        try:
+            events_intel = market_events.get_full_market_intelligence()
+        except Exception:
+            events_intel = None
+
+    vix_now = safe_quote_get(_q, "India VIX", "ltp", 15)
+    nifty_pct = (_q.get("Nifty 50", {}) or {}).get("pct", 0)
+    macro_intel = None
+    if _MI_OK:
+        try:
+            macro_intel = mi.get_full_intelligence(vix_india=vix_now, nifty_pct=nifty_pct)
+        except Exception:
+            macro_intel = None
+
+    fii = macro_intel.get("fii_dii", {}) if macro_intel else {}
+    brd = macro_intel.get("breadth", {}) if macro_intel else {}
+
+    specs = [
+        ("Nifty 50",   "^NSEI",    "NSE_INDEX|Nifty 50",          exp["nifty"]["date_str"],     exp["nifty"]["date"],     50,  75, "NIFTY"),
+        ("Bank Nifty", "^NSEBANK", "NSE_INDEX|Nifty Bank",        exp["banknifty"]["date_str"], exp["banknifty"]["date"], 100, 30, "BANKNIFTY"),
+        ("Fin Nifty",  "^CNXFIN",  "NSE_INDEX|Nifty Fin Service", exp["nifty"]["date_str"],     exp["nifty"]["date"],     50,  40, "FINNIFTY"),
+    ]
+
+    indices = []
+    for qname, yf_t, ikey, exp_str, exp_lbl, step, lot, eng_name in specs:
+        try:
+            df = add_indicators(get_candles(yf_t, period="10d", interval="15m"))
+            q  = _q.get(qname, {}) or {}
+            ltp = q.get("ltp", 0) or 0
+            if not ltp or df.empty:
+                continue
+            indices.append({
+                "name": eng_name,
+                "df": df, "ltp": ltp, "vix": vix_now,
+                "orb": get_orb(yf_t) or {},
+                "pivots": {k: float(v) for k, v in (get_pivots(yf_t) or {}).items()},
+                "live_chain": get_live_chain(ikey, exp_str) or {},
+                "global_score": g_score,
+                "step": step, "lot_size": lot,
+                "expiry_label": exp_lbl, "expiry_date_str": exp_str,
+                "fii_dii": fii, "breadth": brd,
+            })
+        except Exception:
+            continue
+
+    decision = decision_engine.build_trade_decision(
+        indices, events_intel=events_intel, macro_intel=macro_intel,
+        account_size=account_size, risk_pct=risk_pct,
+    )
+    st.session_state[ck] = decision
+    st.session_state[tk] = datetime.now(IST)
+    return decision
+
+
 def intraday_option_setup(df: pd.DataFrame, ltp: float, vix: float,
                            name: str, step: int = 50,
                            orb: dict = None, pivots: dict = None) -> dict:
@@ -1837,6 +1925,27 @@ for col, (name, q) in zip(idx_cols, quotes.items()):
             st.metric(name, "Loading…")
 
 st.divider()
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  AI DECISION ENGINE — the single "What should I do right now?" call (TOP)
+# ══════════════════════════════════════════════════════════════════════════════
+if _DECISION_OK:
+    _dec_acct = float(st.session_state.get("account_size", 100000))
+    _dec_risk = float(st.session_state.get("risk_percent", 1.0))
+    try:
+        if not is_market_open():
+            st.info("🕒 Market closed (9:15 AM–3:30 PM IST). The AI verdict below uses the "
+                    "latest available data for preparation — live decisions resume at open.")
+        _decision = build_top_decision(account_size=_dec_acct, risk_pct=_dec_risk)
+        if _decision:
+            decision_card.render_decision_card(_decision)
+        else:
+            st.caption("AI Decision Engine warming up…")
+    except Exception as _de:
+        st.warning("AI Decision Engine could not produce a verdict this cycle. "
+                   "Detailed signals remain available in the Trade Command tab.")
+        st.caption(f"({str(_de)[:120]})")
+    st.divider()
 
 # ── Charts + Signals ──────────────────────────────────────────────────────────
 tab_events, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
