@@ -1091,25 +1091,43 @@ def is_market_open() -> bool:
     return o <= now <= c
 
 
+def _last_weekday_of_month(year: int, month: int, weekday: int):
+    """Return the date of the last given weekday (Mon=0..Sun=6) in year-month."""
+    if month == 12:
+        first_next = datetime(year + 1, 1, 1).date()
+    else:
+        first_next = datetime(year, month + 1, 1).date()
+    last_day = first_next - timedelta(days=1)
+    offset = (last_day.weekday() - weekday) % 7
+    return last_day - timedelta(days=offset)
+
+
 def next_expiry_info() -> dict:
+    """
+    Current NSE expiry rules (verified Jun 2026):
+      • NIFTY     → WEEKLY, every Tuesday.
+      • BANK NIFTY→ MONTHLY only (weeklies discontinued Nov-2024), LAST Tuesday
+        of the month. FIN NIFTY follows the same monthly rule.
+    """
     now   = datetime.now(IST)
     today = now.date()
     after_close = now.hour > 15 or (now.hour == 15 and now.minute >= 30)
 
-    # Nifty weekly = Tuesday (weekday 1); BankNifty weekly = Wednesday (weekday 2)
+    # ── NIFTY: weekly Tuesday (weekday 1) ────────────────────────────────────
     n_days = (1 - today.weekday()) % 7
-    b_days = (2 - today.weekday()) % 7
-
-    # On expiry day after market close, roll to next week
     if n_days == 0 and after_close:
         n_days = 7
-    if b_days == 0 and after_close:
-        b_days = 7
-
-    n_date = today + timedelta(days=n_days)
-    b_date = today + timedelta(days=b_days)
+    n_date  = today + timedelta(days=n_days)
     n_label = "Today" if n_days == 0 else n_date.strftime("%d %b")
+
+    # ── BANK NIFTY: monthly, last Tuesday of the month ───────────────────────
+    b_date = _last_weekday_of_month(today.year, today.month, 1)
+    if today > b_date or (today == b_date and after_close):
+        ny, nm = (today.year + 1, 1) if today.month == 12 else (today.year, today.month + 1)
+        b_date = _last_weekday_of_month(ny, nm, 1)
+    b_days  = (b_date - today).days
     b_label = "Today" if b_days == 0 else b_date.strftime("%d %b")
+
     return {
         "nifty":     {"date": n_label, "days": n_days,
                       "date_str": n_date.strftime("%Y-%m-%d")},
@@ -1397,7 +1415,7 @@ def build_top_decision(account_size: float = 100000, risk_pct: float = 1.0) -> d
     specs = [
         ("Nifty 50",   "^NSEI",    "NSE_INDEX|Nifty 50",          exp["nifty"]["date_str"],     exp["nifty"]["date"],     50,  75, "NIFTY"),
         ("Bank Nifty", "^NSEBANK", "NSE_INDEX|Nifty Bank",        exp["banknifty"]["date_str"], exp["banknifty"]["date"], 100, 30, "BANKNIFTY"),
-        ("Fin Nifty",  "^CNXFIN",  "NSE_INDEX|Nifty Fin Service", exp["nifty"]["date_str"],     exp["nifty"]["date"],     50,  40, "FINNIFTY"),
+        ("Fin Nifty",  "^CNXFIN",  "NSE_INDEX|Nifty Fin Service", exp["banknifty"]["date_str"], exp["banknifty"]["date"], 50,  40, "FINNIFTY"),
     ]
 
     indices = []
