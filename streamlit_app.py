@@ -2644,30 +2644,37 @@ with tab1:
                 # Create simple strike selector with estimates
                 fallback_col1, fallback_col2 = st.columns(2)
 
+                atm = nearest_strike(ltp_opt, step_opt)
+                _lot = 75 if "Bank" not in name_opt else 30
+
+                # Simple Black-Scholes-style estimate
+                days_left = 3
+                vix_est = vix_i if "vix_i" in dir() else 15
+                bs_factor = 0.40 if "Bank" in name_opt else 0.308
+                base_prem = ltp_opt * (vix_est / 100) * np.sqrt(days_left / 252) * bs_factor
+
+                # Calls: OTM strikes step UP. Puts: OTM strikes step DOWN.
+                ce_options = [
+                    (f"ATM {atm}",                  atm,                  base_prem * 1.00),
+                    (f"OTM1 {atm + step_opt}",      atm + step_opt,       base_prem * 0.72),
+                    (f"OTM2 {atm + 2*step_opt}",    atm + 2*step_opt,     base_prem * 0.45),
+                ]
+                pe_options = [
+                    (f"ATM {atm}",                  atm,                  base_prem * 1.00),
+                    (f"OTM1 {atm - step_opt}",      atm - step_opt,       base_prem * 0.72),
+                    (f"OTM2 {atm - 2*step_opt}",    atm - 2*step_opt,     base_prem * 0.45),
+                ]
+
                 with fallback_col1:
-                    st.markdown("**CE (Call Options)**")
-                    atm = nearest_strike(ltp_opt, step_opt)
-
-                    # Simple BS estimation
-                    days_left = 3
-                    vix_est = vix_i if "vix_i" in dir() else 15
-                    bs_factor = 0.40 if "Bank" in name_opt else 0.308
-                    base_prem = ltp_opt * (vix_est/100) * np.sqrt(days_left/252) * bs_factor
-
-                    ce_options = [
-                        (f"ATM {atm}", atm, base_prem * 1.0),
-                        (f"OTM1 {atm + step_opt}", atm + step_opt, base_prem * 0.72),
-                        (f"OTM2 {atm + 2*step_opt}", atm + 2*step_opt, base_prem * 0.45),
-                    ]
-
+                    st.markdown("**CE (Call Options)** — strikes step up")
                     for label, strike, prem in ce_options:
-                        cost = int(prem * (75 if "Bank" not in name_opt else 30))
+                        cost = int(prem * _lot)
                         st.write(f"🟢 {label}: ~₹{prem:.0f} (₹{cost:,}/lot)")
 
                 with fallback_col2:
-                    st.markdown("**PE (Put Options)**")
-                    for label, strike, prem in ce_options:
-                        cost = int(prem * (75 if "Bank" not in name_opt else 30))
+                    st.markdown("**PE (Put Options)** — strikes step down")
+                    for label, strike, prem in pe_options:
+                        cost = int(prem * _lot)
                         st.write(f"🔴 {label}: ~₹{prem:.0f} (₹{cost:,}/lot)")
 
                 st.divider()
