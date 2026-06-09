@@ -324,6 +324,7 @@ def build_trade_decision(indices: List[Dict],
             ],
             "event_warnings": block_warnings,
             "macro_context": macro_intel.get("summary", "") if macro_intel else "",
+            "all_evaluations": evals,
             "as_of": now_str,
         }
 
@@ -348,6 +349,7 @@ def build_trade_decision(indices: List[Dict],
         ],
         "event_warnings": block_warnings,
         "macro_context": macro_intel.get("summary", "") if macro_intel else "",
+        "all_evaluations": evals,
         "as_of": now_str,
     }
 

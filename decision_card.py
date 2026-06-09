@@ -64,13 +64,18 @@ def render_decision_card(decision: dict, *, compact: bool = False):
     )
 
     best = decision.get("best")
+    evals = decision.get("all_evaluations", [])
+
     if verdict != "TRADE" or not best:
         _render_no_trade(decision)
+        # Even on a WAIT, show each index's read so both NIFTY & BANKNIFTY are visible
+        _render_per_index_tabs(evals, best_index=None)
         return
 
-    _render_best_trade(best, light)
     _render_warnings(decision)
-    _render_alternatives(decision.get("alternatives", []))
+    # Per-index plans — NIFTY, BANK NIFTY, FIN NIFTY each with exact strike.
+    # Recommended index tab is shown first.
+    _render_per_index_tabs(evals, best_index=best.get("index"))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -195,6 +200,63 @@ def _render_best_trade(best: dict, light: dict):
             st.markdown("**💰 Exit plan:**")
             for ex in exits:
                 st.markdown(f"- {ex}")
+
+
+_DISP = {"NIFTY": "NIFTY 50", "BANKNIFTY": "BANK NIFTY", "FINNIFTY": "FIN NIFTY"}
+
+
+def _light_for(conf: float) -> dict:
+    if conf >= 68:
+        return _LIGHT["green"]
+    if conf >= 58:
+        return _LIGHT["yellow"]
+    return _LIGHT["red"]
+
+
+def _render_per_index_tabs(evals: list, best_index=None):
+    """One tab per index (NIFTY / BANK NIFTY / FIN NIFTY), each with its full plan."""
+    if not evals:
+        return
+
+    # Order: recommended index first, then the rest in NIFTY/BANKNIFTY/FINNIFTY order
+    order = {"NIFTY": 0, "BANKNIFTY": 1, "FINNIFTY": 2}
+    ordered = sorted(evals, key=lambda e: (e.get("index") != best_index, order.get(e.get("index"), 9)))
+
+    st.markdown("#### 📑 Trade plan by index")
+    labels = []
+    for e in ordered:
+        name = _DISP.get(e.get("index"), e.get("index", "—"))
+        if e.get("actionable") and e.get("direction"):
+            star = "⭐ " if e.get("index") == best_index else ""
+            labels.append(f"{star}{name} · {e.get('option_type','')} {e.get('adj_confidence','')}%")
+        else:
+            labels.append(f"{name} · {e.get('status','—')}")
+
+    tabs = st.tabs(labels)
+    for tab, e in zip(tabs, ordered):
+        with tab:
+            if e.get("actionable") and e.get("direction"):
+                _render_best_trade(e, _light_for(e.get("adj_confidence", 0)))
+            else:
+                _render_index_pass(e)
+
+
+def _render_index_pass(e: dict):
+    """Render a non-actionable index (AVOID / WATCHLIST) with its reason."""
+    status = e.get("status", "—")
+    color = "#3b82f6" if status == "WATCHLIST" else "#f23645"
+    word = "👀 WATCHLIST — wait for confirmation" if status == "WATCHLIST" else "🚫 No trade right now"
+    reason = e.get("reason") or "No confirmed directional edge."
+    conf = e.get("adj_confidence", e.get("base_confidence", 0))
+    st.markdown(
+        f"""<div style="background:#15181f;border-left:4px solid {color};border-radius:10px;
+                    padding:14px 18px;margin:6px 0">
+              <div style="color:{color};font-weight:800;font-size:15px">{word}</div>
+              <div style="color:#c7ccd4;font-size:13px;margin-top:4px">{reason}</div>
+              <div style="color:#7d828c;font-size:12px;margin-top:6px">Engine read: {conf}% · {status}</div>
+            </div>""",
+        unsafe_allow_html=True,
+    )
 
 
 def _render_warnings(decision: dict):
